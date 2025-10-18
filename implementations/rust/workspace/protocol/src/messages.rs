@@ -3,7 +3,6 @@ This file contains all the message structures exchanged between participants
 in the e-voting protocol. All individual message structs
 are unified under the `ProtocolMessage` enum for type-safe handling.
 */
-
 // TODO: consider boxing structs in large enum variants to improve performance
 // currently ignored for code simplicity until performance data is analyzed
 #![allow(clippy::large_enum_variant)]
@@ -72,10 +71,27 @@ pub struct AuthVoterMsgData {
     pub ballot_style: BallotStyle,
 }
 
-/// Sent from EAS to DBB to authorize a voter, and forwarded from EAS to VA to confirm.
+/// Sent from EAS to DBB to authorize a voter to submit and cast ballots.
 #[derive(Debug, Clone, PartialEq, VSerializable)]
 pub struct AuthVoterMsg {
     pub data: AuthVoterMsgData,
+    pub signature: Signature,
+}
+
+/// The data part of the `ConfirmAuthorizationMsg`, which is what is signed.
+#[derive(Debug, Clone, PartialEq, VSerializable)]
+pub struct ConfirmAuthorizationMsgData {
+    pub election_hash: ElectionHash,
+    pub voter_pseudonym: Option<VoterPseudonym>,
+    pub voter_verifying_key: VerifyingKey,
+    pub ballot_style: Option<BallotStyle>,
+    pub authentication_result: (bool, String),
+}
+
+/// Sent from EAS to VA to inform the voter about the authorization result.
+#[derive(Debug, Clone, PartialEq, VSerializable)]
+pub struct ConfirmAuthorizationMsg {
+    pub data: ConfirmAuthorizationMsgData,
     pub signature: Signature,
 }
 
@@ -499,6 +515,7 @@ pub enum ProtocolMessage {
     HandToken(HandTokenMsg),
     AuthFinish(AuthFinishMsg),
     AuthVoter(AuthVoterMsg),
+    ConfirmAuthorization(ConfirmAuthorizationMsg),
 
     // Ballot Submission
     SubmitSignedBallot(SignedBallotMsg),

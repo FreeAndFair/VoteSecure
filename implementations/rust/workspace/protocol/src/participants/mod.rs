@@ -9,5 +9,8 @@
 /// Declares the Ballot Check Application (BCA) submodule.
 pub mod ballot_check_application;
 
+/// Declares the Election Administration Server (EAS) submodule.
+pub mod election_admin_server;
+
 /// Declares the Voting Application (VA) submodule.
 pub mod voting_application;

@@ -401,6 +401,21 @@ impl<T: VSerializable> VSerializable for &T {
     }
 }
 
+/// Implements [`VSerializable`] for bool
+impl VSerializable for bool {
+    fn ser(&self) -> Vec<u8> {
+        if *self { vec![1u8] } else { vec![0u8] }
+    }
+}
+
+/// Implements [`VDeserializable`] for bool
+impl VDeserializable for bool {
+    fn deser(buffer: &[u8]) -> Result<bool, Error> {
+        let byte: [u8; 1] = buffer.try_into()?;
+        Ok(byte[0] == 1u8)
+    }
+}
+
 /// Implements [`VSerializable`] for u32
 ///
 /// Required by [`ParticipantPosition`][`crate::dkgd::recipient::ParticipantPosition`]
@@ -701,6 +716,32 @@ impl VDeserializable for String {
         let string = String::from_utf8(bytes.to_vec())
             .map_err(|_| Error::DeserializationError("Failed to deserialize String".into()))?;
         Ok(string)
+    }
+}
+
+/// Implements [`VSerializable`] for [`Option<T>`]
+impl<T: VSerializable> VSerializable for Option<T> {
+    fn ser(&self) -> Vec<u8> {
+        let mut bytes = self.is_some().ser();
+        if let Some(value) = self {
+            bytes.extend_from_slice(value.ser().as_slice());
+        }
+        bytes
+    }
+}
+
+/// Implements [`VDeserializable`] for [`Option<T>`]
+impl<T: VDeserializable> VDeserializable for Option<T> {
+    fn deser(buffer: &[u8]) -> Result<Self, Error> {
+        let discriminator = get_slice(buffer, 0..1)?;
+        let is_some = bool::deser(discriminator)?;
+        if is_some {
+            let tail = get_slice(buffer, 1..buffer.len())?;
+            let value = T::deser(tail)?;
+            Ok(Some(value))
+        } else {
+            Ok(None)
+        }
     }
 }
 

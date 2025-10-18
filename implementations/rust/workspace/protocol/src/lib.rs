@@ -14,6 +14,8 @@
 #[allow(unused_imports)]
 use ::crypto::utils;
 
+/// Contains messages and structure relevant to interacting with the Authentication Service (AS).
+pub mod auth_service;
 /// Contains all Public Bulletin Board entry structures.
 pub mod bulletins;
 /// Contains common cryptographic data structures.

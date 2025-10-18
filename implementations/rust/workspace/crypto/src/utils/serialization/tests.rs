@@ -306,4 +306,58 @@ mod tests {
         let decrypted = back.0.decrypt(&back.2);
         assert_eq!(message, decrypted);
     }
+
+    #[test]
+    pub fn test_option_vser_ristretto() {
+        test_option_vser::<RCtx>();
+    }
+
+    #[test]
+    pub fn test_option_vser_p256() {
+        test_option_vser::<PCtx>();
+    }
+
+    fn test_option_vser<Ctx: Context + PartialEq>() {
+        let count = 5;
+
+        let keypair = KeyPair::<Ctx>::generate();
+        let messages: Vec<[Ctx::Element; 2]> = (0..count)
+            .map(|_| [Ctx::random_element(), Ctx::random_element()])
+            .collect();
+
+        let ciphertexts: Vec<Ciphertext<Ctx, 2>> =
+            messages.iter().map(|m| keypair.encrypt(&m)).collect();
+
+        // We also test bool, since option uses it as discriminator
+        let t = true;
+        let serialized = t.ser();
+        let back = <bool>::deser(&serialized).unwrap();
+        assert_eq!(t, back);
+
+        let t = false;
+        let serialized = t.ser();
+        let back = <bool>::deser(&serialized).unwrap();
+        assert_eq!(t, back);
+
+        let kp = Some(keypair);
+        let serialized = kp.ser();
+        let back = Option::<KeyPair<Ctx>>::deser(&serialized).unwrap();
+        assert_eq!(kp, back);
+
+        let m = Some(messages);
+        let serialized = m.ser();
+        let back = Option::<Vec<[Ctx::Element; 2]>>::deser(&serialized).unwrap();
+        assert_eq!(m, back);
+
+        let c = Some(ciphertexts);
+        let serialized = c.ser();
+        let back = Option::<Vec<Ciphertext<Ctx, 2>>>::deser(&serialized).unwrap();
+        assert_eq!(c, back);
+
+        let n = None;
+        let serialized = n.ser();
+        let back = Option::<u32>::deser(&serialized).unwrap();
+
+        assert_eq!(n, back);
+    }
 }
