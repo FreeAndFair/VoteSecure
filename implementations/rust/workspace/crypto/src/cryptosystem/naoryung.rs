@@ -375,6 +375,28 @@ impl<C: Context> PublicKey<C> {
         }
     }
 
+    /// Augment an `ElGamal` public key into a `Naor-Yung` public key.
+    ///
+    /// Use this function to create a public key from an existing `ElGamal` public key;
+    /// the value `pk_a` is derived from a random oracle, `pk_a = H(context)`.
+    ///
+    /// # Parameters
+    ///
+    /// - `elgamal_pk`: The `ElGamal` public key to augment
+    /// - `context`: The context that will be used as input to the hash function to
+    ///   derive `pk_a` (PK CONTEXT)
+    ///
+    /// # Errors
+    ///
+    /// - `HashToElementError` if hashing to an element to compute `pk_a` returns error
+    ///
+    /// Use [`KeyPair::generate`] to instead generate a fresh key pair.
+    pub fn augment(elgamal_pk: &elgamal::PublicKey<C>, context: &[u8]) -> Result<Self, Error> {
+        let pk_a = C::G::hash_to_element(&[context], &[b"naor_yung_public_key_a"]);
+        let ret = Self::from_elgamal(elgamal_pk, pk_a?);
+        Ok(ret)
+    }
+
     /// Encrypt the given message with this public key.
     ///
     /// This function also computes the proof of well-formedness, using
@@ -612,7 +634,7 @@ mod tests {
     use crate::cryptosystem::elgamal;
     use crate::cryptosystem::elgamal::KeyPair as EGKeyPair;
     use crate::cryptosystem::naoryung::KeyPair as NYKeyPair;
-    use crate::cryptosystem::naoryung::PublicKey;
+    use crate::cryptosystem::naoryung::PublicKey as NYPublicKey;
     use crate::utils::serialization::{FDeserializable, FSerializable};
 
     #[test]
@@ -623,6 +645,16 @@ mod tests {
     #[test]
     fn test_naoryung_from_elgamal_p256() {
         test_naoryung_from_elgamal::<PCtx>();
+    }
+
+    #[test]
+    fn test_naoryung_augment_ristretto() {
+        test_naoryung_augment::<RCtx>();
+    }
+
+    #[test]
+    fn test_naoryung_augment_p256() {
+        test_naoryung_augment::<PCtx>();
     }
 
     #[test]
@@ -679,6 +711,38 @@ mod tests {
         // `ElGamal` ciphertext
         let stripped: elgamal::Ciphertext<Ctx, 2> =
             ny_keypair.strip(ciphertext, encryption_context).unwrap();
+        // decrypt using plain `ElGamal` decryption
+        let decrypted = eg_keypair.decrypt(&stripped);
+        assert_eq!(message, decrypted);
+    }
+
+    fn test_naoryung_augment<Ctx: Context>() {
+        let context = &[];
+        let eg_keypair: EGKeyPair<Ctx> = EGKeyPair::generate();
+        let eg_pk = &eg_keypair.pkey;
+
+        let ny_pk: NYPublicKey<Ctx> = NYPublicKey::augment(&eg_pk, context).unwrap();
+
+        let ny_keypair: NYKeyPair<Ctx> = NYKeyPair::augment(&eg_keypair, context).unwrap();
+        let ny_pk2: NYPublicKey<Ctx> = ny_keypair.pkey.clone();
+        // augmenting the keypair or the public key produces the same result
+        assert_eq!(ny_pk, ny_pk2);
+
+        let message = [Ctx::random_element(), Ctx::random_element()];
+        // Set to some relevant context value
+        let encryption_context = &[];
+        // computes a `Naor-Yung` ciphertext
+        let ciphertext = ny_pk.encrypt(&message, encryption_context).unwrap();
+        // stripping a `Naor-Yung` ciphertexts verifies its proof and returns an
+        // `ElGamal` ciphertext
+        let stripped: elgamal::Ciphertext<Ctx, 2> =
+            ny_pk.strip(ciphertext.clone(), encryption_context).unwrap();
+        // decrypt using plain `ElGamal` decryption
+        let decrypted = eg_keypair.decrypt(&stripped);
+        assert_eq!(message, decrypted);
+
+        let stripped: elgamal::Ciphertext<Ctx, 2> =
+            ny_pk2.strip(ciphertext, encryption_context).unwrap();
         // decrypt using plain `ElGamal` decryption
         let decrypted = eg_keypair.decrypt(&stripped);
         assert_eq!(message, decrypted);

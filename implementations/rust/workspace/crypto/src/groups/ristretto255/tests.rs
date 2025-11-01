@@ -201,15 +201,33 @@ fn test_ristretto_g_exp() {
 }
 
 #[test]
-fn test_ristretto_encode_decode() {
+fn test_ristretto_encode_decode_30_bytes() {
     use rand::Rng;
 
     let mut rng = Ctx::get_rng();
     let mut lhs = [0u8; 30];
     rng.fill(&mut lhs[..]);
 
-    let element = Ristretto255Group::encode(&lhs).unwrap();
-    let rhs = Ristretto255Group::decode(&element).unwrap();
+    let element = Ristretto255Group::encode_30_bytes(&lhs).unwrap();
+    let rhs = Ristretto255Group::decode_30_bytes(&element).unwrap();
+
+    assert_eq!(lhs, rhs);
+}
+
+#[test]
+fn test_ristretto_encode_decode_array() {
+    use rand::Rng;
+
+    let mut rng = Ctx::get_rng();
+
+    // Test with array of size 3
+    let mut lhs: [[u8; 30]; 3] = [[0u8; 30]; 3];
+    for plaintext in &mut lhs {
+        rng.fill(&mut plaintext[..]);
+    }
+
+    let elements = Ristretto255Group::encode_array(&lhs).unwrap();
+    let rhs = Ristretto255Group::decode_array(&elements).unwrap();
 
     assert_eq!(lhs, rhs);
 }
@@ -329,4 +347,81 @@ fn test_ristretto_hash_to_element_empty_input() {
 #[test]
 fn test_ristretto_hash_to_scalar_empty_input() {
     let _ = RGroup::hash_to_scalar(&[], &[]);
+}
+
+#[test]
+fn test_ristretto_scalar_encode() {
+    let s = Ctx::random_scalar();
+    let elements = RGroup::encode_scalar(&s).unwrap();
+
+    let s_decoded = RGroup::decode_scalar(&elements).unwrap();
+    assert_eq!(s, s_decoded, "Decoded scalar does not match original");
+}
+
+#[test]
+fn test_ristretto_encode_decode_generic() {
+    // 10 bytes -> should require 1 element (10 <= 30)
+    let original_data = [1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+    let encoded: [RistrettoElement; 1] = RGroup::encode_bytes(&original_data).unwrap();
+    let decoded: [u8; 10] = RGroup::decode_bytes(&encoded).unwrap();
+
+    assert_eq!(original_data, decoded);
+
+    // exactly 30 bytes -> should require exactly 1 element
+    let original_data = [42u8; 30];
+
+    let encoded: [RistrettoElement; 1] = RGroup::encode_bytes(&original_data).unwrap();
+    let decoded: [u8; 30] = RGroup::decode_bytes(&encoded).unwrap();
+
+    assert_eq!(original_data, decoded);
+
+    // 31 bytes -> should require 2 elements (31 > 30, so ceil(31/30) = 2)
+    let mut original_data = [0u8; 31];
+    for (i, byte) in original_data.iter_mut().enumerate() {
+        *byte = (i % 256) as u8;
+    }
+
+    let encoded: [RistrettoElement; 2] = RGroup::encode_bytes(&original_data).unwrap();
+    let decoded: [u8; 31] = RGroup::decode_bytes(&encoded).unwrap();
+
+    assert_eq!(original_data, decoded);
+
+    // 60 bytes -> should require exactly 2 elements (60/30 = 2)
+    let mut original_data = [0u8; 60];
+    for (i, byte) in original_data.iter_mut().enumerate() {
+        *byte = ((i * 7) % 256) as u8; // Some pattern to make it interesting
+    }
+
+    let encoded: [RistrettoElement; 2] = RGroup::encode_bytes(&original_data).unwrap();
+    let decoded: [u8; 60] = RGroup::decode_bytes(&encoded).unwrap();
+
+    assert_eq!(original_data, decoded);
+
+    // 61 bytes -> should require 3 elements (ceil(61/30) = 3)
+    let mut original_data = [0u8; 61];
+    for (i, byte) in original_data.iter_mut().enumerate() {
+        *byte = ((i * 13) % 256) as u8;
+    }
+
+    let encoded: [RistrettoElement; 3] = RGroup::encode_bytes(&original_data).unwrap();
+    let decoded: [u8; 61] = RGroup::decode_bytes(&encoded).unwrap();
+
+    assert_eq!(original_data, decoded);
+
+    // fails to compile: 31 bytes needs 2 elements, not 1
+    // let data = [0u8; 31];
+    // let _encoded = RGroup::encode_bytes::<31, 1>(&data).unwrap();
+
+    // fails to compile: 10 bytes only needs 1 element, not 2
+    // let data = [0u8; 10];
+    // let _encoded = RGroup::encode_bytes::<10, 2>(&data).unwrap();
+
+    // fails to compile: trying to decode 2 elements into 10 bytes
+    // let elements = [RistrettoElement::one(); 2];
+    // let _decoded = RGroup::decode_bytes::<2, 10>(&elements).unwrap();
+
+    // fails to compile: 0 is not allowed
+    // let data = [0u8; 0];
+    // let _encoded: [RistrettoElement; 0] = RGroup::encode_bytes (&data).unwrap();
 }

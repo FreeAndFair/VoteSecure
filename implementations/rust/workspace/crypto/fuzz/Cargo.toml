@@ -1,0 +1,47 @@
+[package]
+name = "crypto-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.crypto]
+path = ".."
+
+[[bin]]
+name = "deser_u32"
+path = "fuzz_targets/deser_u32.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "deser_u64"
+path = "fuzz_targets/deser_u64.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "deser_eg_ciphertext_ristretto"
+path = "fuzz_targets/deser_eg_ciphertext_ristretto.rs"
+test = false
+doc = false
+bench = false
+[[bin]]
+name = "encode_bytes_ristretto"
+path = "fuzz_targets/encode_bytes_ristretto.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "encode_scalar_bytes_ristretto"
+path = "fuzz_targets/encode_scalar_bytes_ristretto.rs"
+test = false
+doc = false
+bench = false

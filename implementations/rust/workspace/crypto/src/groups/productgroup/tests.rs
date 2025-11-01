@@ -287,16 +287,16 @@ fn test_element_repl_equals<C: Context>() {
 }
 
 #[test]
-fn test_scalar_ass_ristretto() {
-    test_scalar_ass::<RCtx>();
+fn test_scalar_add_ristretto() {
+    test_scalar_add::<RCtx>();
 }
 
 #[test]
-fn test_scalar_ass_p256() {
-    test_scalar_ass::<PCtx>();
+fn test_scalar_add_p256() {
+    test_scalar_add::<PCtx>();
 }
 
-fn test_scalar_ass<C: Context>() {
+fn test_scalar_add<C: Context>() {
     const W: usize = 3;
     let mut rng = C::get_rng();
     let lhs = <[C::Scalar; W]>::random(&mut rng);

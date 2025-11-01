@@ -987,6 +987,18 @@ mod tests {
         test_shuffle::<RCtx, 3>();
         test_shuffle::<RCtx, 4>();
         test_shuffle::<RCtx, 5>();
+        test_shuffle::<RCtx, 5>();
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    #[crate::warning("Miri test fails (Stacked Borrows)")]
+    fn test_shuffle_invalid_ristretto() {
+        test_shuffle_invalid::<RCtx, 2>();
+        test_shuffle_invalid::<RCtx, 3>();
+        test_shuffle_invalid::<RCtx, 4>();
+        test_shuffle_invalid::<RCtx, 5>();
+        test_shuffle_invalid::<RCtx, 5>();
     }
 
     #[test]
@@ -997,6 +1009,17 @@ mod tests {
         test_shuffle::<PCtx, 3>();
         test_shuffle::<PCtx, 4>();
         test_shuffle::<PCtx, 5>();
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore)]
+    #[crate::warning("Miri test fails (Stacked Borrows)")]
+    fn test_shuffle_invalid_p256() {
+        test_shuffle_invalid::<PCtx, 2>();
+        test_shuffle_invalid::<PCtx, 3>();
+        test_shuffle_invalid::<PCtx, 4>();
+        test_shuffle_invalid::<PCtx, 5>();
+        test_shuffle_invalid::<PCtx, 5>();
     }
 
     #[test]
@@ -1045,6 +1068,43 @@ mod tests {
         let ok = shuffler.verify(&ciphertexts, &pciphertexts, &proof, &vec![]);
 
         assert!(ok.unwrap());
+    }
+
+    fn test_shuffle_invalid<C: Context, const W: usize>() {
+        let count = 10;
+        let keypair: KeyPair<C> = KeyPair::generate();
+
+        let messages: Vec<[C::Element; W]> = (0..count)
+            .map(|_| array::from_fn(|_| C::random_element()))
+            .collect();
+
+        let ciphertexts: Vec<Ciphertext<C, W>> =
+            messages.iter().map(|m| keypair.encrypt(m)).collect();
+
+        let generators = C::G::ind_generators(count, &vec![]).unwrap();
+        let shuffler = Shuffler::<C, W>::new(generators, keypair.pkey.clone());
+
+        let (pciphertexts, proof) = shuffler.shuffle(&ciphertexts, &vec![]).unwrap();
+        let ok = shuffler.verify(&ciphertexts, &pciphertexts, &proof, &vec![]);
+        assert!(ok.unwrap());
+
+        let messages: Vec<[C::Element; W]> = (0..count)
+            .map(|_| array::from_fn(|_| C::random_element()))
+            .collect();
+        let ciphertexts: Vec<Ciphertext<C, W>> =
+            messages.iter().map(|m| keypair.encrypt(m)).collect();
+        let not_ok = shuffler.verify(&ciphertexts, &pciphertexts, &proof, &vec![]);
+
+        assert!(!not_ok.unwrap());
+
+        let messages: Vec<[C::Element; W]> = (0..count)
+            .map(|_| array::from_fn(|_| C::random_element()))
+            .collect();
+        let ciphertexts: Vec<Ciphertext<C, W>> =
+            messages.iter().map(|m| keypair.encrypt(m)).collect();
+        let not_ok = shuffler.verify(&ciphertexts[1..].to_vec(), &pciphertexts, &proof, &vec![]);
+
+        assert!(not_ok.is_err());
     }
 
     fn test_shuffle_label<C: Context>() {

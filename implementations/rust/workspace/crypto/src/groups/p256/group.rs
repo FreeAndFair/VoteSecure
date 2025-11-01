@@ -29,8 +29,6 @@ impl CryptoGroup for P256Group {
     type Element = P256Element;
     type Scalar = P256Scalar;
     type Hasher = hash::Hasher256;
-    type Plaintext = [u8; 30];
-    type Message = Self::Element;
 
     fn generator() -> Self::Element {
         P256Element::new(ProjectivePoint::GENERATOR)
@@ -75,14 +73,18 @@ impl CryptoGroup for P256Group {
     /// # Errors
     ///
     /// todo!()
-    fn encode(_p: &Self::Plaintext) -> Result<Self::Message, Error> {
+    fn encode_bytes<const I: usize, const O: usize>(
+        _bytes: &[u8; I],
+    ) -> Result<[Self::Element; O], Error> {
         todo!()
     }
 
     /// # Errors
     ///
     /// todo!()
-    fn decode(_p: &Self::Message) -> Result<Self::Plaintext, Error> {
+    fn decode_bytes<const I: usize, const O: usize>(
+        _element: &[Self::Element; I],
+    ) -> Result<[u8; O], Error> {
         todo!()
     }
 

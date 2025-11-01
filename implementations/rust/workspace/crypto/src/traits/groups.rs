@@ -45,12 +45,6 @@ pub trait CryptoGroup {
     /// The hashing function used for hash to curve and hash to scalar
     type Hasher: hash::Hasher;
 
-    /// The type from which values are encoded into the `Message` type (WIP)
-    type Plaintext;
-
-    /// The type on which encryption operates to yield ciphertexts (WIP)
-    type Message;
-
     /// The default generator
     fn generator() -> Self::Element;
 
@@ -85,22 +79,26 @@ pub trait CryptoGroup {
     /// Returns a random `Scalar`
     fn random_scalar<R: rng::CRng>(rng: &mut R) -> Self::Scalar;
 
-    /// Encode a type 'Plaintext' into a type 'Message' (WIP).
+    /// Encode bytes into the given number of Ristretto elements
     ///
     /// # Errors
     ///
     /// - `EncodingError` if using `Ristretto255Group` and a point was not found for the input, with negligible probability
     /// - undefined if using `P256Group`
     #[crate::warning("# Errors for this function are incompletely specified")]
-    fn encode(p: &Self::Plaintext) -> Result<Self::Message, Error>;
+    fn encode_bytes<const I: usize, const O: usize>(
+        bytes: &[u8; I],
+    ) -> Result<[Self::Element; O], Error>;
 
-    /// Decode a type 'Plaintext' from a type 'Message' (WIP).
+    /// Decode bytes from the given number of Ristretto elements
     ///
     /// # Errors
     ///
     /// - undefined if using `P256Group`
     #[crate::warning("# Errors for this function are incompletely specified")]
-    fn decode(p: &Self::Message) -> Result<Self::Plaintext, Error>;
+    fn decode_bytes<const I: usize, const O: usize>(
+        element: &[Self::Element; I],
+    ) -> Result<[u8; O], Error>;
 
     /// Returns `count` independent generators of the group
     ///

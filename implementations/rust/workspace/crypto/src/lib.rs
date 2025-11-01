@@ -1,12 +1,11 @@
-/*
- * LibraryName project
+/*!
+ * Cryptography library for the Vote Secure project
  *
  * @author David Ruescas (david@sequentech.io)\
  * @author Frank Zeyda (frank.zeyda@freeandfair.us)\
  * @copyright Free & Fair. 2025\
  * @version 0.1
  */
-
 #![allow(dead_code)]
 // Only necessary for custom_warning_macro
 #![feature(stmt_expr_attributes)]
@@ -24,6 +23,7 @@ pub mod cryptosystem;
 #[crate::warning("Asserts are present in this module. Not optimized.")]
 pub mod dkgd;
 pub mod groups;
+/// Abstractions for curve arithmetic, groups, elements and scalars.
 pub mod traits;
 /// Utilities such as random number generation, hashing, signatures and serialization.
 pub mod utils;

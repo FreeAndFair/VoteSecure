@@ -1,5 +1,5 @@
 [workspace]
-members = ["crypto"]
+members = ["crypto", "protocol"]
 resolver = "2"
 
 [workspace.package]

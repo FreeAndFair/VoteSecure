@@ -140,6 +140,13 @@ mod tests {
             let decrypted = deserialized.keypair.decrypt(&deserialized.ciphertexts[i]);
             assert_eq!([messages[i].clone()], decrypted);
         }
+
+        // test also that a vector with padded bytes works
+        let items = vec![0u32; 10];
+        let mut bytes = items.ser();
+        bytes.extend_from_slice(&[0u8; 5]);
+        let deserialized = Vec::<u32>::deser(&bytes).unwrap();
+        assert_eq!(items, deserialized);
     }
 
     fn test_4_struct_vser<Ctx: Context + PartialEq>() {
@@ -241,6 +248,7 @@ mod tests {
             String,
             u32,
             u64,
+            u16,
         );
 
         let count = 5;
@@ -254,7 +262,7 @@ mod tests {
             messages.iter().map(|m| keypair.encrypt(&m)).collect();
 
         let tag = "test".to_string();
-        let eg = EG(keypair, messages.clone(), ciphertexts, tag.clone(), 1, 1);
+        let eg = EG(keypair, messages.clone(), ciphertexts, tag.clone(), 1, 1, 1);
 
         let serialized = eg.ser();
 

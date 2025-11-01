@@ -1,0 +1,8 @@
+[package]
+name = "votesecure-protocol-library"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+crypto = { path = "../crypto" }
+vser_derive = { path = "../crypto/macros/vser_derive" }

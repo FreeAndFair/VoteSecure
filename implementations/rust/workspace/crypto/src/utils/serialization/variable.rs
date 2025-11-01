@@ -26,7 +26,7 @@
 //! - Generic (homogeneous) arrays
 //! - Generic (homogeneous) vectors
 //! - [`LargeVector`] (for performant serialization on large data)
-//! - u32, u64
+//! - u8, u16, u32, u64, u128
 //! - String
 //!
 //! # Derive macro implementations
@@ -92,8 +92,12 @@ pub trait TFTuple: Sized {
 impl<T: VSerializable> VSerializable for Vec<T> {
     /// Serialize a vector of variable length serializable types.
     ///
-    /// A vector of `N` values of type `T` is serialized as `N` consecutive
-    /// byte sequences (in the same order), each of of the form
+    /// Returns a byte vector with an `N` length prefix
+    ///
+    /// <`N Length Prefix`>
+    ///
+    /// followed by `N` values of type `T` serialized as `N` consecutive byte sequences
+    /// (in the same order), each of of the form
     ///
     /// <`Length Prefix`><`Value Bytes`>
     ///
@@ -104,13 +108,21 @@ impl<T: VSerializable> VSerializable for Vec<T> {
     /// - `Value Bytes` is the byte representation the correponding instance of `T`
     ///   resulting from calling `T::ser` on that instance
     ///
+    /// The number of items in the vector, `N` is prefixed on the entire
+    /// byte sequence, giving
+    ///
+    /// <`N Length Prefix`><`Length Prefix1`><`Value Bytes1`>...
+    ///
+    /// as the complete byte sequence.
+    ///
     /// # Panics
     ///
     /// - If the number of elements is larger than `LengthU::MAX`
     ///
     /// Returns the vector of bytes
     fn ser(&self) -> Vec<u8> {
-        let mut ret = vec![];
+        let items: LengthU = self.len().try_into().expect("usize::MAX <= LengthU::MAX");
+        let mut ret = items.to_be_bytes().to_vec();
         for item in self {
             let bytes = item.ser();
             let len: LengthU = bytes.len().try_into().expect("usize::MAX <= LengthU::MAX");
@@ -137,7 +149,11 @@ impl<T: VDeserializable> VDeserializable for Vec<T> {
     fn deser(buffer: &[u8]) -> Result<Self, Error> {
         let mut bytes = buffer;
         let mut ret: Vec<Result<T, Error>> = vec![];
-        while !bytes.is_empty() {
+        let items_bytes: [u8; LENGTH_BYTES] = get_slice(bytes, 0..LENGTH_BYTES)?.try_into()?;
+        let items: usize = LengthU::from_be_bytes(items_bytes).try_into()?;
+        bytes = get_slice(bytes, LENGTH_BYTES..bytes.len())?;
+
+        for _ in 0..items {
             let len_bytes: [u8; LENGTH_BYTES] = get_slice(bytes, 0..LENGTH_BYTES)?.try_into()?;
             let len: usize = LengthU::from_be_bytes(len_bytes).try_into()?;
 
@@ -394,7 +410,7 @@ impl VSerializable for u32 {
     }
 }
 
-/// Implements [`VSerializable`] for u32
+/// Implements [`VDeserializable`] for u32
 ///
 /// Required by [`ParticipantPosition`][`crate::dkgd::recipient::ParticipantPosition`]
 impl VDeserializable for u32 {
@@ -414,12 +430,70 @@ impl VSerializable for u64 {
     }
 }
 
-/// Implements [`VSerializable`] for u64
+/// Implements [`VDeserializable`] for u64
 impl VDeserializable for u64 {
     fn deser(buffer: &[u8]) -> Result<u64, Error> {
         let bytes: [u8; 8] = buffer.try_into()?;
 
         let value = u64::from_be_bytes(bytes);
+
+        Ok(value)
+    }
+}
+
+/// Implements [`VSerializable`] for u16
+///
+/// Required by [`ParticipantPosition`][`crate::dkgd::recipient::ParticipantPosition`]
+impl VSerializable for u16 {
+    fn ser(&self) -> Vec<u8> {
+        self.to_be_bytes().to_vec()
+    }
+}
+
+/// Implements [`VDeserializable`] for u64
+impl VDeserializable for u16 {
+    fn deser(buffer: &[u8]) -> Result<u16, Error> {
+        let bytes: [u8; 2] = buffer.try_into()?;
+
+        let value = u16::from_be_bytes(bytes);
+
+        Ok(value)
+    }
+}
+
+/// Implements [`VSerializable`] for u8
+///
+/// Required by [`ParticipantPosition`][`crate::dkgd::recipient::ParticipantPosition`]
+impl VSerializable for u8 {
+    fn ser(&self) -> Vec<u8> {
+        self.to_be_bytes().to_vec()
+    }
+}
+
+/// Implements [`VDeserializable`] for u8
+impl VDeserializable for u8 {
+    fn deser(buffer: &[u8]) -> Result<u8, Error> {
+        let bytes: [u8; 1] = buffer.try_into()?;
+
+        let value = u8::from_be_bytes(bytes);
+
+        Ok(value)
+    }
+}
+
+/// Implements [`VSerializable`] for u128
+impl VSerializable for u128 {
+    fn ser(&self) -> Vec<u8> {
+        self.to_be_bytes().to_vec()
+    }
+}
+
+/// Implements [`VDeserializable`] for u128
+impl VDeserializable for u128 {
+    fn deser(buffer: &[u8]) -> Result<u128, Error> {
+        let bytes: [u8; 16] = buffer.try_into()?;
+
+        let value = u128::from_be_bytes(bytes);
 
         Ok(value)
     }

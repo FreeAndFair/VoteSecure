@@ -36,7 +36,7 @@ pub enum Error {
     #[error("Signature error: {0}")]
     SignatureDeserError(#[from] ed25519_dalek::SignatureError),
 
-    /// Occurs when [encoding][`crate::traits::groups::CryptoGroup::encode`] to the curve fails
+    /// Occurs when [encoding][`crate::traits::groups::CryptoGroup::encode_bytes`] to the curve fails
     #[error("{0}")]
     EncodingError(String),
 
@@ -71,4 +71,8 @@ pub enum Error {
     /// Occurs when a hash to curve or hash to scalar error occurs in `p256`
     #[error("{0}")]
     HashToElementError(String),
+
+    /// Occurs when a scalar cannot be decoded from two elements
+    #[error("{0}")]
+    ScalarDecodeError(String),
 }

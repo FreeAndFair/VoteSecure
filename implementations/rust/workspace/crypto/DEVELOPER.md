@@ -7,9 +7,9 @@ This crate requires the **nightly** Rust compiler. To install and use the nightl
 rustup default nightly
 ```
 
-### Seting up pre-commit hooks
+### Setting up pre-commit hooks
 
-To install (pre-commit hooks)[https://github.com/FreeAndFair/TuskMobileVoting/blob/main/docs/team.md#pre-commit-hooks] (requires python):
+To install (pre-commit hooks)[https://github.com/FreeAndFair/MobileVotingCoreCryptography/blob/main/docs/team.md#pre-commit-hooks] (requires python):
 
 ```bash
 pip install pre-commit
@@ -144,6 +144,22 @@ cargo miri nextest run -jN
 ```
 
 Setting N to available cores (for example `cargo miri nextest run -j12` for a 12 core machine).
+
+#### Cargo fuzz
+
+You will need to install [cargo-fuzz](https://rust-fuzz.github.io/book/introduction.html). Then run
+
+```bash
+cargo fuzz list
+```
+
+to list the fuzz targets, and
+
+```bash
+cargo fuzz run <target>
+```
+
+to run a fuzz target.
 
 #### Custom warnings
 

@@ -139,6 +139,35 @@ impl<C: Context> KeyPair<C> {
     pub fn decrypt<const W: usize>(&self, message: &Ciphertext<C, W>) -> [C::Element; W] {
         decrypt::<C, W>(message.u(), message.v(), &self.skey)
     }
+
+    /// Decrypt the given ciphertext with this key pair and the given randomness.
+    ///
+    /// The input ciphertext can have arbitrary width `W`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crypto::cryptosystem::elgamal::KeyPair;
+    /// use crypto::context::Context;
+    /// use crypto::context::RistrettoCtx as RCtx;
+    ///
+    /// let keypair: KeyPair<RCtx> = KeyPair::generate();
+    /// // encrypt a message of width 2
+    /// let message = [RCtx::random_element(); 2];
+    /// // generate random values for the encryption
+    /// let r = [RCtx::random_scalar(); 2];
+    /// let ciphertext = keypair.encrypt_with_r(&message, &r);
+    ///
+    /// let decrypted = keypair.decrypt_with_r(&ciphertext, &r);
+    /// assert_eq!(message, decrypted);
+    /// ```
+    pub fn decrypt_with_r<const W: usize>(
+        &self,
+        ciphertext: &Ciphertext<C, W>,
+        r: &[C::Scalar; W],
+    ) -> [C::Element; W] {
+        self.pkey.decrypt_with_r(ciphertext, r)
+    }
 }
 
 /**
@@ -235,6 +264,39 @@ impl<C: Context> PublicKey<C> {
         let v = message.mul(&v);
 
         Ciphertext([u, v])
+    }
+
+    /// Decrypt the given ciphertext with this public key and the given randomness.
+    ///
+    /// The message can have arbitrary width `W`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crypto::cryptosystem::elgamal::{PublicKey, KeyPair};
+    /// use crypto::context::Context;
+    /// use crypto::context::RistrettoCtx as RCtx;
+    ///
+    /// let keypair: KeyPair<RCtx> = KeyPair::generate();
+    /// let public_key: &PublicKey<RCtx> = &keypair.pkey;
+    /// // encrypt a message of width 2
+    /// let message = [RCtx::random_element(); 2];
+    /// // generate random values for the encryption
+    /// let r = [RCtx::random_scalar(); 2];
+    /// let ciphertext = public_key.encrypt_with_r(&message, &r);
+    ///
+    /// let decrypted = keypair.decrypt_with_r(&ciphertext, &r);
+    /// assert_eq!(message, decrypted);
+    /// ```
+    pub fn decrypt_with_r<const W: usize>(
+        &self,
+        ciphertext: &Ciphertext<C, W>,
+        r: &[C::Scalar; W],
+    ) -> [C::Element; W] {
+        let v = self.y.repl_exp(r);
+        let div = v.inv();
+
+        ciphertext.0[1].mul(&div)
     }
 }
 
@@ -386,6 +448,7 @@ mod tests {
     use crate::context::RistrettoCtx as RCtx;
     use crate::cryptosystem::elgamal;
     use crate::cryptosystem::elgamal::{Ciphertext, KeyPair};
+    use crate::groups::Ristretto255Group;
     use crate::traits::groups::CryptoGroup;
     use crate::traits::groups::GroupElement;
     use crate::traits::groups::GroupScalar;
@@ -450,11 +513,15 @@ mod tests {
         let decrypted_message = keypair.decrypt(&ciphertext);
         assert_eq!(message, decrypted_message);
 
-        // manual decrypt
+        // decrypt with standalone function
         let decrypted_message = elgamal::decrypt::<Ctx, 2>(ciphertext.u(), ciphertext.v(), &x);
         assert_eq!(message, decrypted_message);
 
         // decrypt with r
+        let decrypted_message = keypair.decrypt_with_r(&ciphertext, &r);
+        assert_eq!(message, decrypted_message);
+
+        // decrypt with r, manually
         let divisor = pk.repl_exp(&r).inv();
         let decrypted_message = divisor.mul(ciphertext.v());
         assert_eq!(message, decrypted_message);
@@ -470,6 +537,26 @@ mod tests {
         let divisor: [<Ctx as Context>::Element; 2] = pk.repl_exp(&r.mul(&r2)).inv();
         let decrypted_message = divisor.mul(&one_c[1]);
         assert_eq!(one, decrypted_message);
+    }
+
+    #[test]
+    fn test_elgamal_r_encryption() {
+        let keypair = KeyPair::<RCtx>::generate();
+        let message = [RCtx::random_element(), RCtx::random_element()];
+
+        let r = [RCtx::random_scalar(), RCtx::random_scalar()];
+        let ciphertext = keypair.encrypt_with_r(&message, &r);
+
+        let encoded_rs = r.map(|s| Ristretto255Group::encode_scalar(&s).unwrap());
+
+        let keypair2 = KeyPair::<RCtx>::generate();
+
+        let encrypted_rs = encoded_rs.map(|es| keypair2.encrypt(&es));
+        let decrypted_rs = encrypted_rs.map(|ct| keypair2.decrypt(&ct));
+        let decoded_rs = decrypted_rs.map(|es| Ristretto255Group::decode_scalar(&es).unwrap());
+
+        let decrypted_message = keypair.decrypt_with_r(&ciphertext, &decoded_rs);
+        assert_eq!(message, decrypted_message);
     }
 
     fn test_elgamal_serialization_and_decryption<Ctx: Context>() {

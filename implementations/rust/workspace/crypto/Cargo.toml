@@ -1,3 +1,9 @@
+# Cargo project for the the E2EVIV Crypto Rust library
+#
+# @author David Ruescas (david@sequentech.io)
+# @author Frank Zeyda (frank.zeyda@freeandfair.us)
+# @copyright Free & Fair 2025
+# @version 0.2.0
 [package]
 name = "crypto"
 version = "0.2.0"
@@ -5,9 +11,10 @@ license = "Apache-2.0"
 edition = "2024"
 
 [dependencies]
-
-# curves
+# Elliptic Curves
 curve25519-dalek = {version = "4.1.3", features = ["rand_core", "digest", "precomputed-tables"] }
+elliptic-curve = { version = "0.13.8" }
+generic-array = "=0.14.7"
 p256 = { version = "0.13.2", features = ["arithmetic", "std", "hash2curve"] }
 
 # hashing
@@ -43,6 +50,7 @@ server = ["dep:rayon"]
 client = []
 custom-warnings = ["custom_warning_macro/on"]
 serde = ["dep:serde"]
+long_running_tests = []
 
 [[bench]]
 name = "large_vector"
@@ -80,10 +88,10 @@ print_stderr = "deny"
 arithmetic_side_effects = "warn"
 shadow_unrelated = "warn"
 cognitive_complexity = "warn"
+disallowed_macros = "deny"
 # groups, not a single lint
-pedantic = "warn"
+pedantic = "deny"
 suspicious = "deny"
 complexity = "deny"
 style = "warn"
 perf = "warn"
-restriction = "allow"
