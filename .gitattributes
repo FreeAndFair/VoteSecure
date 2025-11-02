@@ -1,0 +1,13 @@
+# Don't count Tamarin protocol specification files
+# (no proper GitHub language classification).
+**/*.m4.inc linguist-detectable=false
+**/*.spthy.inc linguist-detectable=false
+**/*.spthy linguist-detectable=false
+
+# Don't count Jupyter Notebooks, as we don't need
+# statistics about our one Jupyter notebook.
+*.ipynb linguist-detectable=false
+
+# Don't count the Cryptol directory (no proper
+# GitHub language classification).
+models/cryptography/cryptol/** linguist-detectable=false
