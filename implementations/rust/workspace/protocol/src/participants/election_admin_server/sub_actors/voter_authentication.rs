@@ -1,7 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! This file contains the implementation of the VoterAuthenticationActor`,
 //! which is responsible for handling the Voter Authentication subprotocol
 //! executed by the Election Administration Server (EAS) according to the
 //! hierarchical I/O model and the voter-authentication-spec.md specification.
+
 #![allow(unused_imports)]
 // Currently ignored for code simplicity until performance data is analyzed.
 // @todo Consider boxing structs in large enum variants to improve performance.
@@ -12,8 +17,8 @@ use crate::auth_service::{
     AuthServiceQueryMsg, AuthServiceReportMsg, InitAuthReqMsg, TokenReturnMsg,
 };
 
-use crate::crypto::{SigningKey, VerifyingKey};
-use crate::crypto::{sign_data, verify_signature};
+use crate::cryptography::{SigningKey, VerifyingKey};
+use crate::cryptography::{sign_data, verify_signature};
 
 use crate::elections::BallotStyle;
 use crate::elections::ElectionHash;
@@ -29,7 +34,7 @@ use crate::messages::{HandTokenMsg, HandTokenMsgData};
 
 use super::super::top_level_actor::AuthReqId;
 
-use crypto::utils::serialization::VSerializable;
+use cryptography::utils::serialization::VSerializable;
 
 use std::time::Instant;
 

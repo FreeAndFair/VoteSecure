@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! Integration tests for trustee protocols using Stateright.
 //!
 //! These tests model the complete message-passing system between the TAS
@@ -6,9 +10,9 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::crypto::SigningKey;
-    use crate::crypto::{
-        BallotCryptogram, Context, CryptoContext, ElectionKey, Signature, VSerializable,
+    use crate::cryptography::SigningKey;
+    use crate::cryptography::{
+        BallotCryptogram, Context, CryptographyContext, ElectionKey, Signature, VSerializable,
         encrypt_ballot, sign_data,
     };
     use crate::elections::{Ballot, BallotStyle, ElectionHash, string_to_election_hash};
@@ -28,7 +32,7 @@ mod tests {
     use crate::trustee_protocols::trustee_messages::{
         TAS_NAME, TrusteeBBUpdateMsg, TrusteeInfo, TrusteeMsg,
     };
-    use crypto::cryptosystem::elgamal::PublicKey;
+    use cryptography::cryptosystem::elgamal::PublicKey;
     use stateright::{Checker, Model, Property};
     use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
     use std::hash::{Hash, Hasher};
@@ -529,7 +533,7 @@ mod tests {
 
         /// Create the initial state with fresh actors ready to start setup.
         fn create_initial_state(&self) -> IntegrationState {
-            let mut rng = CryptoContext::get_rng();
+            let mut rng = CryptographyContext::get_rng();
 
             // Generate signing keys for TAS and trustees.
             let tas_signing_key = SigningKey::generate(&mut rng);
@@ -546,7 +550,7 @@ mod tests {
             let mut trustees_info = vec![TrusteeInfo {
                 name: TAS_NAME.to_string(),
                 verifying_key: tas_signing_key.verifying_key(),
-                public_enc_key: PublicKey::new(CryptoContext::random_element()), // Unused for TAS
+                public_enc_key: PublicKey::new(CryptographyContext::random_element()), // Unused for TAS
             }];
 
             for (i, sk) in trustee_signing_keys.iter().enumerate() {

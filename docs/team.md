@@ -2,6 +2,8 @@
 
 The following documents the mechanics (revision control practices, development environments, etc.) of how the team will develop this project and the communication mechanisms we will use during development.
 
+IMPORTANT: This document refers to _internal_ repsitory URLs (and other restricted resources) and is meant for the core development team. If you are not part of the core development team, you should not be surprised when links in this document do not work for you.
+
 ## Coding Standards
 
 - The [Free & Fair Coding Standards](https://github.com/FreeAndFair/CodingStandards/) specify guidelines for use of the various programming, specification, and verification languages used on the project. The latest version of the coding standards (as a PDF) is available [here](https://github.com/FreeAndFair/CodingStandards/releases/tag/latest).

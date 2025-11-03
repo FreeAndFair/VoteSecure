@@ -1,10 +1,8 @@
-/*
- * Messages for the protocol
- *
- * @author David Ruescas (david@sequentech.io)\
- * @copyright Free & Fair. 2025\
- * @version 0.1
- */
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
+//! Messages for the protocol
 
 use super::types::*;
 use strum::Display;

@@ -1,10 +1,8 @@
-/*
- * Protocol decryption phase
- *
- * @author David Ruescas (david@sequentech.io)\
- * @copyright Free & Fair. 2025\
- * @version 0.1
- */
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
+//! Protocol decryption phase
 
 use std::marker::PhantomData;
 
@@ -13,7 +11,7 @@ use crate::trustee_protocols::trustee_application::ascent_logic::utils::random_h
 use super::Action;
 use super::HashBoard;
 use super::messages::Message;
-use crypto::context::Context;
+use cryptography::context::Context;
 use stateright::{Model, Property};
 
 pub(crate) mod infer {
@@ -245,7 +243,7 @@ impl<C: Context, const W: usize, const T: usize, const P: usize> Model for Harne
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crypto::context::RistrettoCtx;
+    use cryptography::context::RistrettoCtx;
     use stateright::Checker;
 
     #[test]

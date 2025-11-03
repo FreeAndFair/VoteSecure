@@ -1,7 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! This module includes messages and functions pertaining to interacting
 //! with the Authentication Service (AS).
 
-use crate::crypto::VerifyingKey;
+use crate::cryptography::VerifyingKey;
 use crate::elections::ElectionHash;
 
 // Authentication Session Record

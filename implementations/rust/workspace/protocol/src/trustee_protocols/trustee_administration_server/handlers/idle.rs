@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! This file contains the TAS state handler for the `Idle`
 //! state. It handles many types of message, most of which cause
 //! the actor to enter other states.

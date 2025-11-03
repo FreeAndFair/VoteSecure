@@ -1,9 +1,11 @@
-/*!
-Ballot Casting Sub-Actor for the Digital Ballot Box.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
 
-This actor handles the ballot casting protocol where a Voting Application
-requests that a previously submitted ballot be officially cast.
-*/
+//! Ballot Casting Sub-Actor for the Digital Ballot Box.
+//!
+//! This actor handles the ballot casting protocol where a Voting Application
+//! requests that a previously submitted ballot be officially cast.
 
 // TODO: consider boxing structs in large enum variants to improve performance
 // currently ignored for code simplicity until performance data is analyzed
@@ -12,11 +14,11 @@ requests that a previously submitted ballot be officially cast.
 use crate::bulletins::{
     BallotCastBulletin, BallotCastBulletinData, Bulletin, VoterAuthBulletin, VoterAuthBulletinData,
 };
-use crate::crypto::{SigningKey, verify_signature};
+use crate::cryptography::{SigningKey, verify_signature};
 use crate::elections::{BallotTracker, ElectionHash};
 use crate::messages::{CastConfMsg, CastConfMsgData, CastReqMsg, ProtocolMessage};
 use crate::participants::digital_ballot_box::{bulletin_board::BulletinBoard, storage::DBBStorage};
-use crypto::utils::serialization::VSerializable;
+use cryptography::utils::serialization::VSerializable;
 
 // --- I/O Types ---
 
@@ -347,7 +349,8 @@ impl CastingActor {
 
         // Sign the bulletin data
         let serialized_data = bulletin_data.ser();
-        let signature_bytes = crate::crypto::sign_data(&serialized_data, &self.dbb_signing_key);
+        let signature_bytes =
+            crate::cryptography::sign_data(&serialized_data, &self.dbb_signing_key);
         let signature = hex::encode(signature_bytes.to_bytes());
 
         let bulletin = Bulletin::VoterAuthorization(VoterAuthBulletin {
@@ -383,7 +386,8 @@ impl CastingActor {
 
         // Sign the bulletin data
         let serialized_data = bulletin_data.ser();
-        let signature_bytes = crate::crypto::sign_data(&serialized_data, &self.dbb_signing_key);
+        let signature_bytes =
+            crate::cryptography::sign_data(&serialized_data, &self.dbb_signing_key);
         let signature = hex::encode(signature_bytes.to_bytes());
 
         let bulletin = Bulletin::BallotCast(BallotCastBulletin {
@@ -410,8 +414,9 @@ impl CastingActor {
 
         // Sign the confirmation message
         let serialized_data = data.ser();
-        let signature_bytes = crate::crypto::sign_data(&serialized_data, &self.dbb_signing_key);
-        let signature = crate::crypto::Signature::from_bytes(&signature_bytes.to_bytes());
+        let signature_bytes =
+            crate::cryptography::sign_data(&serialized_data, &self.dbb_signing_key);
+        let signature = crate::cryptography::Signature::from_bytes(&signature_bytes.to_bytes());
 
         CastConfMsg { data, signature }
     }
@@ -430,7 +435,7 @@ impl CastingActor {
 
         // Sign the tracker message
         let serialized = data.ser();
-        let signature = crate::crypto::sign_data(&serialized, &self.dbb_signing_key);
+        let signature = crate::cryptography::sign_data(&serialized, &self.dbb_signing_key);
 
         CastConfMsg { data, signature }
     }
@@ -444,7 +449,9 @@ impl CastingActor {
 mod tests {
     use super::*;
     use crate::bulletins::{BallotSubBulletin, BallotSubBulletinData};
-    use crate::crypto::{BallotCryptogram, Signature, VerifyingKey, generate_signature_keypair};
+    use crate::cryptography::{
+        BallotCryptogram, Signature, VerifyingKey, generate_signature_keypair,
+    };
     use crate::elections::{BallotStyle, string_to_election_hash};
     use crate::messages::{AuthVoterMsg, AuthVoterMsgData, SignedBallotMsg, SignedBallotMsgData};
     use crate::participants::digital_ballot_box::{
@@ -454,10 +461,10 @@ mod tests {
     // Helper to create a test ballot cryptogram
     fn create_test_ballot_cryptogram(ballot_style: BallotStyle) -> BallotCryptogram {
         // Create a test keypair and encrypt a placeholder message
-        let keypair = crate::crypto::generate_encryption_keypair(b"test").unwrap();
+        let keypair = crate::cryptography::generate_encryption_keypair(b"test").unwrap();
         // Create dummy group elements (identity elements work for testing)
-        use crypto::groups::ristretto255::RistrettoElement;
-        use crypto::traits::groups::GroupElement;
+        use cryptography::groups::ristretto255::RistrettoElement;
+        use cryptography::traits::groups::GroupElement;
         let identity = RistrettoElement::one();
         let message = [identity];
         let ciphertext = keypair
@@ -512,7 +519,8 @@ mod tests {
             voter_verifying_key,
             ballot_style: 1,
         };
-        let auth_signature_bytes = crate::crypto::sign_data(&auth_data.ser(), &eas_signing_key);
+        let auth_signature_bytes =
+            crate::cryptography::sign_data(&auth_data.ser(), &eas_signing_key);
         let auth_msg = AuthVoterMsg {
             data: auth_data,
             signature: Signature::from_bytes(&auth_signature_bytes.to_bytes()),
@@ -530,7 +538,7 @@ mod tests {
             ballot_cryptogram: create_test_ballot_cryptogram(1),
         };
         let ballot_signature_bytes =
-            crate::crypto::sign_data(&ballot_data.ser(), &voter_signing_key);
+            crate::cryptography::sign_data(&ballot_data.ser(), &voter_signing_key);
         let ballot = SignedBallotMsg {
             data: ballot_data,
             signature: Signature::from_bytes(&ballot_signature_bytes.to_bytes()),
@@ -544,7 +552,7 @@ mod tests {
             previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
         };
         let ballot_sub_signature_bytes =
-            crate::crypto::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
+            crate::cryptography::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
         let ballot_sub_bulletin = BallotSubBulletin {
             data: ballot_sub_bulletin_data,
             signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
@@ -566,7 +574,7 @@ mod tests {
             ballot_tracker: tracker.clone(),
         };
         let cast_req_signature_bytes =
-            crate::crypto::sign_data(&cast_req_data.ser(), &voter_signing_key);
+            crate::cryptography::sign_data(&cast_req_data.ser(), &voter_signing_key);
         let cast_req = CastReqMsg {
             data: cast_req_data,
             signature: Signature::from_bytes(&cast_req_signature_bytes.to_bytes()),
@@ -615,7 +623,7 @@ mod tests {
             ballot_tracker: "tracker_123".to_string(),
         };
         let cast_req_signature_bytes =
-            crate::crypto::sign_data(&cast_req_data.ser(), &voter_signing_key);
+            crate::cryptography::sign_data(&cast_req_data.ser(), &voter_signing_key);
         let cast_req = CastReqMsg {
             data: cast_req_data,
             signature: Signature::from_bytes(&cast_req_signature_bytes.to_bytes()),
@@ -659,7 +667,8 @@ mod tests {
             voter_verifying_key,
             ballot_style: 1,
         };
-        let auth_signature_bytes = crate::crypto::sign_data(&auth_data.ser(), &eas_signing_key);
+        let auth_signature_bytes =
+            crate::cryptography::sign_data(&auth_data.ser(), &eas_signing_key);
         let auth_msg = AuthVoterMsg {
             data: auth_data,
             signature: Signature::from_bytes(&auth_signature_bytes.to_bytes()),
@@ -677,7 +686,7 @@ mod tests {
             ballot_cryptogram: create_test_ballot_cryptogram(1),
         };
         let ballot_signature_bytes =
-            crate::crypto::sign_data(&ballot_data.ser(), &voter_signing_key);
+            crate::cryptography::sign_data(&ballot_data.ser(), &voter_signing_key);
         let ballot = SignedBallotMsg {
             data: ballot_data,
             signature: Signature::from_bytes(&ballot_signature_bytes.to_bytes()),
@@ -690,7 +699,7 @@ mod tests {
             previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
         };
         let ballot_sub_signature_bytes =
-            crate::crypto::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
+            crate::cryptography::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
         let ballot_sub_bulletin = BallotSubBulletin {
             data: ballot_sub_bulletin_data,
             signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
@@ -717,7 +726,7 @@ mod tests {
             ballot_tracker: tracker.clone(),
         };
         let cast_req_signature_bytes =
-            crate::crypto::sign_data(&cast_req_data.ser(), &voter_signing_key);
+            crate::cryptography::sign_data(&cast_req_data.ser(), &voter_signing_key);
         let cast_req = CastReqMsg {
             data: cast_req_data,
             signature: Signature::from_bytes(&cast_req_signature_bytes.to_bytes()),
@@ -763,7 +772,8 @@ mod tests {
             voter_verifying_key,
             ballot_style: 1,
         };
-        let auth_signature_bytes = crate::crypto::sign_data(&auth_data.ser(), &eas_signing_key);
+        let auth_signature_bytes =
+            crate::cryptography::sign_data(&auth_data.ser(), &eas_signing_key);
         let auth_msg = AuthVoterMsg {
             data: auth_data,
             signature: Signature::from_bytes(&auth_signature_bytes.to_bytes()),
@@ -781,7 +791,7 @@ mod tests {
             ballot_cryptogram: create_test_ballot_cryptogram(1),
         };
         let ballot_signature_bytes =
-            crate::crypto::sign_data(&ballot_data.ser(), &_voter_signing_key);
+            crate::cryptography::sign_data(&ballot_data.ser(), &_voter_signing_key);
         let ballot = SignedBallotMsg {
             data: ballot_data,
             signature: Signature::from_bytes(&ballot_signature_bytes.to_bytes()),
@@ -794,7 +804,7 @@ mod tests {
             previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
         };
         let ballot_sub_signature_bytes =
-            crate::crypto::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
+            crate::cryptography::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
         let ballot_sub_bulletin = BallotSubBulletin {
             data: ballot_sub_bulletin_data,
             signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
@@ -815,7 +825,7 @@ mod tests {
         };
         let (wrong_signing_key, _wrong_verifying_key) = generate_signature_keypair();
         let cast_req_signature_bytes =
-            crate::crypto::sign_data(&cast_req_data.ser(), &wrong_signing_key);
+            crate::cryptography::sign_data(&cast_req_data.ser(), &wrong_signing_key);
         let cast_req = CastReqMsg {
             data: cast_req_data,
             signature: Signature::from_bytes(&cast_req_signature_bytes.to_bytes()),
@@ -858,7 +868,8 @@ mod tests {
             voter_verifying_key,
             ballot_style: 1,
         };
-        let auth_signature_bytes = crate::crypto::sign_data(&auth_data.ser(), &eas_signing_key);
+        let auth_signature_bytes =
+            crate::cryptography::sign_data(&auth_data.ser(), &eas_signing_key);
         let auth_msg = AuthVoterMsg {
             data: auth_data,
             signature: Signature::from_bytes(&auth_signature_bytes.to_bytes()),
@@ -876,7 +887,7 @@ mod tests {
             ballot_cryptogram: create_test_ballot_cryptogram(1),
         };
         let ballot_signature_bytes =
-            crate::crypto::sign_data(&ballot_data.ser(), &voter_signing_key);
+            crate::cryptography::sign_data(&ballot_data.ser(), &voter_signing_key);
         let ballot = SignedBallotMsg {
             data: ballot_data,
             signature: Signature::from_bytes(&ballot_signature_bytes.to_bytes()),
@@ -889,7 +900,7 @@ mod tests {
             previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
         };
         let ballot_sub_signature_bytes =
-            crate::crypto::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
+            crate::cryptography::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
         let ballot_sub_bulletin = BallotSubBulletin {
             data: ballot_sub_bulletin_data,
             signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
@@ -909,7 +920,7 @@ mod tests {
             ballot_tracker: tracker.clone(),
         };
         let cast_req_signature_bytes =
-            crate::crypto::sign_data(&cast_req_data.ser(), &voter_signing_key);
+            crate::cryptography::sign_data(&cast_req_data.ser(), &voter_signing_key);
 
         // Corrupt the signature bytes
         let mut corrupted_bytes = cast_req_signature_bytes.to_bytes();
@@ -959,7 +970,8 @@ mod tests {
             voter_verifying_key,
             ballot_style: 1,
         };
-        let auth_signature_bytes = crate::crypto::sign_data(&auth_data.ser(), &eas_signing_key);
+        let auth_signature_bytes =
+            crate::cryptography::sign_data(&auth_data.ser(), &eas_signing_key);
         let auth_msg = AuthVoterMsg {
             data: auth_data,
             signature: Signature::from_bytes(&auth_signature_bytes.to_bytes()),
@@ -977,7 +989,7 @@ mod tests {
             ballot_cryptogram: create_test_ballot_cryptogram(1),
         };
         let ballot_signature_bytes =
-            crate::crypto::sign_data(&ballot_data.ser(), &voter_signing_key);
+            crate::cryptography::sign_data(&ballot_data.ser(), &voter_signing_key);
         let ballot = SignedBallotMsg {
             data: ballot_data,
             signature: Signature::from_bytes(&ballot_signature_bytes.to_bytes()),
@@ -990,7 +1002,7 @@ mod tests {
             previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
         };
         let ballot_sub_signature_bytes =
-            crate::crypto::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
+            crate::cryptography::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
         let ballot_sub_bulletin = BallotSubBulletin {
             data: ballot_sub_bulletin_data,
             signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
@@ -1010,7 +1022,7 @@ mod tests {
             ballot_tracker: tracker.clone(),
         };
         let cast_req_signature_bytes =
-            crate::crypto::sign_data(&different_cast_req_data.ser(), &voter_signing_key);
+            crate::cryptography::sign_data(&different_cast_req_data.ser(), &voter_signing_key);
 
         // But send the original data with mismatched signature
         let actual_cast_req_data = crate::messages::CastReqMsgData {
@@ -1061,7 +1073,8 @@ mod tests {
             voter_verifying_key,
             ballot_style: 1,
         };
-        let auth_signature_bytes = crate::crypto::sign_data(&auth_data.ser(), &eas_signing_key);
+        let auth_signature_bytes =
+            crate::cryptography::sign_data(&auth_data.ser(), &eas_signing_key);
         let auth_msg = AuthVoterMsg {
             data: auth_data,
             signature: Signature::from_bytes(&auth_signature_bytes.to_bytes()),
@@ -1079,7 +1092,7 @@ mod tests {
             ballot_cryptogram: create_test_ballot_cryptogram(1),
         };
         let ballot_signature_bytes =
-            crate::crypto::sign_data(&ballot_data.ser(), &voter_signing_key);
+            crate::cryptography::sign_data(&ballot_data.ser(), &voter_signing_key);
         let ballot = SignedBallotMsg {
             data: ballot_data,
             signature: Signature::from_bytes(&ballot_signature_bytes.to_bytes()),
@@ -1092,7 +1105,7 @@ mod tests {
             previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
         };
         let ballot_sub_signature_bytes =
-            crate::crypto::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
+            crate::cryptography::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
         let ballot_sub_bulletin = BallotSubBulletin {
             data: ballot_sub_bulletin_data,
             signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
@@ -1153,7 +1166,8 @@ mod tests {
             voter_verifying_key,
             ballot_style: 1,
         };
-        let auth_signature_bytes = crate::crypto::sign_data(&auth_data.ser(), &eas_signing_key);
+        let auth_signature_bytes =
+            crate::cryptography::sign_data(&auth_data.ser(), &eas_signing_key);
         let auth_msg = AuthVoterMsg {
             data: auth_data,
             signature: Signature::from_bytes(&auth_signature_bytes.to_bytes()),
@@ -1171,7 +1185,7 @@ mod tests {
             ballot_cryptogram: create_test_ballot_cryptogram(1),
         };
         let ballot_signature_bytes =
-            crate::crypto::sign_data(&ballot_data.ser(), &voter_signing_key);
+            crate::cryptography::sign_data(&ballot_data.ser(), &voter_signing_key);
         let ballot = SignedBallotMsg {
             data: ballot_data,
             signature: Signature::from_bytes(&ballot_signature_bytes.to_bytes()),
@@ -1184,7 +1198,7 @@ mod tests {
             previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
         };
         let ballot_sub_signature_bytes =
-            crate::crypto::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
+            crate::cryptography::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
         let ballot_sub_bulletin = BallotSubBulletin {
             data: ballot_sub_bulletin_data,
             signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),

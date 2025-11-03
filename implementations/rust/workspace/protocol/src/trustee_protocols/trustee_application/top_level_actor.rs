@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! Top-level trustee actor that wraps all the trustee protocols.
 //!
 //! This actor maintains a local bulletin board with both full `TrusteeMsg`
@@ -11,8 +15,8 @@
 // currently ignored for code simplicity until performance data is analyzed
 #![allow(clippy::large_enum_variant)]
 
-use crate::crypto::{
-    BALLOT_CIPHERTEXT_WIDTH, CryptoContext, ElectionKey, SelectionElement, SigningKey,
+use crate::cryptography::{
+    BALLOT_CIPHERTEXT_WIDTH, CryptographyContext, ElectionKey, SelectionElement, SigningKey,
     VSerializable, decode_ballot, encryption_context, sign_data,
 };
 use crate::elections::{Ballot, BallotStyle, ElectionHash, string_to_election_hash};
@@ -36,8 +40,8 @@ use enum_dispatch::enum_dispatch;
 use std::collections::{BTreeMap, HashSet};
 
 // This should be removed once we unify all hashing
-use crate::crypto::CryptoHash;
-use crate::crypto::hash_serializable;
+use crate::cryptography::CryptographicHash;
+use crate::cryptography::hash_serializable;
 
 // --- Helper Macros ---
 
@@ -50,7 +54,7 @@ use crate::crypto::hash_serializable;
 /// ```ignore
 /// dispatch_threshold_trustees!(threshold, trustee_count, T, P, {
 ///     // code block that uses const T and P
-///     let dealer: Dealer<CryptoContext, T, P> = Dealer::generate();
+///     let dealer: Dealer<CryptographyContext, T, P> = Dealer::generate();
 ///     // ...
 /// })
 /// ```
@@ -267,7 +271,7 @@ pub struct TrusteeActor {
     /// setup messages are consistent, and we want to be sure
     /// that even if it doesn't, we still check for that
     /// consistency.
-    pub(crate) cfg_hash: CryptoHash,
+    pub(crate) cfg_hash: CryptographicHash,
 
     /// Actions that this trustee has already completed. This
     /// prevents the trustee from executing them redundantly
@@ -905,7 +909,7 @@ impl TrusteeActor {
     }
 
     /// Helper function to get a configuration hash from a setup message.
-    pub(crate) fn setup_msg_to_cfg_hash(msg: &SetupMsg) -> CryptoHash {
+    pub(crate) fn setup_msg_to_cfg_hash(msg: &SetupMsg) -> CryptographicHash {
         let tuple = (
             &msg.data.originator,
             &msg.data.manifest,
@@ -966,7 +970,7 @@ impl TrusteeActor {
     /// the public check values and the election public key. We can take it
     /// from any Ascent public key message, because the Ascent logic will
     /// have crashed out if those don't all match.
-    fn get_ascent_pk_hash(&self) -> Result<&CryptoHash, String> {
+    fn get_ascent_pk_hash(&self) -> Result<&CryptographicHash, String> {
         match self
             .processed_board
             .iter()
@@ -994,7 +998,7 @@ impl TrusteeActor {
     /// It is OK to ask for the output hash of round 0; it is the hash of the
     /// ballots in the Ascent Ballots message (or an error if no such message
     /// exists on the board).
-    fn get_mix_round_output_hash(&self, idx: usize) -> Result<CryptoHash, String> {
+    fn get_mix_round_output_hash(&self, idx: usize) -> Result<CryptographicHash, String> {
         match idx {
             i if 1 <= i && i <= self.protocol_state().active_trustees.len() => {
                 // Find a mix message originated by the trustee at round idx.
@@ -1179,7 +1183,7 @@ impl TrusteeActor {
 
         dispatch_threshold_trustees!(threshold, trustee_count, T, P, {
             // Generate the dealer and get our verifiable shares.
-            let dealer: Dealer<CryptoContext, T, P> = Dealer::generate();
+            let dealer: Dealer<CryptographyContext, T, P> = Dealer::generate();
             let dealer_shares = dealer.get_verifiable_shares();
             let check_values: Vec<CheckValue> = dealer_shares.checking_values.to_vec();
 
@@ -1250,7 +1254,7 @@ impl TrusteeActor {
             }
 
             // Reconstruct VerifiableShares from the KeyShares messages.
-            let mut verifiable_shares: Vec<VerifiableShare<CryptoContext, T>> = Vec::new();
+            let mut verifiable_shares: Vec<VerifiableShare<CryptographyContext, T>> = Vec::new();
 
             // We'll collect the check values into a BTreeMap for sending later.
             let mut check_values_to_send: BTreeMap<TrusteeID, Vec<CheckValue>> = BTreeMap::new();
@@ -1285,9 +1289,10 @@ impl TrusteeActor {
                 verifiable_shares.push(VerifiableShare::new(decrypted_share, checking_values));
             }
 
-            let verifiable_shares_array: [VerifiableShare<CryptoContext, T>; P] = verifiable_shares
-                .try_into()
-                .map_err(|_| "Failed to convert shares to array")?;
+            let verifiable_shares_array: [VerifiableShare<CryptographyContext, T>; P] =
+                verifiable_shares
+                    .try_into()
+                    .map_err(|_| "Failed to convert shares to array")?;
 
             // Compute the recipient (includes both secret key and public key).
             let recipient = Recipient::from_shares(my_position, &verifiable_shares_array)
@@ -1323,7 +1328,7 @@ impl TrusteeActor {
     /// Execute the `ComputeMix` action.
     fn action_compute_mix(
         &self,
-        ciphertexts_hash: CryptoHash,
+        ciphertexts_hash: CryptographicHash,
     ) -> Result<Option<TrusteeMsg>, String> {
         let election_pk = self.get_election_public_key()?;
         let idx = self.get_active_trustee_index(&self.trustee_info.trustee_id())?;
@@ -1409,7 +1414,7 @@ impl TrusteeActor {
             let mut proofs: BTreeMap<BallotStyle, MixRoundProof> = BTreeMap::new();
 
             // Get the encryption context that was used to encrypt the ballots.
-            // This must match what encrypt_ballot() uses in crypto.rs.
+            // This must match what encrypt_ballot() uses in cryptography.rs.
             let encryption_context = encryption_context(&mix_init_msg.data.election_hash);
 
             for (ballot_style, cryptograms) in ballots_by_style {
@@ -1450,8 +1455,8 @@ impl TrusteeActor {
     /// Execute the `SignMix` action.
     fn action_sign_mix(
         &self,
-        in_ciphertexts_hash: CryptoHash,
-        out_ciphertexts_hash: CryptoHash,
+        in_ciphertexts_hash: CryptographicHash,
+        out_ciphertexts_hash: CryptographicHash,
     ) -> Result<Option<TrusteeMsg>, String> {
         let election_pk = self.get_election_public_key()?;
 
@@ -1488,7 +1493,7 @@ impl TrusteeActor {
                 .ok_or("No mix initialization message found")?;
 
             // Get the encryption context that was used to encrypt the ballots.
-            // This must match what encrypt_ballot() uses in crypto.rs.
+            // This must match what encrypt_ballot() uses in cryptography.rs.
             let encryption_context = encryption_context(&mix_init_msg.data.election_hash);
 
             // Group ballots by ballot style and strip NY encryption.
@@ -1583,7 +1588,7 @@ impl TrusteeActor {
     /// Execute the `ComputePartialDecryptions` action.
     fn action_compute_partial_decryptions(
         &self,
-        ciphertexts_hash: CryptoHash,
+        ciphertexts_hash: CryptographicHash,
     ) -> Result<Option<TrusteeMsg>, String> {
         let idx = self.get_active_trustee_index(&self.trustee_info.trustee_id())?;
 
@@ -1640,7 +1645,7 @@ impl TrusteeActor {
             }
 
             // Reconstruct VerifiableShares from the KeyShares messages.
-            let mut verifiable_shares: Vec<VerifiableShare<CryptoContext, T>> = Vec::new();
+            let mut verifiable_shares: Vec<VerifiableShare<CryptographyContext, T>> = Vec::new();
 
             for shares_msg in key_shares_msgs.iter() {
                 // Get this trustee's checking values.
@@ -1668,9 +1673,10 @@ impl TrusteeActor {
                 verifiable_shares.push(VerifiableShare::new(decrypted_share, checking_values));
             }
 
-            let verifiable_shares_array: [VerifiableShare<CryptoContext, T>; P] = verifiable_shares
-                .try_into()
-                .map_err(|_| "Failed to convert shares to array")?;
+            let verifiable_shares_array: [VerifiableShare<CryptographyContext, T>; P] =
+                verifiable_shares
+                    .try_into()
+                    .map_err(|_| "Failed to convert shares to array")?;
 
             // Compute the recipient (includes both secret key and public key).
             let (recipient, _joint_pk) = Recipient::from_shares(pos, &verifiable_shares_array)
@@ -1721,7 +1727,7 @@ impl TrusteeActor {
     /// Execute the `ComputePlaintexts` action.
     fn action_compute_plaintexts(
         &self,
-        partial_decryptions_hashes: Vec<CryptoHash>,
+        partial_decryptions_hashes: Vec<CryptographicHash>,
     ) -> Result<Option<TrusteeMsg>, String> {
         // Get the final mixed ciphertexts (the last EGCryptograms message);
         // we pick the one sent by us, because we know we signed it
@@ -1740,7 +1746,7 @@ impl TrusteeActor {
             .ok_or("No mixed ciphertexts found")?;
 
         // Get all partial decryption messages.
-        let partial_decryption_msgs: Vec<(&PartialDecryptionsMsg, &CryptoHash)> = self
+        let partial_decryption_msgs: Vec<(&PartialDecryptionsMsg, &CryptographicHash)> = self
             .processed_board
             .iter()
             .filter_map(|ptm| match (&ptm.trustee_msg, &ptm.ascent_msg) {
@@ -1829,7 +1835,10 @@ impl TrusteeActor {
 
             let verification_keys: [_; T] = trustee_indices.map(|trustee_idx| {
                 let position: ParticipantPosition<P> = ParticipantPosition::new(trustee_idx as u32);
-                Recipient::<CryptoContext, T, P>::verification_key(&position, &checking_values)
+                Recipient::<CryptographyContext, T, P>::verification_key(
+                    &position,
+                    &checking_values,
+                )
             });
 
             let proof_context = key_shares_msgs[0].data.election_hash;

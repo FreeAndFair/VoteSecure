@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! This file contains the implementation of the `BallotCheckActor`, which is
 //! responsible for handling the Ballot Check subprotocol according to the
 //! hierarchical I/O model and the ballot-check-spec.md specification.
@@ -13,17 +17,17 @@
 
 // use super::super::top_level_actor::check_signed_ballot;
 
-use crate::crypto::ballot_check_context;
-use crate::crypto::decrypt_ballot;
-use crate::crypto::decrypt_randomizers;
-use crate::crypto::generate_encryption_keypair;
-use crate::crypto::generate_signature_keypair;
-use crate::crypto::{sign_data, verify_signature};
+use crate::cryptography::ballot_check_context;
+use crate::cryptography::decrypt_ballot;
+use crate::cryptography::decrypt_randomizers;
+use crate::cryptography::generate_encryption_keypair;
+use crate::cryptography::generate_signature_keypair;
+use crate::cryptography::{sign_data, verify_signature};
 
-use crate::crypto::ElectionKey;
-use crate::crypto::ElectionKeyPair;
-use crate::crypto::RandomizersStruct;
-use crate::crypto::{SigningKey, VerifyingKey};
+use crate::cryptography::ElectionKey;
+use crate::cryptography::ElectionKeyPair;
+use crate::cryptography::RandomizersStruct;
+use crate::cryptography::{SigningKey, VerifyingKey};
 
 use crate::elections::ElectionHash;
 use crate::elections::{Ballot, BallotTracker};
@@ -34,7 +38,7 @@ use crate::messages::{FwdRandomizerMsg, FwdRandomizerMsgData};
 use crate::messages::{RandomizerMsg, RandomizerMsgData};
 use crate::messages::{SignedBallotMsg, SignedBallotMsgData};
 
-use crypto::utils::serialization::VSerializable;
+use cryptography::utils::serialization::VSerializable;
 
 // --- I. Actor-Specific I/O ---
 

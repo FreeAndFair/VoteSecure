@@ -1,55 +1,61 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! This file contains the cyptographic constructs and functions
 //! specific to trustee protocols.
-use crate::crypto::{
-    BALLOT_CIPHERTEXT_WIDTH, BallotCheckPublicKey, Context, CryptoContext, ElectionKey,
+
+use crate::cryptography::{
+    BALLOT_CIPHERTEXT_WIDTH, BallotCheckPublicKey, Context, CryptographyContext, ElectionKey,
 };
-use crypto::cryptosystem::elgamal::{
+use cryptography::cryptosystem::elgamal::{
     Ciphertext as EGCiphertext, KeyPair as EGKeyPair, PublicKey as EGPublicKey,
 };
-use crypto::dkgd::recipient::{DkgCiphertext, combine};
-use crypto::groups::Ristretto255Group as RGroup; // should be exported from crypto.rs
-use crypto::traits::groups::CryptoGroup;
-use crypto::zkp::dlogeq::DlogEqProof;
-use crypto::zkp::shuffle::{ShuffleProof, Shuffler};
+use cryptography::dkgd::recipient::{DkgCiphertext, combine};
+use cryptography::groups::Ristretto255Group as RGroup; // should be exported from cryptography.rs
+use cryptography::traits::groups::CryptographicGroup;
+use cryptography::zkp::dlogeq::DlogEqProof;
+use cryptography::zkp::shuffle::{ShuffleProof, Shuffler};
 
 // =============================================================================
 // Type Aliases
 // =============================================================================
 
 /// A trustee key pair (El Gamal).
-pub type TrusteeKeyPair = EGKeyPair<CryptoContext>;
+pub type TrusteeKeyPair = EGKeyPair<CryptographyContext>;
 
 /// A trustee public key (El Gamal).
-pub type TrusteePublicKey = EGPublicKey<CryptoContext>;
+pub type TrusteePublicKey = EGPublicKey<CryptographyContext>;
 
 /// A stripped ballot ciphertext (ElGamal).
-pub type StrippedBallotCiphertext = EGCiphertext<CryptoContext, BALLOT_CIPHERTEXT_WIDTH>;
+pub type StrippedBallotCiphertext = EGCiphertext<CryptographyContext, BALLOT_CIPHERTEXT_WIDTH>;
 
 /// A mix round shuffle proof.
-pub type MixRoundProof = ShuffleProof<CryptoContext, BALLOT_CIPHERTEXT_WIDTH>;
+pub type MixRoundProof = ShuffleProof<CryptographyContext, BALLOT_CIPHERTEXT_WIDTH>;
 
 /// A partial decryption proof.
-pub type PartialDecryptionProof = DlogEqProof<CryptoContext, BALLOT_CIPHERTEXT_WIDTH>;
+pub type PartialDecryptionProof = DlogEqProof<CryptographyContext, BALLOT_CIPHERTEXT_WIDTH>;
 
 /// A partial decryption element.
-pub type PartialDecryptionElement = <CryptoContext as crypto::context::Context>::Element;
+pub type PartialDecryptionElement =
+    <CryptographyContext as cryptography::context::Context>::Element;
 
 /// A partial decryption value (sequence of partial decryption elements).
 pub type PartialDecryptionValue = [PartialDecryptionElement; BALLOT_CIPHERTEXT_WIDTH];
 
 /// A check value.
-pub type CheckValue = <CryptoContext as crypto::context::Context>::Element;
+pub type CheckValue = <CryptographyContext as cryptography::context::Context>::Element;
 
 /// A share (scalar).
-pub type Share = <CryptoContext as crypto::context::Context>::Scalar;
+pub type Share = <CryptographyContext as cryptography::context::Context>::Scalar;
 
 /// A share ciphertext (requires width 2).
-pub type ShareCiphertext = EGCiphertext<CryptoContext, 2>;
+pub type ShareCiphertext = EGCiphertext<CryptographyContext, 2>;
 
 // Re-exports from the main cryptography library, so the rest of the code
 // doesn't have to use it directly.
-pub use crypto::dkgd::dealer::{Dealer, VerifiableShare};
-pub use crypto::dkgd::recipient::{DecryptionFactor, ParticipantPosition, Recipient};
+pub use cryptography::dkgd::dealer::{Dealer, VerifiableShare};
+pub use cryptography::dkgd::recipient::{DecryptionFactor, ParticipantPosition, Recipient};
 
 // =============================================================================
 // Key Share Encryption/Decryption
@@ -108,8 +114,9 @@ pub fn shuffle_ciphertexts(
     context: &[u8],
 ) -> Result<(Vec<StrippedBallotCiphertext>, MixRoundProof), String> {
     // Generate independent generators for the shuffle
-    let generators = <CryptoContext as Context>::G::ind_generators(ciphertexts.len(), context)
-        .map_err(|e| format!("Failed to generate independent generators: {:?}", e))?;
+    let generators =
+        <CryptographyContext as Context>::G::ind_generators(ciphertexts.len(), context)
+            .map_err(|e| format!("Failed to generate independent generators: {:?}", e))?;
 
     // Extract the EG public key from the NY public key
     let eg_pk = ny_to_eg_public_key(election_pk);
@@ -137,7 +144,7 @@ pub fn verify_shuffle(
 ) -> Result<(), String> {
     // Generate independent generators for verification.
     let generators =
-        <CryptoContext as Context>::G::ind_generators(input_ciphertexts.len(), context)
+        <CryptographyContext as Context>::G::ind_generators(input_ciphertexts.len(), context)
             .map_err(|e| format!("Failed to generate independent generators: {:?}", e))?;
     // Extract the EG public key from the NY public key.
     let eg_pk = ny_to_eg_public_key(election_pk);
@@ -165,11 +172,11 @@ pub fn verify_shuffle(
 /// recipient's secret key and the proof context.
 pub fn compute_partial_decryptions<const T: usize, const P: usize>(
     ciphertexts: &[StrippedBallotCiphertext],
-    recipient: &Recipient<CryptoContext, T, P>,
+    recipient: &Recipient<CryptographyContext, T, P>,
     proof_context: &[u8],
-) -> Result<Vec<DecryptionFactor<CryptoContext, P, BALLOT_CIPHERTEXT_WIDTH>>, String> {
+) -> Result<Vec<DecryptionFactor<CryptographyContext, P, BALLOT_CIPHERTEXT_WIDTH>>, String> {
     // Convert ciphertexts to DkgCiphertext.
-    let dkg_ciphertexts: Vec<DkgCiphertext<CryptoContext, BALLOT_CIPHERTEXT_WIDTH, T>> =
+    let dkg_ciphertexts: Vec<DkgCiphertext<CryptographyContext, BALLOT_CIPHERTEXT_WIDTH, T>> =
         ciphertexts
             .iter()
             .map(|c| DkgCiphertext(c.clone()))
@@ -185,13 +192,18 @@ pub fn compute_partial_decryptions<const T: usize, const P: usize>(
 /// `Ballot`s, given their verification keys and the proof context.
 pub fn combine_partial_decryptions<const T: usize, const P: usize>(
     ciphertexts: &[StrippedBallotCiphertext],
-    partial_decryptions_by_trustee: &[Vec<crypto::dkgd::recipient::DecryptionFactor<CryptoContext, P, BALLOT_CIPHERTEXT_WIDTH>>;
-         T],
-    verification_keys: &[<CryptoContext as Context>::Element; T],
+    partial_decryptions_by_trustee: &[Vec<
+        cryptography::dkgd::recipient::DecryptionFactor<
+            CryptographyContext,
+            P,
+            BALLOT_CIPHERTEXT_WIDTH,
+        >,
+    >; T],
+    verification_keys: &[<CryptographyContext as Context>::Element; T],
     proof_context: &[u8],
-) -> Result<Vec<[<CryptoContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH]>, String> {
+) -> Result<Vec<[<CryptographyContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH]>, String> {
     // Convert ciphertexts to DkgCiphertext.
-    let dkg_ciphertexts: Vec<DkgCiphertext<CryptoContext, BALLOT_CIPHERTEXT_WIDTH, T>> =
+    let dkg_ciphertexts: Vec<DkgCiphertext<CryptographyContext, BALLOT_CIPHERTEXT_WIDTH, T>> =
         ciphertexts
             .iter()
             .map(|c| DkgCiphertext(c.clone()))
@@ -216,7 +228,7 @@ pub fn combine_partial_decryptions<const T: usize, const P: usize>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::generate_election_keypair;
+    use crate::cryptography::generate_election_keypair;
 
     #[test]
     fn test_share_encryption_decryption_roundtrip() {
@@ -273,7 +285,7 @@ mod tests {
     fn test_ny_to_eg_public_key_extraction() {
         // Generate an election public key (Naor-Yung) from an El Gamal public key.
         let context = b"test election";
-        let eg_keypair: EGKeyPair<CryptoContext> = EGKeyPair::generate();
+        let eg_keypair: EGKeyPair<CryptographyContext> = EGKeyPair::generate();
         let ny_pk = match ElectionKey::augment(&eg_keypair.pkey, context) {
             Ok(ny_pk) => ny_pk,
             Err(_) => {
@@ -301,8 +313,8 @@ mod tests {
         let num_ballots = 10;
         let mut input_ciphertexts = Vec::new();
         for _ in 0..num_ballots {
-            let message: [<CryptoContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
-                std::array::from_fn(|_| CryptoContext::random_element());
+            let message: [<CryptographyContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
+                std::array::from_fn(|_| CryptographyContext::random_element());
             let ciphertext = eg_pk.encrypt(&message);
             input_ciphertexts.push(ciphertext);
         }
@@ -334,8 +346,8 @@ mod tests {
         let num_ballots = 5;
         let mut input_ciphertexts = Vec::new();
         for _ in 0..num_ballots {
-            let message: [<CryptoContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
-                std::array::from_fn(|_| CryptoContext::random_element());
+            let message: [<CryptographyContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
+                std::array::from_fn(|_| CryptographyContext::random_element());
             let ciphertext = eg_pk.encrypt(&message);
             input_ciphertexts.push(ciphertext);
         }
@@ -374,8 +386,8 @@ mod tests {
         let num_ballots = 5;
         let mut input_ciphertexts = Vec::new();
         for _ in 0..num_ballots {
-            let message: [<CryptoContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
-                std::array::from_fn(|_| CryptoContext::random_element());
+            let message: [<CryptographyContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
+                std::array::from_fn(|_| CryptographyContext::random_element());
             let ciphertext = eg_pk.encrypt(&message);
             input_ciphertexts.push(ciphertext);
         }
@@ -407,37 +419,38 @@ mod tests {
 
     #[test]
     fn test_compute_partial_decryptions_produces_valid_output() {
-        use crypto::dkgd::dealer::{Dealer, VerifiableShare};
-        use crypto::dkgd::recipient::{DkgPublicKey, ParticipantPosition, Recipient};
+        use cryptography::dkgd::dealer::{Dealer, VerifiableShare};
+        use cryptography::dkgd::recipient::{DkgPublicKey, ParticipantPosition, Recipient};
         use std::array;
 
         // Set up DKG with T=2, P=3.
         const T: usize = 2;
         const P: usize = 3;
 
-        let dealers: [Dealer<CryptoContext, T, P>; P] = array::from_fn(|_| Dealer::generate());
+        let dealers: [Dealer<CryptographyContext, T, P>; P] =
+            array::from_fn(|_| Dealer::generate());
 
         let recipients: [(
-            Recipient<CryptoContext, T, P>,
-            DkgPublicKey<CryptoContext, T>,
+            Recipient<CryptographyContext, T, P>,
+            DkgPublicKey<CryptographyContext, T>,
         ); P] = array::from_fn(|i| {
             let position = ParticipantPosition::from_usize(i + 1);
 
-            let verifiable_shares: [VerifiableShare<CryptoContext, T>; P] = dealers
+            let verifiable_shares: [VerifiableShare<CryptographyContext, T>; P] = dealers
                 .clone()
                 .map(|d| d.get_verifiable_shares().for_recipient(&position));
 
             Recipient::from_shares(position, &verifiable_shares).unwrap()
         });
 
-        let pk: &DkgPublicKey<CryptoContext, T> = &recipients[0].1;
+        let pk: &DkgPublicKey<CryptographyContext, T> = &recipients[0].1;
 
         // Create some test ciphertexts (using the DKG public key).
         let num_ballots = 5;
         let mut input_ciphertexts = Vec::new();
         for _ in 0..num_ballots {
-            let message: [<CryptoContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
-                std::array::from_fn(|_| CryptoContext::random_element());
+            let message: [<CryptographyContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
+                std::array::from_fn(|_| CryptographyContext::random_element());
             let ciphertext = pk.encrypt(&message);
             // Convert to StrippedBallotCiphertext (just the underlying EG ciphertext).
             input_ciphertexts.push(ciphertext.0);
@@ -468,38 +481,39 @@ mod tests {
 
     #[test]
     fn test_combine_partial_decryptions_recovers_plaintexts() {
-        use crypto::dkgd::dealer::{Dealer, VerifiableShare};
-        use crypto::dkgd::recipient::{DkgPublicKey, ParticipantPosition, Recipient};
+        use cryptography::dkgd::dealer::{Dealer, VerifiableShare};
+        use cryptography::dkgd::recipient::{DkgPublicKey, ParticipantPosition, Recipient};
         use std::array;
 
         // Set up DKG with T=2, P=3.
         const T: usize = 2;
         const P: usize = 3;
 
-        let dealers: [Dealer<CryptoContext, T, P>; P] = array::from_fn(|_| Dealer::generate());
+        let dealers: [Dealer<CryptographyContext, T, P>; P] =
+            array::from_fn(|_| Dealer::generate());
 
         let recipients: [(
-            Recipient<CryptoContext, T, P>,
-            DkgPublicKey<CryptoContext, T>,
+            Recipient<CryptographyContext, T, P>,
+            DkgPublicKey<CryptographyContext, T>,
         ); P] = array::from_fn(|i| {
             let position = ParticipantPosition::from_usize(i + 1);
 
-            let verifiable_shares: [VerifiableShare<CryptoContext, T>; P] = dealers
+            let verifiable_shares: [VerifiableShare<CryptographyContext, T>; P] = dealers
                 .clone()
                 .map(|d| d.get_verifiable_shares().for_recipient(&position));
 
             Recipient::from_shares(position, &verifiable_shares).unwrap()
         });
 
-        let pk: &DkgPublicKey<CryptoContext, T> = &recipients[0].1;
+        let pk: &DkgPublicKey<CryptographyContext, T> = &recipients[0].1;
 
         // Create some test plaintexts and encrypt them.
         let num_ballots = 5;
         let mut plaintexts = Vec::new();
         let mut input_ciphertexts = Vec::new();
         for _ in 0..num_ballots {
-            let message: [<CryptoContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
-                std::array::from_fn(|_| CryptoContext::random_element());
+            let message: [<CryptographyContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
+                std::array::from_fn(|_| CryptographyContext::random_element());
             plaintexts.push(message);
             let ciphertext = pk.encrypt(&message);
             // Convert to StrippedBallotCiphertext (just the underlying EG ciphertext).
@@ -525,7 +539,7 @@ mod tests {
         let partial_decryptions_by_trustee: [Vec<_>; T] =
             [partial_decryptions_0, partial_decryptions_1];
 
-        let verification_keys: [<CryptoContext as Context>::Element; T] =
+        let verification_keys: [<CryptographyContext as Context>::Element; T] =
             array::from_fn(|i| recipients[i].0.get_verification_key().clone());
 
         let result = combine_partial_decryptions::<T, P>(
@@ -555,8 +569,8 @@ mod tests {
 
     #[test]
     fn test_partial_decryptions_roundtrip_with_t_of_p_trustees() {
-        use crypto::dkgd::dealer::{Dealer, VerifiableShare};
-        use crypto::dkgd::recipient::{
+        use cryptography::dkgd::dealer::{Dealer, VerifiableShare};
+        use cryptography::dkgd::recipient::{
             DkgCiphertext, DkgPublicKey, ParticipantPosition, Recipient, combine,
         };
         use std::array;
@@ -565,30 +579,31 @@ mod tests {
         const T: usize = 3;
         const P: usize = 5;
 
-        let dealers: [Dealer<CryptoContext, T, P>; P] = array::from_fn(|_| Dealer::generate());
+        let dealers: [Dealer<CryptographyContext, T, P>; P] =
+            array::from_fn(|_| Dealer::generate());
 
         let recipients: [(
-            Recipient<CryptoContext, T, P>,
-            DkgPublicKey<CryptoContext, T>,
+            Recipient<CryptographyContext, T, P>,
+            DkgPublicKey<CryptographyContext, T>,
         ); P] = array::from_fn(|i| {
             let position = ParticipantPosition::from_usize(i + 1);
 
-            let verifiable_shares: [VerifiableShare<CryptoContext, T>; P] = dealers
+            let verifiable_shares: [VerifiableShare<CryptographyContext, T>; P] = dealers
                 .clone()
                 .map(|d| d.get_verifiable_shares().for_recipient(&position));
 
             Recipient::from_shares(position, &verifiable_shares).unwrap()
         });
 
-        let pk: &DkgPublicKey<CryptoContext, T> = &recipients[0].1;
+        let pk: &DkgPublicKey<CryptographyContext, T> = &recipients[0].1;
 
         // Create some test plaintexts and encrypt them.
         let num_ballots = 3;
         let mut original_plaintexts = Vec::new();
         let mut input_ciphertexts = Vec::new();
         for _ in 0..num_ballots {
-            let message: [<CryptoContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
-                std::array::from_fn(|_| CryptoContext::random_element());
+            let message: [<CryptographyContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
+                std::array::from_fn(|_| CryptographyContext::random_element());
             original_plaintexts.push(message);
             let ciphertext = pk.encrypt(&message);
             // Convert to StrippedBallotCiphertext (just the underlying EG ciphertext).
@@ -616,8 +631,8 @@ mod tests {
         )
         .expect("Computing partial decryptions should succeed");
 
-        // Use the crypto library's combine function directly to verify correctness.
-        let dkg_ciphertexts: Vec<DkgCiphertext<CryptoContext, BALLOT_CIPHERTEXT_WIDTH, T>> =
+        // Use the cryptography library's combine function directly to verify correctness.
+        let dkg_ciphertexts: Vec<DkgCiphertext<CryptographyContext, BALLOT_CIPHERTEXT_WIDTH, T>> =
             input_ciphertexts
                 .iter()
                 .map(|c| DkgCiphertext(c.clone()))
@@ -629,7 +644,7 @@ mod tests {
             partial_decryptions_2,
         ];
 
-        let verification_keys: [<CryptoContext as Context>::Element; T] =
+        let verification_keys: [<CryptographyContext as Context>::Element; T] =
             array::from_fn(|i| recipients[i].0.get_verification_key().clone());
 
         let decrypted = combine(
@@ -649,8 +664,8 @@ mod tests {
 
     #[test]
     fn test_combine_partial_decryptions_fails_with_wrong_partial_decryption() {
-        use crypto::dkgd::dealer::{Dealer, VerifiableShare};
-        use crypto::dkgd::recipient::{
+        use cryptography::dkgd::dealer::{Dealer, VerifiableShare};
+        use cryptography::dkgd::recipient::{
             DkgCiphertext, DkgPublicKey, ParticipantPosition, Recipient, combine,
         };
         use std::array;
@@ -659,26 +674,27 @@ mod tests {
         const T: usize = 3;
         const P: usize = 5;
 
-        let dealers: [Dealer<CryptoContext, T, P>; P] = array::from_fn(|_| Dealer::generate());
+        let dealers: [Dealer<CryptographyContext, T, P>; P] =
+            array::from_fn(|_| Dealer::generate());
 
         let recipients: [(
-            Recipient<CryptoContext, T, P>,
-            DkgPublicKey<CryptoContext, T>,
+            Recipient<CryptographyContext, T, P>,
+            DkgPublicKey<CryptographyContext, T>,
         ); P] = array::from_fn(|i| {
             let position = ParticipantPosition::from_usize(i + 1);
 
-            let verifiable_shares: [VerifiableShare<CryptoContext, T>; P] = dealers
+            let verifiable_shares: [VerifiableShare<CryptographyContext, T>; P] = dealers
                 .clone()
                 .map(|d| d.get_verifiable_shares().for_recipient(&position));
 
             Recipient::from_shares(position, &verifiable_shares).unwrap()
         });
 
-        let pk: &DkgPublicKey<CryptoContext, T> = &recipients[0].1;
+        let pk: &DkgPublicKey<CryptographyContext, T> = &recipients[0].1;
 
         // Create and encrypt a test plaintext.
-        let message: [<CryptoContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
-            std::array::from_fn(|_| CryptoContext::random_element());
+        let message: [<CryptographyContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
+            std::array::from_fn(|_| CryptographyContext::random_element());
         let ciphertext = pk.encrypt(&message);
         let input_ciphertexts = vec![ciphertext.0];
 
@@ -697,15 +713,15 @@ mod tests {
         )
         .expect("Computing partial decryptions should succeed");
 
-        let dkg_ciphertexts: Vec<DkgCiphertext<CryptoContext, BALLOT_CIPHERTEXT_WIDTH, T>> =
+        let dkg_ciphertexts: Vec<DkgCiphertext<CryptographyContext, BALLOT_CIPHERTEXT_WIDTH, T>> =
             input_ciphertexts
                 .iter()
                 .map(|c| DkgCiphertext(c.clone()))
                 .collect();
 
         // Create a different ciphertext.
-        let wrong_message: [<CryptoContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
-            std::array::from_fn(|_| CryptoContext::random_element());
+        let wrong_message: [<CryptographyContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
+            std::array::from_fn(|_| CryptographyContext::random_element());
         let wrong_ciphertext = pk.encrypt(&wrong_message);
         let wrong_input = vec![wrong_ciphertext.0];
 
@@ -722,7 +738,7 @@ mod tests {
             partial_decryptions_2_wrong,
         ];
 
-        let verification_keys: [<CryptoContext as Context>::Element; T] =
+        let verification_keys: [<CryptographyContext as Context>::Element; T] =
             array::from_fn(|i| recipients[i].0.get_verification_key().clone());
 
         let result = combine(
@@ -741,8 +757,8 @@ mod tests {
 
     #[test]
     fn test_combine_partial_decryptions_fails_with_wrong_verification_keys() {
-        use crypto::dkgd::dealer::{Dealer, VerifiableShare};
-        use crypto::dkgd::recipient::{
+        use cryptography::dkgd::dealer::{Dealer, VerifiableShare};
+        use cryptography::dkgd::recipient::{
             DkgCiphertext, DkgPublicKey, ParticipantPosition, Recipient, combine,
         };
         use std::array;
@@ -751,26 +767,27 @@ mod tests {
         const T: usize = 2;
         const P: usize = 3;
 
-        let dealers: [Dealer<CryptoContext, T, P>; P] = array::from_fn(|_| Dealer::generate());
+        let dealers: [Dealer<CryptographyContext, T, P>; P] =
+            array::from_fn(|_| Dealer::generate());
 
         let recipients: [(
-            Recipient<CryptoContext, T, P>,
-            DkgPublicKey<CryptoContext, T>,
+            Recipient<CryptographyContext, T, P>,
+            DkgPublicKey<CryptographyContext, T>,
         ); P] = array::from_fn(|i| {
             let position = ParticipantPosition::from_usize(i + 1);
 
-            let verifiable_shares: [VerifiableShare<CryptoContext, T>; P] = dealers
+            let verifiable_shares: [VerifiableShare<CryptographyContext, T>; P] = dealers
                 .clone()
                 .map(|d| d.get_verifiable_shares().for_recipient(&position));
 
             Recipient::from_shares(position, &verifiable_shares).unwrap()
         });
 
-        let pk: &DkgPublicKey<CryptoContext, T> = &recipients[0].1;
+        let pk: &DkgPublicKey<CryptographyContext, T> = &recipients[0].1;
 
         // Create and encrypt a test plaintext.
-        let message: [<CryptoContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
-            std::array::from_fn(|_| CryptoContext::random_element());
+        let message: [<CryptographyContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
+            std::array::from_fn(|_| CryptographyContext::random_element());
         let ciphertext = pk.encrypt(&message);
         let input_ciphertexts = vec![ciphertext.0];
 
@@ -789,7 +806,7 @@ mod tests {
         )
         .expect("Computing partial decryptions should succeed");
 
-        let dkg_ciphertexts: Vec<DkgCiphertext<CryptoContext, BALLOT_CIPHERTEXT_WIDTH, T>> =
+        let dkg_ciphertexts: Vec<DkgCiphertext<CryptographyContext, BALLOT_CIPHERTEXT_WIDTH, T>> =
             input_ciphertexts
                 .iter()
                 .map(|c| DkgCiphertext(c.clone()))
@@ -799,8 +816,8 @@ mod tests {
             [partial_decryptions_0, partial_decryptions_1];
 
         // Use wrong verification keys (random elements instead of correct keys).
-        let wrong_verification_keys: [<CryptoContext as Context>::Element; T] =
-            array::from_fn(|_| CryptoContext::random_element());
+        let wrong_verification_keys: [<CryptographyContext as Context>::Element; T] =
+            array::from_fn(|_| CryptographyContext::random_element());
 
         let result = combine(
             &dkg_ciphertexts,
@@ -818,8 +835,8 @@ mod tests {
 
     #[test]
     fn test_combine_partial_decryptions_fails_with_wrong_proof_context() {
-        use crypto::dkgd::dealer::{Dealer, VerifiableShare};
-        use crypto::dkgd::recipient::{
+        use cryptography::dkgd::dealer::{Dealer, VerifiableShare};
+        use cryptography::dkgd::recipient::{
             DkgCiphertext, DkgPublicKey, ParticipantPosition, Recipient, combine,
         };
         use std::array;
@@ -828,26 +845,27 @@ mod tests {
         const T: usize = 2;
         const P: usize = 3;
 
-        let dealers: [Dealer<CryptoContext, T, P>; P] = array::from_fn(|_| Dealer::generate());
+        let dealers: [Dealer<CryptographyContext, T, P>; P] =
+            array::from_fn(|_| Dealer::generate());
 
         let recipients: [(
-            Recipient<CryptoContext, T, P>,
-            DkgPublicKey<CryptoContext, T>,
+            Recipient<CryptographyContext, T, P>,
+            DkgPublicKey<CryptographyContext, T>,
         ); P] = array::from_fn(|i| {
             let position = ParticipantPosition::from_usize(i + 1);
 
-            let verifiable_shares: [VerifiableShare<CryptoContext, T>; P] = dealers
+            let verifiable_shares: [VerifiableShare<CryptographyContext, T>; P] = dealers
                 .clone()
                 .map(|d| d.get_verifiable_shares().for_recipient(&position));
 
             Recipient::from_shares(position, &verifiable_shares).unwrap()
         });
 
-        let pk: &DkgPublicKey<CryptoContext, T> = &recipients[0].1;
+        let pk: &DkgPublicKey<CryptographyContext, T> = &recipients[0].1;
 
         // Create and encrypt a test plaintext.
-        let message: [<CryptoContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
-            std::array::from_fn(|_| CryptoContext::random_element());
+        let message: [<CryptographyContext as Context>::Element; BALLOT_CIPHERTEXT_WIDTH] =
+            std::array::from_fn(|_| CryptographyContext::random_element());
         let ciphertext = pk.encrypt(&message);
         let input_ciphertexts = vec![ciphertext.0];
 
@@ -866,7 +884,7 @@ mod tests {
         )
         .expect("Computing partial decryptions should succeed");
 
-        let dkg_ciphertexts: Vec<DkgCiphertext<CryptoContext, BALLOT_CIPHERTEXT_WIDTH, T>> =
+        let dkg_ciphertexts: Vec<DkgCiphertext<CryptographyContext, BALLOT_CIPHERTEXT_WIDTH, T>> =
             input_ciphertexts
                 .iter()
                 .map(|c| DkgCiphertext(c.clone()))
@@ -875,7 +893,7 @@ mod tests {
         let partial_decryptions_by_trustee: [Vec<_>; T] =
             [partial_decryptions_0, partial_decryptions_1];
 
-        let verification_keys: [<CryptoContext as Context>::Element; T] =
+        let verification_keys: [<CryptographyContext as Context>::Element; T] =
             array::from_fn(|i| recipients[i].0.get_verification_key().clone());
 
         // Try to verify with a different proof context.

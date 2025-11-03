@@ -1,16 +1,20 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! Implementation of the `AuthenticationActor` for the Voter Authentication subprotocol.
 
 // TODO: consider boxing structs in large enum variants to improve performance
 // currently ignored for code simplicity until performance data is analyzed
 #![allow(clippy::large_enum_variant)]
 
-use crate::crypto::{Signature, SigningKey, VerifyingKey};
+use crate::cryptography::{Signature, SigningKey, VerifyingKey};
 use crate::elections::{BallotStyle, ElectionHash, VoterPseudonym};
 use crate::messages::{
     AuthFinishMsg, AuthFinishMsgData, AuthReqMsg, ConfirmAuthorizationMsg, HandTokenMsg,
     ProtocolMessage,
 };
-use crypto::utils::serialization::VSerializable;
+use cryptography::utils::serialization::VSerializable;
 
 // --- I. Actor-Specific I/O ---
 
@@ -85,7 +89,7 @@ impl AuthenticationActor {
     pub fn new(election_hash: ElectionHash, eas_verifying_key: VerifyingKey) -> Self {
         // Generate session keys for this authentication session
         let (session_signing_key, session_verifying_key) =
-            crate::crypto::generate_signature_keypair();
+            crate::cryptography::generate_signature_keypair();
 
         Self {
             state: SubState::ReadyToStart,
@@ -112,7 +116,8 @@ impl AuthenticationActor {
                 // Create signature using VSerializable
                 let serialized = data.ser();
 
-                let signature = crate::crypto::sign_data(&serialized, &self.session_signing_key);
+                let signature =
+                    crate::cryptography::sign_data(&serialized, &self.session_signing_key);
 
                 let auth_req_msg = AuthReqMsg { data, signature };
 
@@ -147,7 +152,8 @@ impl AuthenticationActor {
                 // Create signature using VSerializable
                 let serialized = data.ser();
 
-                let signature = crate::crypto::sign_data(&serialized, &self.session_signing_key);
+                let signature =
+                    crate::cryptography::sign_data(&serialized, &self.session_signing_key);
 
                 let auth_finish_msg = AuthFinishMsg { data, signature };
 
@@ -220,7 +226,7 @@ impl AuthenticationActor {
         let serialized = data.ser();
 
         // Verify signature using EAS verifying key
-        crate::crypto::verify_signature(&serialized, signature, &self.eas_verifying_key)
+        crate::cryptography::verify_signature(&serialized, signature, &self.eas_verifying_key)
     }
 
     /// Additional check: The token should be non-empty and properly formatted
@@ -306,7 +312,7 @@ impl AuthenticationActor {
         let serialized = data.ser();
 
         // Verify signature using EAS verifying key
-        crate::crypto::verify_signature(&serialized, signature, &self.eas_verifying_key)
+        crate::cryptography::verify_signature(&serialized, signature, &self.eas_verifying_key)
     }
 
     /// Additional check: Voter pseudonym should be valid
@@ -332,12 +338,12 @@ impl AuthenticationActor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crypto::utils::serialization::VSerializable;
+    use cryptography::utils::serialization::VSerializable;
 
     #[test]
     fn test_vserializable_authentication_messages() {
         // Test that VSerializable works correctly for authentication message serialization
-        let (_, verifying_key) = crate::crypto::generate_signature_keypair();
+        let (_, verifying_key) = crate::cryptography::generate_signature_keypair();
         let election_hash = "test_election_2024".to_string();
 
         // Test AuthReqMsgData serialization
@@ -394,7 +400,8 @@ mod tests {
     fn test_authentication_actor_signature_compatibility() {
         // Test that the authentication actor can create and verify signatures using VSerializable
         let election_hash = "test_election_2024".to_string();
-        let (_eas_signing_key, eas_verifying_key) = crate::crypto::generate_signature_keypair();
+        let (_eas_signing_key, eas_verifying_key) =
+            crate::cryptography::generate_signature_keypair();
 
         let mut auth_actor = AuthenticationActor::new(
             crate::elections::string_to_election_hash(&election_hash),
@@ -418,7 +425,7 @@ mod tests {
 
                 // Verify that the signature can be verified using VSerializable
                 let serialized = auth_req_msg.data.ser();
-                let verification_result = crate::crypto::verify_signature(
+                let verification_result = crate::cryptography::verify_signature(
                     &serialized,
                     &auth_req_msg.signature,
                     &auth_actor.session_verifying_key,

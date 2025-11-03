@@ -1,13 +1,11 @@
-/*
- * Hash accumulator
- *
- * @author David Ruescas (david@sequentech.io)\
- * @copyright Free & Fair. 2025\
- * @version 0.1
- */
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
+//! Hash accumulator
 
 use super::types::TrusteeIndex;
-use crate::crypto::CryptoHash;
+use crate::cryptography::CryptographicHash;
 use rand::Rng;
 use std::collections::BTreeSet;
 use std::hash::Hash as HashTrait;
@@ -51,11 +49,11 @@ impl<T: Ord + std::fmt::Debug + Clone> AccumulatorSet<T> {
 }
 
 /// Utility function used in stateright tests
-pub(crate) fn empty_hash() -> CryptoHash {
+pub(crate) fn empty_hash() -> CryptographicHash {
     [0u8; 64].into()
 }
 /// Utility function used in stateright tests
-pub(crate) fn random_hash() -> CryptoHash {
+pub(crate) fn random_hash() -> CryptographicHash {
     let mut bytes = [0u8; 64];
     rand::thread_rng().fill(&mut bytes);
     bytes.into()

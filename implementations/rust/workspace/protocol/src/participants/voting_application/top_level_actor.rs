@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 // TODO: consider boxing structs in large enum variants to improve performance
 // currently ignored for code simplicity until performance data is analyzed
 #![allow(clippy::large_enum_variant)]
@@ -8,7 +12,7 @@ use super::sub_actors::{
     checking::{CheckingActor, CheckingInput, CheckingOutput},
     submission::{SubmissionActor, SubmissionInput, SubmissionOutput},
 };
-use crate::crypto::{ElectionKey, RandomizersStruct, SigningKey, VerifyingKey};
+use crate::cryptography::{ElectionKey, RandomizersStruct, SigningKey, VerifyingKey};
 use crate::elections::{Ballot, BallotStyle, BallotTracker, ElectionHash, VoterPseudonym};
 
 // --- I/O Types ---

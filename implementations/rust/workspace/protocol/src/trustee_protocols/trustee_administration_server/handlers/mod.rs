@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 pub mod awaiting_decrypted_ballots;
 pub mod awaiting_egcryptograms;
 pub mod awaiting_election_pk;

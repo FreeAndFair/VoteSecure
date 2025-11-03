@@ -8,8 +8,8 @@
 # @author Daniel Zimmerman
 # @reviewer Joe Kiniry
 #
-# This model defines a threat model for the Tusk Voting System
-# End-to-End Verifiable Internet Voting system.
+# This file defines a threat model for an end-to-end verifiable
+# Internet voting system.
 
 # Any *threat model* includes:
 #  - a *description of the system under threat* (this is found in our

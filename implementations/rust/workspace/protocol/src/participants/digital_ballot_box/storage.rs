@@ -1,11 +1,13 @@
-/*!
-This file defines the storage abstraction for the Digital Ballot Box.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
 
-The `DBBStorage` trait provides a storage-agnostic interface for persisting
-voter authorizations, submitted ballots, and cast ballots. This allows for
-different storage backends (in-memory, database, etc.) without changing
-the DBB actor logic.
-*/
+//! This file defines the storage abstraction for the Digital Ballot Box.
+//!
+//! The `DBBStorage` trait provides a storage-agnostic interface for persisting
+//! voter authorizations, submitted ballots, and cast ballots. This allows for
+//! different storage backends (in-memory, database, etc.) without changing
+//! the DBB actor logic.
 
 use crate::elections::{BallotTracker, VoterPseudonym};
 use crate::messages::{AuthVoterMsg, SignedBallotMsg};
@@ -282,7 +284,7 @@ impl InMemoryStorage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::generate_signature_keypair;
+    use crate::cryptography::generate_signature_keypair;
     use crate::elections::{BallotStyle, string_to_election_hash};
     use crate::messages::{AuthVoterMsgData, SignedBallotMsgData};
 
@@ -294,15 +296,16 @@ mod tests {
             voter_verifying_key: verifying_key,
             ballot_style,
         };
-        let signature = crate::crypto::Signature::from_bytes(&[0u8; 64]);
+        let signature = crate::cryptography::Signature::from_bytes(&[0u8; 64]);
         AuthVoterMsg { data, signature }
     }
 
     fn create_test_ballot(pseudonym: &str) -> SignedBallotMsg {
         let (_, verifying_key) = generate_signature_keypair();
-        let election_keypair = crate::crypto::generate_encryption_keypair(b"test_context").unwrap();
+        let election_keypair =
+            crate::cryptography::generate_encryption_keypair(b"test_context").unwrap();
         let ballot = crate::elections::Ballot::test_ballot(12345);
-        let (ballot_cryptogram, _) = crate::crypto::encrypt_ballot(
+        let (ballot_cryptogram, _) = crate::cryptography::encrypt_ballot(
             ballot,
             &election_keypair.pkey,
             &string_to_election_hash("test_election"),
@@ -316,7 +319,7 @@ mod tests {
             ballot_style: 1,
             ballot_cryptogram,
         };
-        let signature = crate::crypto::Signature::from_bytes(&[0u8; 64]);
+        let signature = crate::cryptography::Signature::from_bytes(&[0u8; 64]);
         SignedBallotMsg { data, signature }
     }
 

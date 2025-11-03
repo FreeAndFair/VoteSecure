@@ -1,10 +1,8 @@
-/*
- * Full protocol model: from dkg to decryption
- *
- * @author David Ruescas (david@sequentech.io)\
- * @copyright Free & Fair. 2025\
- * @version 0.1
- */
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
+//! Full protocol model: from dkg to decryption
 
 /// The composed Ascent logic (for use by the Trustee Application).
 pub mod composed_ascent_logic {
@@ -38,7 +36,7 @@ pub mod composed_ascent_logic {
 }
 
 mod stateright {
-    use crypto::VSerializable;
+    use cryptography::VSerializable;
     use stateright::{Model, Property};
 
     use std::array;
@@ -46,26 +44,30 @@ mod stateright {
     use std::hash::Hash as StdHash;
     use std::marker::PhantomData;
 
-    use crate::crypto::hash_serializable;
+    use crate::cryptography::hash_serializable;
     use crate::trustee_protocols::trustee_application::ascent_logic;
     use ascent_logic::Action;
     use ascent_logic::messages::Message;
     use ascent_logic::types::*;
 
     use core::hash;
-    use crypto::context::Context;
-    use crypto::cryptosystem::elgamal::{Ciphertext as EGCiphertext, PublicKey as EGPublicKey};
-    use crypto::cryptosystem::naoryung::{Ciphertext as NYCiphertext, PublicKey as NYPublicKey};
-    use crypto::dkgd::dealer::{Dealer, DealerShares, VerifiableShare};
-    use crypto::dkgd::recipient::combine;
-    use crypto::dkgd::recipient::{
+    use cryptography::context::Context;
+    use cryptography::cryptosystem::elgamal::{
+        Ciphertext as EGCiphertext, PublicKey as EGPublicKey,
+    };
+    use cryptography::cryptosystem::naoryung::{
+        Ciphertext as NYCiphertext, PublicKey as NYPublicKey,
+    };
+    use cryptography::dkgd::dealer::{Dealer, DealerShares, VerifiableShare};
+    use cryptography::dkgd::recipient::combine;
+    use cryptography::dkgd::recipient::{
         DecryptionFactor, DkgCiphertext, ParticipantPosition, Recipient,
     };
-    use crypto::traits::groups::CryptoGroup;
-    use crypto::traits::groups::GroupElement;
-    use crypto::utils::serialization::VSerializable;
-    use crypto::zkp::shuffle::ShuffleProof;
-    use crypto::zkp::shuffle::Shuffler;
+    use cryptography::traits::groups::CryptographicGroup;
+    use cryptography::traits::groups::GroupElement;
+    use cryptography::utils::serialization::VSerializable;
+    use cryptography::zkp::shuffle::ShuffleProof;
+    use cryptography::zkp::shuffle::Shuffler;
 
     /// The composed Ascent logic (for use by its internal Stateright test harness);
     /// it is exactly the same composition but includes the creation of the initial
@@ -168,7 +170,7 @@ mod stateright {
             let ny_pk = NYPublicKey::from_elgamal(&pk, C::generator());
             let mut bs = vec![];
             if bb.mixes[0].is_none() {
-                let ballots_: Result<Vec<EGCiphertext<C, W>>, crypto::utils::Error> = bb
+                let ballots_: Result<Vec<EGCiphertext<C, W>>, cryptography::utils::Error> = bb
                     .ballots
                     .as_ref()
                     .unwrap()
@@ -635,7 +637,7 @@ mod stateright {
         use super::*;
         use stateright::Checker;
 
-        type Ctx = crypto::context::RistrettoCtx;
+        type Ctx = cryptography::context::RistrettoCtx;
         const W: usize = 3;
         const T: usize = 2;
         const P: usize = 3;

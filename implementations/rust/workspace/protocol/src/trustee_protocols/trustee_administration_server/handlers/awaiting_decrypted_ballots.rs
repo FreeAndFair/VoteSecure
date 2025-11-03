@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! This file contains the TAS state handler for the `AwaitingDecryptedBallots`
 //! state. It handles only one type of message (`DecryptedBallotsMsg`); any
 //! other message type is rejected in this state.

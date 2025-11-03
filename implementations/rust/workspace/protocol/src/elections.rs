@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! Election data structures and ballot representations.
 //!
 //! This module contains core data structures for representing elections,
@@ -48,7 +52,7 @@ pub struct Ballot {
 /// Election hashes uniquely identify an election and are used throughout
 /// the protocol for verification and consistency checks.
 /// Fixed-size 32-byte array (256 bits) compatible with SHA-256.
-pub type ElectionHash = crate::crypto::CryptoHash;
+pub type ElectionHash = crate::cryptography::CryptographicHash;
 
 /// Type alias for ballot style identifiers.
 ///
@@ -83,7 +87,7 @@ pub type VoterPseudonym = String;
 /// # Returns
 /// A hash (64-byte Sha3_512) suitable for use as an ElectionHash
 pub fn string_to_election_hash(s: &str) -> ElectionHash {
-    use crate::crypto::hash_serializable;
+    use crate::cryptography::hash_serializable;
     hash_serializable(&s.to_string())
 }
 

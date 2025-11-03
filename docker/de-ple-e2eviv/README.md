@@ -86,4 +86,4 @@ We have not produced an `arm64` image for macOS on Apple Silicon because [Docker
 
 Should a multi-platform image be desired in the future, please contact the Free & Fair RDE team, preferably [Daniel Zimmerman](mailto:dmz@freeandfair.us?subject=RE%3A%20Help%20with%20DE%2FPLE%20docker%20image) or [Frank Zeyda](mailto:frank.zeyda@freeandfair.us?subject=RE%3A%20Help%20with%20DE%2FPLE%20docker%20image).
 
-Lastly, any issues or bug reports should be filed in the [TuskMobileVoting](https://github.com/FreeAndFair/TuskMobileVoting) issue tracker or emailed to [Frank Zeyda](mailto:frank.zeyda@freeandfair.us?subject=RE%3A%20I%20found%20a%20bug%20in%20the%20DE%2FPLE%20docker%20image).
+Lastly, any issues or bug reports should be filed in the [VoteSecure](https://github.com/FreeAndFair/VoteSecure) issue tracker.

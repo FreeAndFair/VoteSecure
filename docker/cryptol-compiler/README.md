@@ -91,4 +91,4 @@ The `cryptol-compiler` image is built as a _multi-platform_ for both `linux/amd6
 
 scripts described above do not specify an architecture, meaning they will use whatever is appropriate for the current system (no [Rosetta 2](https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment) is needed on macOS.)
 
-Any issues or bug reports should be filed in the [TuskMobileVoting](https://github.com/FreeAndFair/TuskMobileVoting) issue tracker or emailed to [Frank Zeyda](mailto:frank.zeyda@freeandfair.us?subject=RE%3A%20I%20found%20a%20bug%20in%20the%20DE%2FPLE%20docker%20image).
+Any issues or bug reports should be filed in the [VoteSecure](https://github.com/FreeAndFair/VoteSecure) issue tracker.

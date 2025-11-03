@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-crypto = { path = "../crypto" }
-vser_derive = { path = "../crypto/macros/vser_derive" }
+cryptography = { path = "../cryptography" }
+vser_derive = { path = "../cryptography/macros/vser_derive" }
 custom_warning_macro = { path = "../macros/custom_warning_macro" }
 enum_dispatch = "0.3.13"
 ascent = "0.8"

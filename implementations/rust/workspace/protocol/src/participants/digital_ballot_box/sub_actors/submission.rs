@@ -1,20 +1,22 @@
-/*!
-Ballot Submission Sub-Actor for the Digital Ballot Box.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
 
-This actor handles the ballot submission protocol where a Voting Application
-submits an encrypted and signed ballot to be recorded on the bulletin board.
-*/
+//! Ballot Submission Sub-Actor for the Digital Ballot Box.
+//!
+//! This actor handles the ballot submission protocol where a Voting Application
+//! submits an encrypted and signed ballot to be recorded on the bulletin board.
 
 // TODO: consider boxing structs in large enum variants to improve performance
 // currently ignored for code simplicity until performance data is analyzed
 #![allow(clippy::large_enum_variant)]
 
 use crate::bulletins::{BallotSubBulletin, BallotSubBulletinData, Bulletin};
-use crate::crypto::{ElectionKey, SigningKey, verify_ciphertext_proof};
+use crate::cryptography::{ElectionKey, SigningKey, verify_ciphertext_proof};
 use crate::elections::{BallotStyle, ElectionHash};
 use crate::messages::{ProtocolMessage, SignedBallotMsg, TrackerMsg, TrackerMsgData};
 use crate::participants::digital_ballot_box::{BulletinBoard, DBBStorage};
-use crypto::utils::serialization::VSerializable;
+use cryptography::utils::serialization::VSerializable;
 
 // --- I/O Types ---
 
@@ -230,7 +232,7 @@ impl SubmissionActor {
     /// Check #1: The signature is a valid signature over the message contents
     fn check_signature_valid(&self, ballot: &SignedBallotMsg) -> Result<(), String> {
         let serialized = ballot.data.ser();
-        crate::crypto::verify_signature(
+        crate::cryptography::verify_signature(
             &serialized,
             &ballot.signature,
             &ballot.data.voter_verifying_key,
@@ -304,7 +306,8 @@ impl SubmissionActor {
 
         // Sign the bulletin data
         let serialized_data = bulletin_data.ser();
-        let signature_bytes = crate::crypto::sign_data(&serialized_data, &self.dbb_signing_key);
+        let signature_bytes =
+            crate::cryptography::sign_data(&serialized_data, &self.dbb_signing_key);
 
         // Convert signature to string for bulletin
         let signature = hex::encode(signature_bytes.to_bytes());
@@ -334,7 +337,7 @@ impl SubmissionActor {
 
         // Sign the tracker message
         let serialized = data.ser();
-        let signature = crate::crypto::sign_data(&serialized, &self.dbb_signing_key);
+        let signature = crate::cryptography::sign_data(&serialized, &self.dbb_signing_key);
 
         TrackerMsg { data, signature }
     }
@@ -349,7 +352,7 @@ impl SubmissionActor {
 
         // Sign the tracker message
         let serialized = data.ser();
-        let signature = crate::crypto::sign_data(&serialized, &self.dbb_signing_key);
+        let signature = crate::cryptography::sign_data(&serialized, &self.dbb_signing_key);
 
         TrackerMsg { data, signature }
     }
@@ -358,7 +361,7 @@ impl SubmissionActor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::{VerifyingKey, encrypt_ballot, generate_signature_keypair};
+    use crate::cryptography::{VerifyingKey, encrypt_ballot, generate_signature_keypair};
     use crate::elections::{Ballot, string_to_election_hash};
     use crate::messages::{AuthVoterMsg, AuthVoterMsgData, SignedBallotMsgData};
     use crate::participants::digital_ballot_box::{InMemoryBulletinBoard, InMemoryStorage};
@@ -375,7 +378,8 @@ mod tests {
         let bulletin_board = InMemoryBulletinBoard::new();
         let election_hash = string_to_election_hash("test_election");
         let (dbb_signing_key, dbb_verifying_key) = generate_signature_keypair();
-        let election_keypair = crate::crypto::generate_encryption_keypair(b"test_context").unwrap();
+        let election_keypair =
+            crate::cryptography::generate_encryption_keypair(b"test_context").unwrap();
 
         (
             storage,
@@ -402,7 +406,7 @@ mod tests {
         };
         let auth_msg = AuthVoterMsg {
             data: auth_data,
-            signature: crate::crypto::Signature::from_bytes(&[0u8; 64]),
+            signature: crate::cryptography::Signature::from_bytes(&[0u8; 64]),
         };
         storage
             .store_voter_authorization(&pseudonym.to_string(), auth_msg)
@@ -444,7 +448,7 @@ mod tests {
             ballot_cryptogram,
         };
         let serialized = ballot_data.ser();
-        let signature = crate::crypto::sign_data(&serialized, &voter_signing_key);
+        let signature = crate::cryptography::sign_data(&serialized, &voter_signing_key);
         let signed_ballot = SignedBallotMsg {
             data: ballot_data,
             signature,
@@ -502,7 +506,7 @@ mod tests {
             ballot_cryptogram,
         };
         let serialized = ballot_data.ser();
-        let signature = crate::crypto::sign_data(&serialized, &voter_signing_key);
+        let signature = crate::cryptography::sign_data(&serialized, &voter_signing_key);
         let signed_ballot = SignedBallotMsg {
             data: ballot_data,
             signature,
@@ -552,7 +556,7 @@ mod tests {
             ballot_cryptogram,
         };
         let serialized = ballot_data.ser();
-        let signature = crate::crypto::sign_data(&serialized, &voter_signing_key);
+        let signature = crate::cryptography::sign_data(&serialized, &voter_signing_key);
         let signed_ballot = SignedBallotMsg {
             data: ballot_data,
             signature,
@@ -618,7 +622,7 @@ mod tests {
 
         // Sign with a different key than the voter's key
         let (wrong_signing_key, _wrong_verifying_key) = generate_signature_keypair();
-        let signature = crate::crypto::sign_data(&serialized, &wrong_signing_key);
+        let signature = crate::cryptography::sign_data(&serialized, &wrong_signing_key);
         let signed_ballot = SignedBallotMsg {
             data: ballot_data,
             signature,
@@ -674,7 +678,7 @@ mod tests {
             ballot_cryptogram,
         };
         let serialized = ballot_data.ser();
-        let mut signature = crate::crypto::sign_data(&serialized, &voter_signing_key);
+        let mut signature = crate::cryptography::sign_data(&serialized, &voter_signing_key);
 
         // Corrupt the signature by flipping some bytes
         let sig_bytes = signature.to_bytes();
@@ -682,7 +686,7 @@ mod tests {
         corrupted_bytes[0] ^= 0xFF;
         corrupted_bytes[10] ^= 0xFF;
         corrupted_bytes[30] ^= 0xFF;
-        signature = crate::crypto::Signature::from_bytes(&corrupted_bytes);
+        signature = crate::cryptography::Signature::from_bytes(&corrupted_bytes);
 
         let signed_ballot = SignedBallotMsg {
             data: ballot_data,
@@ -751,7 +755,7 @@ mod tests {
             ballot_cryptogram: different_cryptogram,
         };
         let different_serialized = different_data.ser();
-        let signature = crate::crypto::sign_data(&different_serialized, &voter_signing_key);
+        let signature = crate::cryptography::sign_data(&different_serialized, &voter_signing_key);
 
         // But send the original data with signature from different data
         let signed_ballot = SignedBallotMsg {
@@ -810,7 +814,7 @@ mod tests {
         };
 
         // Use all-zeros signature
-        let signature = crate::crypto::Signature::from_bytes(&[0u8; 64]);
+        let signature = crate::cryptography::Signature::from_bytes(&[0u8; 64]);
         let signed_ballot = SignedBallotMsg {
             data: ballot_data,
             signature,
@@ -867,7 +871,7 @@ mod tests {
         };
 
         // Use all-ones signature
-        let signature = crate::crypto::Signature::from_bytes(&[0xFFu8; 64]);
+        let signature = crate::cryptography::Signature::from_bytes(&[0xFFu8; 64]);
         let signed_ballot = SignedBallotMsg {
             data: ballot_data,
             signature,

@@ -1,10 +1,12 @@
-/*!
-Top-level actor for the Digital Ballot Box.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
 
-This actor manages concurrent sessions and routes messages to the appropriate
-sub-actors. It also handles EAS authorization messages and maintains persistent
-state through the storage and bulletin board traits.
-*/
+//! Top-level actor for the Digital Ballot Box.
+//!
+//! This actor manages concurrent sessions and routes messages to the appropriate
+//! sub-actors. It also handles EAS authorization messages and maintains persistent
+//! state through the storage and bulletin board traits.
 
 // TODO: consider boxing structs in large enum variants to improve performance
 // currently ignored for code simplicity until performance data is analyzed
@@ -18,10 +20,10 @@ use super::sub_actors::{
     submission::{SubmissionActor, SubmissionInput, SubmissionOutput, SubmissionState},
 };
 
-use crate::crypto::{ElectionKey, SigningKey, VerifyingKey};
+use crate::cryptography::{ElectionKey, SigningKey, VerifyingKey};
 use crate::elections::{BallotTracker, ElectionHash};
 use crate::messages::{AuthVoterMsg, ProtocolMessage};
-use crypto::utils::serialization::VSerializable;
+use cryptography::utils::serialization::VSerializable;
 
 use std::collections::HashMap;
 
@@ -343,7 +345,7 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
     fn handle_eas_message(&mut self, msg: EASMessage) -> Result<ActorOutput, String> {
         // Validate the authorization message signature
         let serialized = msg.message.data.ser();
-        crate::crypto::verify_signature(
+        crate::cryptography::verify_signature(
             &serialized,
             &msg.message.signature,
             &self.eas_verifying_key,
@@ -594,7 +596,7 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::generate_signature_keypair;
+    use crate::cryptography::generate_signature_keypair;
     use crate::elections::string_to_election_hash;
     use crate::participants::digital_ballot_box::{InMemoryBulletinBoard, InMemoryStorage};
 
@@ -603,7 +605,8 @@ mod tests {
         let bulletin_board = InMemoryBulletinBoard::new();
         let (dbb_signing_key, dbb_verifying_key) = generate_signature_keypair();
         let (_, eas_verifying_key) = generate_signature_keypair();
-        let election_keypair = crate::crypto::generate_encryption_keypair(b"test_context").unwrap();
+        let election_keypair =
+            crate::cryptography::generate_encryption_keypair(b"test_context").unwrap();
 
         DigitalBallotBoxActor::new(
             storage,

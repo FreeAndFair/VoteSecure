@@ -1,10 +1,14 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! Implementation of the `CheckingActor` for the Ballot Checking subprotocol.
 
 // TODO: consider boxing structs in large enum variants to improve performance
 // currently ignored for code simplicity until performance data is analyzed
 #![allow(clippy::large_enum_variant)]
 
-use crate::crypto::{
+use crate::cryptography::{
     RandomizersCryptogram, RandomizersStruct, Signature, SigningKey, VerifyingKey,
 };
 use crate::elections::{ElectionHash, VoterPseudonym};
@@ -12,7 +16,7 @@ use crate::messages::{
     CheckReqMsg, FwdCheckReqMsg, ProtocolMessage, RandomizerMsg, RandomizerMsgData,
 };
 
-use crypto::utils::serialization::VSerializable;
+use cryptography::utils::serialization::VSerializable;
 
 // --- I. Actor-Specific I/O ---
 
@@ -199,7 +203,7 @@ impl CheckingActor {
         signature: &Signature,
     ) -> Result<(), String> {
         let serialized = data.ser();
-        crate::crypto::verify_signature(&serialized, signature, &self.dbb_verifying_key)
+        crate::cryptography::verify_signature(&serialized, signature, &self.dbb_verifying_key)
             .map_err(|_| "FwdCheckReqMsg has invalid signature from DBB".to_string())
     }
 
@@ -237,7 +241,7 @@ impl CheckingActor {
 
     /// Embedded Check #3: The public_enc_key and public_sign_key are valid public keys
     fn check_embedded_check_req_public_keys(&self) -> Result<(), String> {
-        // The crypto library types ensure these are valid by construction
+        // The cryptography library types ensure these are valid by construction
         // Additional validation could be done here if needed (key format, curve validation, etc.)
         Ok(())
     }
@@ -249,7 +253,7 @@ impl CheckingActor {
         signature: &Signature,
     ) -> Result<(), String> {
         let serialized = data.ser();
-        crate::crypto::verify_signature(&serialized, signature, &data.public_sign_key)
+        crate::cryptography::verify_signature(&serialized, signature, &data.public_sign_key)
             .map_err(|_| "Embedded CheckReqMsg has invalid signature from BCA".to_string())
     }
 
@@ -268,7 +272,7 @@ impl CheckingActor {
         };
 
         let serialized = data.ser();
-        let signature = crate::crypto::sign_data(&serialized, &self.session_signing_key);
+        let signature = crate::cryptography::sign_data(&serialized, &self.session_signing_key);
 
         let randomizer_msg = RandomizerMsg { data, signature };
 
@@ -286,13 +290,13 @@ impl CheckingActor {
         // Extract BCA's public key from the check request
         let bca_public_key = &check_req.data.public_enc_key;
 
-        // Use the updated crypto API to encrypt randomizers
+        // Use the updated cryptography API to encrypt randomizers
         // The context is derived from parameters both VA and BCA can agree upon
-        let context = crate::crypto::ballot_check_context(
+        let context = crate::cryptography::ballot_check_context(
             &self.election_hash,
             &check_req.data.public_sign_key,
         );
-        crate::crypto::encrypt_randomizers(randomizers, bca_public_key, &context)
+        crate::cryptography::encrypt_randomizers(randomizers, bca_public_key, &context)
     }
 
     // --- Encrypted Randomizer Checks (Self-Validation) ---
@@ -302,7 +306,9 @@ impl CheckingActor {
 mod tests {
     use super::*;
 
-    use crate::crypto::{encrypt_ballot, generate_encryption_keypair, generate_signature_keypair};
+    use crate::cryptography::{
+        encrypt_ballot, generate_encryption_keypair, generate_signature_keypair,
+    };
     use crate::messages::{CheckReqMsgData, FwdCheckReqMsgData};
 
     #[test]
@@ -364,7 +370,8 @@ mod tests {
 
         // Create test BCA keys
         let (bca_signing_key, bca_verifying_key) = generate_signature_keypair();
-        let bca_keypair = crate::crypto::generate_encryption_keypair(b"test_context").unwrap();
+        let bca_keypair =
+            crate::cryptography::generate_encryption_keypair(b"test_context").unwrap();
 
         // Create CheckReqMsgData
         let check_req_data = CheckReqMsgData {
@@ -375,7 +382,7 @@ mod tests {
         };
 
         let serialized = check_req_data.ser();
-        let signature = crate::crypto::sign_data(&serialized, &bca_signing_key);
+        let signature = crate::cryptography::sign_data(&serialized, &bca_signing_key);
 
         let check_req_msg = CheckReqMsg {
             data: check_req_data,
@@ -390,39 +397,42 @@ mod tests {
 
     #[test]
     fn test_randomizer_message_creation() {
-        // Simplified test that directly tests randomizer encryption like the working crypto.rs tests
+        // Simplified test that directly tests randomizer encryption like the working cryptography.rs tests
 
         // Create randomizers by encrypting a test ballot (exactly like working tests)
-        let election_keypair = crate::crypto::create_test_encryption_keypair();
-        let test_ballot = crate::crypto::create_test_ballot_small();
-        let (_, randomizers) = crate::crypto::encrypt_test_ballot(
+        let election_keypair = crate::cryptography::create_test_encryption_keypair();
+        let test_ballot = crate::cryptography::create_test_ballot_small();
+        let (_, randomizers) = crate::cryptography::encrypt_test_ballot(
             test_ballot,
             &election_keypair,
             &crate::elections::string_to_election_hash("test_hash"),
         );
 
         // Create BCA keypair (exactly like working tests)
-        let bca_keypair = crate::crypto::create_test_encryption_keypair();
+        let bca_keypair = crate::cryptography::create_test_encryption_keypair();
 
         // Test randomizer encryption directly (exactly like working tests)
-        let encrypted_result =
-            crate::crypto::encrypt_randomizers(&randomizers, &bca_keypair.pkey, "test_context");
+        let encrypted_result = crate::cryptography::encrypt_randomizers(
+            &randomizers,
+            &bca_keypair.pkey,
+            "test_context",
+        );
 
         assert!(encrypted_result.is_ok());
     }
 
     #[test]
     fn test_checking_actor_core_functionality() {
-        // Test CheckingActor creation and basic validation without complex crypto operations
+        // Test CheckingActor creation and basic validation without complex cryptography operations
 
         let election_hash = "test_election_hash".to_string();
         let (_, dbb_verifying_key) = generate_signature_keypair();
         let (session_signing_key, session_verifying_key) = generate_signature_keypair();
 
         // Create simple test randomizers using the working pattern
-        let election_keypair = crate::crypto::create_test_encryption_keypair();
-        let test_ballot = crate::crypto::create_test_ballot_small();
-        let (_, randomizers) = crate::crypto::encrypt_test_ballot(
+        let election_keypair = crate::cryptography::create_test_encryption_keypair();
+        let test_ballot = crate::cryptography::create_test_ballot_small();
+        let (_, randomizers) = crate::cryptography::encrypt_test_ballot(
             test_ballot,
             &election_keypair,
             &crate::elections::string_to_election_hash("test_hash"),
@@ -456,17 +466,17 @@ mod tests {
     #[test]
     fn test_complete_randomizer_message_workflow() {
         // Comprehensive test validating all key CheckingActor functionality
-        // Tests the complete workflow using proven working patterns from crypto.rs tests
+        // Tests the complete workflow using proven working patterns from cryptography.rs tests
 
         let election_hash = "test_election_hash".to_string();
         let (_, dbb_verifying_key) = generate_signature_keypair();
         let (session_signing_key, session_verifying_key) = generate_signature_keypair();
 
         // STEP 1: Test ballot encryption and randomizer generation (core crypto)
-        let election_keypair = crate::crypto::create_test_encryption_keypair();
-        let test_ballot = crate::crypto::create_test_ballot_small();
+        let election_keypair = crate::cryptography::create_test_encryption_keypair();
+        let test_ballot = crate::cryptography::create_test_ballot_small();
         let ballot_style = test_ballot.ballot_style;
-        let (ballot_cryptogram, randomizers) = crate::crypto::encrypt_test_ballot(
+        let (ballot_cryptogram, randomizers) = crate::cryptography::encrypt_test_ballot(
             test_ballot.clone(),
             &election_keypair,
             &crate::elections::string_to_election_hash(&election_hash),
@@ -474,7 +484,7 @@ mod tests {
 
         assert_eq!(
             randomizers.randomizers.len(),
-            crate::crypto::BALLOT_CIPHERTEXT_WIDTH
+            crate::cryptography::BALLOT_CIPHERTEXT_WIDTH
         );
         assert_eq!(ballot_cryptogram.ballot_style, ballot_style);
 
@@ -499,11 +509,14 @@ mod tests {
         );
 
         // STEP 3: Test BCA key generation and randomizer encryption
-        let bca_keypair = crate::crypto::create_test_encryption_keypair();
+        let bca_keypair = crate::cryptography::create_test_encryption_keypair();
 
-        // Test direct randomizer encryption (like working crypto.rs tests)
-        let encrypted_randomizers =
-            crate::crypto::encrypt_randomizers(&randomizers, &bca_keypair.pkey, "ballot_check");
+        // Test direct randomizer encryption (like working cryptography.rs tests)
+        let encrypted_randomizers = crate::cryptography::encrypt_randomizers(
+            &randomizers,
+            &bca_keypair.pkey,
+            "ballot_check",
+        );
         assert!(
             encrypted_randomizers.is_ok(),
             "Direct randomizer encryption should work"
@@ -514,7 +527,7 @@ mod tests {
 
         // STEP 4: Test end-to-end randomizer decryption and ballot recovery
         let decrypted_randomizers =
-            crate::crypto::decrypt_randomizers(&encrypted, &bca_keypair, "ballot_check");
+            crate::cryptography::decrypt_randomizers(&encrypted, &bca_keypair, "ballot_check");
         assert!(
             decrypted_randomizers.is_ok(),
             "Randomizer decryption should work"
@@ -525,7 +538,7 @@ mod tests {
         assert_eq!(decrypted.randomizers.len(), randomizers.randomizers.len());
 
         // Test ballot decryption using recovered randomizers
-        let recovered_ballot = crate::crypto::decrypt_ballot(
+        let recovered_ballot = crate::cryptography::decrypt_ballot(
             &ballot_cryptogram,
             &decrypted,
             &election_keypair.pkey,
@@ -555,13 +568,13 @@ mod tests {
         // STEP 6: Test signature operations
         let (test_signing_key, test_verifying_key) = generate_signature_keypair();
         let test_data = b"test_signature_data";
-        let signature = crate::crypto::sign_data(test_data, &test_signing_key);
+        let signature = crate::cryptography::sign_data(test_data, &test_signing_key);
         let verification =
-            crate::crypto::verify_signature(test_data, &signature, &test_verifying_key);
+            crate::cryptography::verify_signature(test_data, &signature, &test_verifying_key);
         assert!(verification.is_ok(), "Signature verification should work");
 
         // NOTE: The only known issue is with complex nested message serialization
-        // in create_randomizer_message(), but all underlying crypto and logic operations
+        // in create_randomizer_message(), but all underlying cryptography and logic operations
         // work perfectly. This test validates that the CheckingActor can perform
         // all its core responsibilities correctly.
     }
@@ -571,20 +584,23 @@ mod tests {
         // Test if the "ballot_check" context is causing the hang
 
         // Create randomizers by encrypting a test ballot (exactly like working tests)
-        let election_keypair = crate::crypto::create_test_encryption_keypair();
-        let test_ballot = crate::crypto::create_test_ballot_small();
-        let (_, randomizers) = crate::crypto::encrypt_test_ballot(
+        let election_keypair = crate::cryptography::create_test_encryption_keypair();
+        let test_ballot = crate::cryptography::create_test_ballot_small();
+        let (_, randomizers) = crate::cryptography::encrypt_test_ballot(
             test_ballot,
             &election_keypair,
             &crate::elections::string_to_election_hash("test_hash"),
         );
 
         // Create BCA keypair (exactly like working tests)
-        let bca_keypair = crate::crypto::create_test_encryption_keypair();
+        let bca_keypair = crate::cryptography::create_test_encryption_keypair();
 
         // Test randomizer encryption with the same context as the hanging test
-        let encrypted_result =
-            crate::crypto::encrypt_randomizers(&randomizers, &bca_keypair.pkey, "ballot_check");
+        let encrypted_result = crate::cryptography::encrypt_randomizers(
+            &randomizers,
+            &bca_keypair.pkey,
+            "ballot_check",
+        );
 
         assert!(encrypted_result.is_ok());
     }
@@ -599,9 +615,9 @@ mod tests {
         let (session_signing_key2, _) = generate_signature_keypair();
 
         // Create randomizers exactly like the hanging test
-        let election_keypair = crate::crypto::create_test_encryption_keypair();
-        let test_ballot = crate::crypto::create_test_ballot_small();
-        let (_, randomizers) = crate::crypto::encrypt_test_ballot(
+        let election_keypair = crate::cryptography::create_test_encryption_keypair();
+        let test_ballot = crate::cryptography::create_test_ballot_small();
+        let (_, randomizers) = crate::cryptography::encrypt_test_ballot(
             test_ballot,
             &election_keypair,
             &crate::elections::string_to_election_hash(&election_hash),
@@ -618,7 +634,7 @@ mod tests {
 
         // Create BCA keys exactly like the hanging test
         let (_, bca_verifying_key) = generate_signature_keypair();
-        let bca_keypair = crate::crypto::create_test_encryption_keypair();
+        let bca_keypair = crate::cryptography::create_test_encryption_keypair();
 
         // Create CheckReqMsg exactly like the hanging test
         let check_req_data = CheckReqMsgData {
@@ -630,7 +646,7 @@ mod tests {
 
         let check_req_msg = CheckReqMsg {
             data: check_req_data,
-            signature: crate::crypto::sign_data(b"test_check_req", &session_signing_key2),
+            signature: crate::cryptography::sign_data(b"test_check_req", &session_signing_key2),
         };
 
         // This is the exact call that was hanging
@@ -645,7 +661,7 @@ mod tests {
 
     #[test]
     fn test_randomizer_message_structure_only() {
-        // A simpler test that focuses on message structure without crypto operations
+        // A simpler test that focuses on message structure without cryptography operations
 
         let election_hash = "test_election_hash".to_string();
         let (_, dbb_verifying_key) = generate_signature_keypair();
@@ -750,7 +766,8 @@ mod tests {
         let election_hash = "test_election_2024".to_string();
 
         // Test CheckReqMsgData serialization
-        let bca_keypair = crate::crypto::generate_encryption_keypair(b"test_context").unwrap();
+        let bca_keypair =
+            crate::cryptography::generate_encryption_keypair(b"test_context").unwrap();
         let check_req_data = CheckReqMsgData {
             election_hash: crate::elections::string_to_election_hash(&election_hash),
             tracker: "tracker_123".to_string(),
@@ -766,7 +783,7 @@ mod tests {
         // Test FwdCheckReqMsgData serialization
         let check_req_msg = CheckReqMsg {
             data: check_req_data,
-            signature: crate::crypto::sign_data(b"test", &generate_signature_keypair().0),
+            signature: crate::cryptography::sign_data(b"test", &generate_signature_keypair().0),
         };
         let fwd_check_req_data = FwdCheckReqMsgData {
             election_hash: crate::elections::string_to_election_hash(&election_hash),
@@ -787,7 +804,7 @@ mod tests {
             &crate::elections::string_to_election_hash("test"),
         )
         .unwrap();
-        let encrypted_randomizers = crate::crypto::encrypt_randomizers(
+        let encrypted_randomizers = crate::cryptography::encrypt_randomizers(
             &test_randomizers,
             &bca_keypair.pkey,
             "ballot_check",
@@ -844,7 +861,7 @@ mod tests {
         };
 
         let serialized = check_req_data.ser();
-        let signature = crate::crypto::sign_data(&serialized, &bca_signing_key);
+        let signature = crate::cryptography::sign_data(&serialized, &bca_signing_key);
 
         let check_req_msg = CheckReqMsg {
             data: check_req_data,

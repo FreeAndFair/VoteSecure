@@ -1,13 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! Implementation of the `CastingActor` for the Ballot Casting subprotocol.
 
 // TODO: consider boxing structs in large enum variants to improve performance
 // currently ignored for code simplicity until performance data is analyzed
 #![allow(clippy::large_enum_variant)]
 
-use crate::crypto::{Signature, SigningKey, VerifyingKey};
+use crate::cryptography::{Signature, SigningKey, VerifyingKey};
 use crate::elections::{BallotTracker, ElectionHash, VoterPseudonym};
 use crate::messages::{CastConfMsg, CastReqMsg, CastReqMsgData, ProtocolMessage};
-use crypto::utils::serialization::VSerializable;
+use cryptography::utils::serialization::VSerializable;
 
 // --- I. Actor-Specific I/O ---
 
@@ -93,7 +97,8 @@ impl CastingActor {
 
                 // Create cryptographic signature over the message data using VSerializable
                 let serialized = data.ser();
-                let signature = crate::crypto::sign_data(&serialized, &self.voter_signing_key);
+                let signature =
+                    crate::cryptography::sign_data(&serialized, &self.voter_signing_key);
 
                 let cast_req_msg = CastReqMsg { data, signature };
 
@@ -216,7 +221,7 @@ impl CastingActor {
         signature: &Signature,
     ) -> Result<(), String> {
         let serialized = data.ser();
-        crate::crypto::verify_signature(&serialized, signature, &self.dbb_verifying_key)
+        crate::cryptography::verify_signature(&serialized, signature, &self.dbb_verifying_key)
             .map_err(|_| "CastConfMsg has invalid signature from DBB".to_string())
     }
 }
@@ -224,7 +229,7 @@ impl CastingActor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::generate_signature_keypair;
+    use crate::cryptography::generate_signature_keypair;
 
     #[test]
     fn test_casting_actor_creation() {
@@ -271,7 +276,7 @@ mod tests {
             CastingOutput::SendMessage(ProtocolMessage::CastReq(cast_req)) => {
                 // Verify signature by re-creating the serialized data using VSerializable
                 let serialized = cast_req.data.ser();
-                let verification_result = crate::crypto::verify_signature(
+                let verification_result = crate::cryptography::verify_signature(
                     &serialized,
                     &cast_req.signature,
                     &cast_req.data.voter_verifying_key,
@@ -381,7 +386,7 @@ mod tests {
 
                 // Verify that the signature can be verified using VSerializable
                 let serialized = cast_req_msg.data.ser();
-                let verification_result = crate::crypto::verify_signature(
+                let verification_result = crate::cryptography::verify_signature(
                     &serialized,
                     &cast_req_msg.signature,
                     &cast_req_msg.data.voter_verifying_key,
@@ -395,7 +400,7 @@ mod tests {
                 let mut modified_data = cast_req_msg.data.clone();
                 modified_data.ballot_tracker = "wrong_tracker".to_string();
                 let wrong_serialized = modified_data.ser();
-                let wrong_verification = crate::crypto::verify_signature(
+                let wrong_verification = crate::cryptography::verify_signature(
                     &wrong_serialized,
                     &cast_req_msg.signature,
                     &cast_req_msg.data.voter_verifying_key,

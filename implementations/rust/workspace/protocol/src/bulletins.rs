@@ -1,7 +1,9 @@
-/*!
-This file defines the structures for all entries that can be posted to the
-Public Bulletin Board (PBB).
-*/
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
+//! This file defines the structures for all entries that can be posted to the
+//! Public Bulletin Board (PBB).
 
 // TODO: consider boxing structs in large enum variants to improve performance
 // currently ignored for code simplicity until performance data is analyzed
@@ -82,10 +84,10 @@ pub enum Bulletin {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::generate_signature_keypair;
-    use crate::crypto::{BallotCryptogram, Signature};
+    use crate::cryptography::generate_signature_keypair;
+    use crate::cryptography::{BallotCryptogram, Signature};
     use crate::messages::{AuthVoterMsgData, CastReqMsgData, SignedBallotMsgData};
-    use crypto::utils::serialization::VSerializable;
+    use cryptography::utils::serialization::VSerializable;
 
     #[test]
     fn test_bulletin_vserializable() {
@@ -113,21 +115,21 @@ mod tests {
                 ballot_style: 1,
                 // Create a dummy ciphertext for testing
                 ciphertext: {
-                    use crate::crypto::{BALLOT_CIPHERTEXT_WIDTH, CryptoContext};
-                    use crypto::context::Context;
-                    use crypto::cryptosystem::naoryung::Ciphertext as NYCiphertext;
-                    use crypto::traits::groups::{GroupElement, GroupScalar};
+                    use crate::cryptography::{BALLOT_CIPHERTEXT_WIDTH, CryptographyContext};
+                    use cryptography::context::Context;
+                    use cryptography::cryptosystem::naoryung::Ciphertext as NYCiphertext;
+                    use cryptography::traits::groups::{GroupElement, GroupScalar};
 
                     // Create dummy components for the ciphertext
-                    let dummy_element = <CryptoContext as Context>::Element::one();
-                    let dummy_scalar = <CryptoContext as Context>::Scalar::zero();
+                    let dummy_element = <CryptographyContext as Context>::Element::one();
+                    let dummy_scalar = <CryptographyContext as Context>::Scalar::zero();
                     let u_b = [dummy_element; BALLOT_CIPHERTEXT_WIDTH];
                     let v_b = [dummy_element; BALLOT_CIPHERTEXT_WIDTH];
                     let u_a = [dummy_element; BALLOT_CIPHERTEXT_WIDTH];
 
                     // Create a dummy PlEq proof with correct width
                     let dummy_proof = {
-                        use crypto::zkp::pleq::PlEqProof;
+                        use cryptography::zkp::pleq::PlEqProof;
                         let big_a = [
                             [dummy_element; BALLOT_CIPHERTEXT_WIDTH],
                             [dummy_element; BALLOT_CIPHERTEXT_WIDTH],

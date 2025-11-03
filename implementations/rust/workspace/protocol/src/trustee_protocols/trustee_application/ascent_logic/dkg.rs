@@ -1,16 +1,14 @@
-/*
- * Protocol distributed key generation phase
- *
- * @author David Ruescas (david@sequentech.io)\
- * @copyright Free & Fair. 2025\
- * @version 0.1
- */
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
+//! Protocol distributed key generation phase
 
 use super::HashBoard;
 use super::messages::Message;
 use super::types::*;
 use super::{Action, HASH_SIZE};
-use crypto::context::Context;
+use cryptography::context::Context;
 use stateright::{Model, Property};
 use std::marker::PhantomData;
 
@@ -240,7 +238,7 @@ mod tests {
     use super::*;
     use stateright::Checker;
 
-    use crypto::context::RistrettoCtx;
+    use cryptography::context::RistrettoCtx;
 
     #[test]
     fn check_dkg() {

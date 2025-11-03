@@ -1,5 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! Top-level actor for the Election Administration Server subprotocol
 //! implementation.
+
 // Currently ignored for code simplicity until performance data is analyzed.
 // @todo Consider boxing structs in large enum variants to improve performance.
 #![allow(clippy::large_enum_variant)]
@@ -8,7 +13,7 @@ use super::sub_actors::voter_authentication::VoterAuthenticationActor;
 use super::sub_actors::voter_authentication::VoterAuthenticationInput;
 use super::sub_actors::voter_authentication::VoterAuthenticationOutput;
 
-use crate::crypto::SigningKey;
+use crate::cryptography::SigningKey;
 use crate::elections::ElectionHash;
 use crate::messages::AuthReqMsg;
 use crate::messages::ProtocolMessage;
@@ -273,12 +278,12 @@ impl TopLevelActor {
         self.purge_expired_requests();
     }
 
-    /// Purge all sub-actors from [`self.requests`] that have completed.
+    /// Purge all sub-actors that have completed.
     fn purge_completed_requests(&mut self) {
         self.requests.retain(|_, request| !request.has_completed());
     }
 
-    /// Purge all sub-actors from [`self.requests`] that have timed out.
+    /// Purge all sub-actors that have timed out.
     fn purge_expired_requests(&mut self) {
         let now = Instant::now();
         self.requests

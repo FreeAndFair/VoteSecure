@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 // Note that the Ballot Check Application (BCA) does not interact with the
 // Voter Application (VA) directly but uses the Digital Ballot Box (DBB)
 // as intermediary to talk to the Voter Application. There is really only
@@ -13,16 +17,16 @@
 use super::sub_actors::ballot_check::BallotCheckActor;
 use super::sub_actors::ballot_check::{BallotCheckInput, BallotCheckOutput};
 
-use crate::crypto::ElectionKey;
-use crate::crypto::VerifyingKey;
-use crate::crypto::verify_signature;
+use crate::cryptography::ElectionKey;
+use crate::cryptography::VerifyingKey;
+use crate::cryptography::verify_signature;
 
 use crate::elections::BallotTracker;
 use crate::elections::ElectionHash;
 
 use crate::messages::SignedBallotMsg;
 
-use crypto::utils::serialization::VSerializable;
+use cryptography::utils::serialization::VSerializable;
 
 // --- I/O Types ---
 

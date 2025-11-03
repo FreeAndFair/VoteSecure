@@ -16,15 +16,15 @@
 // feature model for E2E-VIV encompasses the following:
 // (1) include all requirements of the E2E-VIV Crypto Lando
 //   requirements model, which can be found here:
-//   https://github.com/FreeAndFair/TuskMobileVoting/tree/main/specs/domain-model/lando/requirements
+//   https://github.com/FreeAndFair/VoteSecure/tree/main/specs/domain-model/lando/requirements
 //   We note that Requirements were automatically extracted
 //   from Lando into Clafer, using the Python tool under
-//   https://github.com/FreeAndFair/TuskMobileVoting/blob/threat-model/utils/lando/mk_clafer_reqs.py
+//   https://github.com/FreeAndFair/VoteSecure/blob/threat-model/utils/lando/mk_clafer_reqs.py
 // (2) Include a high-level Systems model, based on the Data
-//   Flow Diagram in https://github.com/FreeAndFair/TuskMobileVoting/blob/threat-model/specs/threat-model/threat-model.md
+//   Flow Diagram in https://github.com/FreeAndFair/VoteSecure/blob/threat-model/specs/threat-model/threat-model.md
 // (3) Include a preliminary version of the E2E-VIV threat
-//   model, again based on Tusk Mobile Voting Threat Model at
-//   https://github.com/FreeAndFair/TuskMobileVoting/blob/threat-model/specs/threat-model/threat-model.md
+//   model, again based on VoteSecure Threat Model at
+//   https://github.com/FreeAndFair/VoteSecure/blob/threat-model/specs/threat-model/threat-model.md
 //   as well as the initial Lando Threat Model Google Doc:
 //   https://docs.google.com/document/d/1qQB5oXAc-CE0RGfoSCTVcHdLmTEMsdK7EYh4O97OzeM/
 
@@ -37,11 +37,11 @@
 // - The Future of Voting report (E2E-VIV Project):
 // https://www.usvotefoundation.org/E2E-VIV
 // - Lando DE Concept Model:
-// https://github.com/FreeAndFair/TuskMobileVoting/blob/main/specs/domain-model/lando/domain.lando
+// https://github.com/FreeAndFair/VoteSecure/blob/main/specs/domain-model/lando/domain.lando
 // - Lando Requirements:
-// https://github.com/FreeAndFair/TuskMobileVoting/tree/main/specs/domain-model/lando/requirements
+// https://github.com/FreeAndFair/VoteSecure/tree/main/specs/domain-model/lando/requirements
 // - Informal Threat Model (David Ruescas):
-// https://github.com/FreeAndFair/TuskMobileVoting/blob/threat-model/specs/threat-model/threat-model.md
+// https://github.com/FreeAndFair/VoteSecure/blob/threat-model/specs/threat-model/threat-model.md
 // - Ideas towards Threat Modeling in Lando (Daniel Zimmerman):
 // https://docs.google.com/document/d/1qQB5oXAc-CE0RGfoSCTVcHdLmTEMsdK7EYh4O97OzeM/
 
@@ -62,8 +62,8 @@
 // we are adopting across the RDE RA.
 // @example kiniry Here is an example URL binder for this file, referring
 // to this abstract clafer itself.
-// @trace ("https://github.com/FreeAndFair/TuskMobileVoting.git#2a4929d52d71b01283e91c76cfcf0739621f652c", "Requirement")
-// @trace "https://github.com/FreeAndFair/TuskMobileVoting.git#2a4929d52d71b01283e91c76cfcf0739621f652c?Requirement"
+// @trace ("https://github.com/FreeAndFair/VoteSecure.git#2a4929d52d71b01283e91c76cfcf0739621f652c", "Requirement")
+// @trace "https://github.com/FreeAndFair/VoteSecure.git#2a4929d52d71b01283e91c76cfcf0739621f652c?Requirement"
 
 abstract Requirement
     label -> string
@@ -972,7 +972,7 @@ abstract Comment : Node
 // System Model
 // ------------
 
-// @trace zeyda: The system model is based on https://github.com/FreeAndFair/TuskMobileVoting/blob/threat-model/specs/threat-model/threat-model.md
+// @trace zeyda: The system model is based on https://github.com/FreeAndFair/VoteSecure/blob/threat-model/specs/threat-model/threat-model.md
 
 // -----------------------------
 // System Model: Toplevel System
@@ -1017,11 +1017,11 @@ System
 // ------------------------
 
 // @note zeyda The subsystem definition is based on the Data
-// Flow diagram given in the Tusk Mobile Voting Threat Model.
+// Flow diagram given in the VoteSecure Threat Model.
 // Indeed, the Clafer model fully encodes the diagram, apart
 // from the fact that we do not model multiple instances of
 // Trustee Applications. (@review zeyda Perhaps we should?)
-// See: https://github.com/FreeAndFair/TuskMobileVoting/blob/threat-model/specs/threat-model/threat-model.md
+// See: https://github.com/FreeAndFair/VoteSecure/blob/threat-model/specs/threat-model/threat-model.md
 
 // @review zeyda Questions were raised with regards to the
 // nature and semantics of the talksTo relation. My initial

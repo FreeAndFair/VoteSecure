@@ -10,7 +10,7 @@ The E2E-VIV system, henceforth referred to as “the system”, is an Internet-c
 
 The design of the system is in alignment with the objectives outlined in *Vote With Your Phone* by Bradley Tusk, which in turn is based upon the requirements stated in the *Future of Voting* report published by the U.S. Vote Foundation. The system is built with future certification by the appropriate governing bodies in mind. The system architecture is chosen to facilitate the generation of evidence for a system wide assurance case; the cryptographic protocol assurance case is a subset of this system wide assurance case.
 
-The system provides voters with a secure method of casting an end-to-end verifiable ballot using an application on a mobile device. It supports printing of cast ballots for tabulation by traditional absentee ballot tabulation systems and processes, with an optional homomorphic tally capability. The system is optimized for usability, accessibility, and participation in optional verification steps. The system is designed to be run and configured by a local election official using the same federally-specified data format as other digital election systems.
+The system provides voters with a secure method of casting an end-to-end verifiable ballot using an application on a mobile device. It supports printing of cast ballots for tabulation by traditional absentee ballot tabulation systems and processes. The system is optimized for usability, accessibility, and participation in optional verification steps. The system is designed to be run and configured by a local election official using the same federally-specified data format as other digital election systems.
 
 The system consists of the following ten primary subsystems: Voting Application, Authentication Service, Public Bulletin Board, Digital Ballot Box, Trustee Application, Trustee Administration Server, Election Administration Server, Election Administrator Application, Ballot Check Application, and Ballot Printer. A system diagram detailing the information flow relationships among subsystems is provided below.
 
@@ -20,7 +20,7 @@ The purpose of the system is to reduce the cost and complexity of absentee votin
 
 ## E2E-VIV Protocol Family Mission
 
-The protocol family is a set of related cryptographic protocols that follow a single core structure while capturing feature variance as protocol instances in the family. The protocols facilitate the security-critical core functionality of end-to-end verifiable Internet voting such as casting a vote, verifying the vote is cast as intended, tracking the vote record to ensure it is tabulated, and outputting either a set of votes or a vote tally along with evidence of the correctness of the election.
+The protocol family is a set of related cryptographic protocols that follow a single core structure while capturing feature variance as protocol instances in the family. The protocols facilitate the security-critical core functionality of end-to-end verifiable Internet voting such as casting a vote, verifying the vote is cast as intended, tracking the vote record to ensure it is tabulated, and outputting a set of votes along with evidence of the correctness of the election.
 
 The protocol family serves to provide a specific protocol variant specialized for the ballot type and voting system used in a particular election. This reduces the complexity of each protocol instance by only supporting the required features. The ability to have different features present in different specific protocol instancess allows the protocol family to be utilized in many different election types and jurisdictions. Furthermore, the flexibility of having different protocol variants facilitates ease of adoption of the protocol family by manufacturers of full-fledged voting systems.
 
@@ -38,13 +38,13 @@ The C\&C interface is used to upload the ballot definition files, which are alre
 
 ## Environment
 
-The system is deployed across four environments: Internet connected mobile devices, private/public clouds, election office local area networks, and an air gapped network. The mobile application is distributed in the major mobile operating system native application stores and installed on Internet connected mobile devices. The application server, authentication server, affidavit server, and digital ballot box application are deployed in some combination of public and private cloud infrastructure. The servers may communicate with one another over the open Internet or within virtual private networks. The trustee application is deployed to an air gapped network.
+The system is deployed across four environments: Internet connected mobile devices, private/public clouds, election office local area networks, and an air gapped network. The mobile application is distributed in the major mobile operating system native application stores and installed on Internet connected mobile devices. The application server, authentication server, affidavit server, and digital ballot box application are deployed in some combination of public and private cloud infrastructure. The servers may communicate with one another over the open Internet or within virtual private networks. The trustee application and trustee administration server are deployed to an air gapped network.
 
 Each of these environments is assumed to have malicious threat actors present. The system is designed explicitly to mitigate the threats posed by these actors. The Internet connected mobile device is expected to have applications (e.g., TikTok) installed that could be leveraged by a nation-state threat actor as a beachhead to compromise the mobile voting application. The public and private cloud infrastructure is assumed to be actively under attack by remote threat actors, insiders, and administrators. The election office local area network is assumed to be compromised by malicious devices planted in the network. Election officials and their delegates are assumed to be potential bad actors. It is assumed that advanced persistent threats (APTs) have access to all environments.
 
 ## Auditability
 
-The mobile voting application, digital ballot box, trustee application, and cryptographic protocol are fully open source, available for unrestricted use, testing, and analysis by any third party. Anyone can not only access the code and specifications but also run the system, conduct their own static and dynamic analyses, and even perform red-teaming. This unrestricted transparency is critical to build trust amongst stakeholders in the correct and secure operation of the system.
+The core libraries for the mobile voting application, digital ballot box, trustee application, trustee administration server, election administration server, and cryptographic protocol are fully open source, available for unrestricted use, testing, and analysis by any third party. Anyone can not only access the code and specifications but also conduct their own static and dynamic analyses and even perform red-teaming. This unrestricted transparency is critical to build trust amongst stakeholders in the correct and secure operation of the system.
 
 ## Verifiability
 
@@ -52,7 +52,7 @@ The core enabler of Internet enabled mobile voting is *end-to-end verifiability*
 
 ### Cast as Intended
 
-The cast as intended property ensures that a voter who intended to cast a ballot for a particular set of candidates and choices actually did cast a vote for that set of candidates and choices. This is verified with the ballot check referred to as the Benaloh challenge. The *Voting Application* commits to an encryption of the ballot without knowing whether it is to be cast or checked. If the ballot is then checked it is decrypted and displayed by the *Ballot Check Application*, and the voter verifies that the candidates and choices they selected in the *Voter Application* are shown as chosen. If it is cast, it is left encrypted until it reaches the point in the tally process where it must be decrypted for printing (or, in the case of a homomorphic-only tally process, is always left encrypted).
+The cast as intended property ensures that a voter who intended to cast a ballot for a particular set of candidates and choices actually did cast a vote for that set of candidates and choices. This is verified with the ballot check. The *Voting Application* commits to an encryption of the ballot without knowing whether it is to be cast or checked. If the ballot is then checked, a copy of it is decrypted locally and displayed by the *Ballot Check Application*, and the voter verifies that the candidates and choices they selected in the *Voter Application* are shown as chosen. The ballot can then be cast, and is left encrypted until it reaches the point in the tally process where it must be decrypted (on an air-gapped network) for printing.
 
 ### Recorded as Cast
 
@@ -60,15 +60,11 @@ The recorded as cast property ensures that the encrypted ballot received in the 
 
 ### Tallied as Cast
 
-The tallied as cast property ensures that all encrypted ballots accepted into the digital ballot box are included in the final tally. The mechanism by which the system ensures this property holds depends on the chosen protocol variant.
-
-With mixing and decrypting, mathematical proofs are created during mixing that allow trustees to verify no ballots were added, removed, or modified. Additionally, the decryption of the ballots is performed jointly by a quorum of the trustees who verify the validity of the partial decryptions of each ballot.
-
-With homomorphic tallying, a log of the homomorphic summation of all ballots in the digital ballot box is published so anyone can verify all ballots in the digital ballot box were included in the summation without modification. Additionally, the decryption of the homomorphic sum is performed jointly by a quorum of the trustees who verify the validity of the summation of all ballots.
+The tallied as cast property ensures that all encrypted ballots accepted into the digital ballot box are included in the final tally, after the ballots have been mixed and decrypted. Mathematical proofs are created during mixing that allow trustees to verify no ballots were added, removed, or modified. Additionally, the decryption of the ballots is performed jointly by a quorum of the trustees who verify the validity of the partial decryptions of each ballot.
 
 ## Operation
 
-The main operational functions of the system vary according to the configuration but include *initialize an election*, *cast an individual ballot*, *verify an individual ballot*, *mix and decrypt all ballots*, *print all ballots,* and *homomorphically tally all ballots*. The following collection of high level scenarios of the system covers both normal and exceptional operation.
+The main operational functions of the system vary according to the configuration but include *initialize an election*, *cast an individual ballot*, *verify an individual ballot*, *mix and decrypt all ballots*, and *print all ballots*. The following collection of high level scenarios of the system covers both normal and exceptional operation.
 
 ### Normal Operation
 
@@ -81,8 +77,6 @@ The main operational functions of the system vary according to the configuration
 *Mix and Decrypt All Ballots.*  The election official uses the election administrator application and connects to the election administration server and the digital ballot box to close the digital ballot box and transfer encrypted ballots to a removable storage device. The election official removes the storage device and connects it to the trustee administration server in the air-gapped network. The trustees use the trustee application and connect to the trustee administration server to jointly mix the ballots, verify the mix, and jointly decrypt the mixed ballots.
 
 *Print All Ballots.*  The election official uses the trustee administration server to locate the appropriate PDF ballot blank for each decrypted ballot and fill in the inputs marked on the PDF ballot blank with the information of each decrypted ballot. The election official uses the trustee administration server and connects to the ballot printer which prints the filled out PDF ballots.
-
-*Homomorphically Tally All Ballots.*  The election official uses the election administrator application and connects to the election administration server and the digital ballot box to close the digital ballot box and transfer encrypted ballots to a removable storage device. The election official removes the storage device and connects it to the trustee administration server in the air-gapped network. The trustees use the trustee application and connect to the trustee administration server to perform homomorphic summation of ballots, verify the homomorphic sum, and jointly decrypt the homomorphic sum.
 
 ### Exceptional Operation
 

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! Stateright-based integration tests for voter-facing protocol actors.
 //!
 //! This module uses Stateright model checking to exhaustively test the
@@ -22,7 +26,9 @@ mod tests {
         TokenReturnMsg,
     };
     use crate::bulletins::Bulletin;
-    use crate::crypto::{Context, CryptoContext, ElectionKey, SigningKey, VerifyingKey};
+    use crate::cryptography::{
+        Context, CryptographyContext, ElectionKey, SigningKey, VerifyingKey,
+    };
     use crate::elections::{
         Ballot, BallotStyle, ElectionHash, VoterPseudonym, string_to_election_hash,
     };
@@ -523,7 +529,7 @@ mod tests {
                 session.assigned_voter_id.hash(state);
                 // Hash whether VA has completed authentication (via voter_pseudonym)
                 session.va.voter_pseudonym().is_some().hash(state);
-                // Hash whether tracker exists, not its value (tracker is crypto-derived and varies)
+                // Hash whether tracker exists, not its value (tracker is cryptographically-derived and varies)
                 session.va.ballot_tracker().is_some().hash(state);
                 session.check_count.hash(state);
                 session.resubmission_count.hash(state);
@@ -655,7 +661,7 @@ mod tests {
                             && a.assigned_voter_id == b.assigned_voter_id
                             // Compare VA authentication state via voter_pseudonym
                             && a.va.voter_pseudonym().is_some() == b.va.voter_pseudonym().is_some()
-                            // Compare whether tracker exists, not its value (tracker is crypto-derived)
+                            // Compare whether tracker exists, not its value (tracker is cryptographically-derived)
                             && a.va.ballot_tracker().is_some() == b.va.ballot_tracker().is_some()
                             && a.has_cast == b.has_cast
                             && a.is_abandoned == b.is_abandoned
@@ -830,7 +836,7 @@ mod tests {
         }
 
         fn new(config: ModelConfig) -> Self {
-            use crate::crypto::generate_encryption_keypair;
+            use crate::cryptography::generate_encryption_keypair;
 
             let election_hash = string_to_election_hash(MANIFEST);
 
@@ -840,7 +846,7 @@ mod tests {
             let election_key = keypair.pkey.clone();
 
             // Generate signing keys for mock actors
-            let mut rng = CryptoContext::get_rng();
+            let mut rng = CryptographyContext::get_rng();
             let _bb_signing_key = SigningKey::generate(&mut rng);
             let eas_signing_key = SigningKey::generate(&mut rng);
             let dbb_signing_key = SigningKey::generate(&mut rng);

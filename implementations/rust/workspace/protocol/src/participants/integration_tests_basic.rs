@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! Basic end-to-end test of the Internet-facing protocols. This
 //! test model the complete message-passing system between the VA, BCA,
 //! EAS, and DBB, verifying that the protocols work correctly when
@@ -11,7 +15,7 @@ mod tests {
         TokenReturnMsg,
     };
     use crate::bulletins::Bulletin;
-    use crate::crypto::{Context, CryptoContext, ElectionKey, SigningKey};
+    use crate::cryptography::{Context, CryptographyContext, ElectionKey, SigningKey};
     use crate::elections::{
         Ballot, BallotStyle, BallotTracker, ElectionHash, VoterPseudonym, string_to_election_hash,
     };
@@ -101,14 +105,14 @@ mod tests {
 
     /// Helper to create test election keys
     fn setup_election() -> (ElectionHash, ElectionKey, SigningKey, SigningKey) {
-        use crate::crypto::generate_encryption_keypair;
+        use crate::cryptography::generate_encryption_keypair;
 
         let election_hash = string_to_election_hash(MANIFEST);
         let keypair = generate_encryption_keypair(MANIFEST.as_bytes())
             .expect("Failed to generate election keypair");
         let election_key = keypair.pkey.clone();
 
-        let mut rng = CryptoContext::get_rng();
+        let mut rng = CryptographyContext::get_rng();
         let eas_signing_key = SigningKey::generate(&mut rng);
         let dbb_signing_key = SigningKey::generate(&mut rng);
 

@@ -1,13 +1,15 @@
-/*!
-This file defines the bulletin board abstraction for the Digital Ballot Box.
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
 
-The `BulletinBoard` trait provides a storage-agnostic interface for maintaining
-the tamper-evident chain of bulletins. Each bulletin is linked to the previous
-one via cryptographic hash, creating an immutable audit trail.
-*/
+//! This file defines the bulletin board abstraction for the Digital Ballot Box.
+//!
+//! The `BulletinBoard` trait provides a storage-agnostic interface for maintaining
+//! the tamper-evident chain of bulletins. Each bulletin is linked to the previous
+//! one via cryptographic hash, creating an immutable audit trail.
 
 use crate::bulletins::Bulletin;
-use crate::crypto::{Digest, Hasher256, OldHasher, VSerializable};
+use crate::cryptography::{Digest, Hasher256, OldHasher, VSerializable};
 use crate::elections::BallotTracker;
 use std::collections::HashMap;
 
@@ -253,15 +255,16 @@ impl BulletinBoard for InMemoryBulletinBoard {
 mod tests {
     use super::*;
     use crate::bulletins::{BallotSubBulletin, BallotSubBulletinData};
-    use crate::crypto::{Signature, generate_signature_keypair};
+    use crate::cryptography::{Signature, generate_signature_keypair};
     use crate::elections::string_to_election_hash;
     use crate::messages::SignedBallotMsgData;
 
     fn create_test_ballot_submission(previous_hash: String) -> Bulletin {
         let (_, verifying_key) = generate_signature_keypair();
-        let election_keypair = crate::crypto::generate_encryption_keypair(b"test_context").unwrap();
+        let election_keypair =
+            crate::cryptography::generate_encryption_keypair(b"test_context").unwrap();
         let ballot = crate::elections::Ballot::test_ballot(12345);
-        let (ballot_cryptogram, _) = crate::crypto::encrypt_ballot(
+        let (ballot_cryptogram, _) = crate::cryptography::encrypt_ballot(
             ballot,
             &election_keypair.pkey,
             &string_to_election_hash("test_election"),

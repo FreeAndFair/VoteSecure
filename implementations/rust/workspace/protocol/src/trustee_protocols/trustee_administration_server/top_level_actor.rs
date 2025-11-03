@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! This file contains the implementation of the top-level (and only) actor for
 //! the trustee administration server (TAS). There are no sub-actors for the TAS,
 //! because its operation is extremely straightfoward and introducing sub-actors
@@ -8,7 +12,7 @@
 // currently ignored for code simplicity until performance data is analyzed
 #![allow(clippy::large_enum_variant)]
 
-use crate::crypto::{BallotCryptogram, ElectionKey, SigningKey};
+use crate::cryptography::{BallotCryptogram, ElectionKey, SigningKey};
 use crate::trustee_protocols::trustee_messages::{
     CheckSignature, DecryptedBallotsMsg, EGCryptogramsMsg, ElectionPublicKeyMsg, KeySharesMsg,
     MixInitializationMsg, MixInitializationMsgData, PartialDecryptionsMsg, SetupMsg, SetupMsgData,
@@ -512,7 +516,7 @@ impl TASActor {
             manifest: self.checkpoint.manifest.clone(),
             trustees: self.checkpoint.trustees.clone(),
         };
-        let signature = crate::crypto::sign_data(&setup_msg_data.ser(), &self.signing_key);
+        let signature = crate::cryptography::sign_data(&setup_msg_data.ser(), &self.signing_key);
 
         TrusteeMsg::Setup(SetupMsg {
             data: setup_msg_data,
@@ -691,7 +695,7 @@ impl TASActor {
         let serialized_data = msg_data.ser();
         let mix_msg = MixInitializationMsg {
             data: msg_data,
-            signature: crate::crypto::sign_data(&serialized_data, &self.signing_key),
+            signature: crate::cryptography::sign_data(&serialized_data, &self.signing_key),
         };
         TrusteeMsg::MixInitialization(mix_msg)
     }

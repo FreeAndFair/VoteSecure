@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! This file contains the state handler for the `KeyGen` state.
 
 use crate::trustee_protocols::trustee_application::top_level_actor::ProcessedTrusteeMsg;

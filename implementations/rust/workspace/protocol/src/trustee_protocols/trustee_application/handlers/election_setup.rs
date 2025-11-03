@@ -1,7 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! This file contains the state handler for the `ElectionSetup` state.
 
 use super::*;
-use crate::crypto::VSerializable;
+use crate::cryptography::VSerializable;
 use crate::elections::string_to_election_hash;
 use crate::trustee_protocols::trustee_messages::{CheckSignature, TrusteeID};
 use std::collections::HashSet;
@@ -60,8 +64,10 @@ impl TrusteeStateHandler for ElectionSetup {
                 // Update the signer to be this trustee.
                 signed_setup_msg.data.signer = actor.trustee_info.trustee_id();
                 // Sign with this trustee's signing key.
-                signed_setup_msg.signature =
-                    crate::crypto::sign_data(&signed_setup_msg.data.ser(), &actor.signing_key);
+                signed_setup_msg.signature = crate::cryptography::sign_data(
+                    &signed_setup_msg.data.ser(),
+                    &actor.signing_key,
+                );
 
                 (None, None, Some(TrusteeMsg::Setup(signed_setup_msg)))
             }

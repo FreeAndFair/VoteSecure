@@ -1,15 +1,18 @@
-/*!
-This file contains all the message structures exchanged between participants
-in the e-voting protocol. All individual message structs
-are unified under the `ProtocolMessage` enum for type-safe handling.
-*/
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
+//! This file contains all the message structures exchanged between participants
+//! in the e-voting protocol. All individual message structs
+//! are unified under the `ProtocolMessage` enum for type-safe handling.
+
 // TODO: consider boxing structs in large enum variants to improve performance
 // currently ignored for code simplicity until performance data is analyzed
 #![allow(clippy::large_enum_variant)]
 
 use vser_derive::VSerializable;
 
-use crate::crypto::{
+use crate::cryptography::{
     BallotCryptogram, ElectionKey, RandomizersCryptogram, Signature, VerifyingKey,
 };
 use crate::elections::{BallotStyle, BallotTracker, ElectionHash, VoterPseudonym};
@@ -259,9 +262,9 @@ pub enum ProtocolMessage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::generate_signature_keypair;
-    use crate::crypto::{encrypt_ballot, generate_encryption_keypair};
-    use crypto::utils::serialization::VSerializable;
+    use crate::cryptography::generate_signature_keypair;
+    use crate::cryptography::{encrypt_ballot, generate_encryption_keypair};
+    use cryptography::utils::serialization::VSerializable;
 
     #[test]
     fn test_vserializable_derive_works() {
@@ -308,7 +311,7 @@ mod tests {
         let serialized_hand_token = hand_token_data.ser();
         assert!(!serialized_hand_token.is_empty());
 
-        // Test BallotCryptogram with crypto library types
+        // Test BallotCryptogram with cryptography library types
         let context = b"test_election";
         let election_keypair = generate_encryption_keypair(context).unwrap();
 

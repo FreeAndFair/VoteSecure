@@ -1,10 +1,8 @@
-/*
- * Root module for the stateright protocol model
- *
- * @author David Ruescas (david@sequentech.io)\
- * @copyright Free & Fair. 2025\
- * @version 0.1
- */
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
+//! Root module for the stateright protocol model
 
 #![allow(dead_code)]
 pub mod decrypt;
@@ -20,9 +18,9 @@ use std::marker::PhantomData;
 
 use self::messages::Message;
 use self::utils::AccumulatorSet;
-use crate::crypto::CryptoHash;
+use crate::cryptography::CryptographicHash;
 
-use crypto::context::Context;
+use cryptography::context::Context;
 
 // Re-export Message as AscentMsg for the top-level actor
 pub(crate) use self::messages::Message as AscentMsg;
@@ -34,26 +32,26 @@ const HASH_SIZE: usize = 64;
 /// All types used in ascent logic implement std::hash::Hash
 /// so that they can be used in stateright relations. However
 /// the computations of _input_ hash values are carried
-/// out by the CryptoContext hasher. Stateright will
+/// out by the CryptographyContext hasher. Stateright will
 /// later compute its own hashes internally, but these are
 /// not used outside of stateright.
 pub(crate) mod types {
     use super::AccumulatorSet;
-    use super::CryptoHash;
+    use super::CryptographicHash;
 
-    pub(crate) type CfgHash = CryptoHash;
-    pub(crate) type TrusteeSharesHash = CryptoHash;
-    pub(crate) type PublicKeyHash = CryptoHash;
-    pub(crate) type CiphertextsHash = CryptoHash;
+    pub(crate) type CfgHash = CryptographicHash;
+    pub(crate) type TrusteeSharesHash = CryptographicHash;
+    pub(crate) type PublicKeyHash = CryptographicHash;
+    pub(crate) type CiphertextsHash = CryptographicHash;
     pub(crate) type SharesHashesAcc = AccumulatorSet<TrusteeSharesHash>;
     pub(crate) type SharesHashes = Vec<TrusteeSharesHash>;
     pub(crate) type Sender = TrusteeIndex;
     pub(crate) type TrusteeIndex = usize;
     pub(crate) type TrusteeCount = usize;
-    pub(crate) type PartialDecryptionsHash = CryptoHash;
+    pub(crate) type PartialDecryptionsHash = CryptographicHash;
     pub(crate) type PartialDecryptionsHashesAcc = AccumulatorSet<PartialDecryptionsHash>;
     pub(crate) type PartialDecryptionsHashes = Vec<PartialDecryptionsHash>;
-    pub(crate) type PlaintextsHash = CryptoHash;
+    pub(crate) type PlaintextsHash = CryptographicHash;
 }
 use types::*;
 

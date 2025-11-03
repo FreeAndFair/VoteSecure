@@ -1,8 +1,10 @@
-/*!
-This file contains all the message structures exchanged between trustees
-and the trustee administration server. All individual message structs
-are unified under the `TrusteeMessage` enum for type-safe handling.
-*/
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
+//! This file contains all the message structures exchanged between trustees
+//! and the trustee administration server. All individual message structs
+//! are unified under the `TrusteeMessage` enum for type-safe handling.
 
 use enum_dispatch::enum_dispatch;
 use std::cmp::Ordering;
@@ -23,7 +25,7 @@ use crate::trustee_protocols::trustee_application::top_level_actor::{
 use crate::utils::serialization::VSerializable;
 use vser_derive::VSerializable;
 
-use crate::crypto::{BallotCryptogram, ElectionKey, Signature, VerifyingKey};
+use crate::cryptography::{BallotCryptogram, ElectionKey, Signature, VerifyingKey};
 use crate::elections::{Ballot, BallotStyle, ElectionHash};
 use crate::trustee_protocols::trustee_cryptography::{
     CheckValue, MixRoundProof, PartialDecryptionProof, PartialDecryptionValue, ShareCiphertext,
@@ -46,7 +48,7 @@ pub trait CheckSignature {
         signature: &Signature,
         verifying_key: &VerifyingKey,
     ) -> Result<(), String> {
-        crate::crypto::verify_signature(data, signature, verifying_key)
+        crate::cryptography::verify_signature(data, signature, verifying_key)
     }
 
     fn check_signature(&self) -> Result<(), String> {

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2025 Free & Fair
+// See LICENSE.md for details
+
 //! Basic end-to-end test of the trustee protocols. This tests
 //! that the protocols can complete when there is reliable,
 //! ordered message delivery. More complex tests are performed
@@ -5,8 +9,8 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::crypto::{
-        BallotCryptogram, Context, CryptoContext, ElectionKey, SigningKey, encrypt_ballot,
+    use crate::cryptography::{
+        BallotCryptogram, Context, CryptographyContext, ElectionKey, SigningKey, encrypt_ballot,
     };
     use crate::elections::{Ballot, BallotStyle, ElectionHash, string_to_election_hash};
     use crate::trustee_protocols::trustee_administration_server::handlers::{
@@ -45,7 +49,7 @@ mod tests {
         Vec<SigningKey>,
         Vec<TrusteeKeyPair>,
     ) {
-        let mut rng = CryptoContext::get_rng();
+        let mut rng = CryptographyContext::get_rng();
 
         // Use provided keys or generate fresh ones.
         let tas_signing_key = tas_signing_key_opt.unwrap_or_else(|| SigningKey::generate(&mut rng));
