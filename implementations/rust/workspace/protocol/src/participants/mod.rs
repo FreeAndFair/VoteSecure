@@ -2,7 +2,6 @@
  * - The Ballot Check Application (BCA)
  * - The Digital Ballot Box (DBB)
  * - Election Administration Server (EAS)
- * - Trustee Administration Server (TAS)
  * - The Voting Application (VA)
  */
 
@@ -11,6 +10,9 @@ pub mod ballot_check_application;
 
 /// Declares the Election Administration Server (EAS) submodule.
 pub mod election_admin_server;
+
+/// Declares the Digital Ballot Box (DBB) submodule.
+pub mod digital_ballot_box;
 
 /// Declares the Voting Application (VA) submodule.
 pub mod voting_application;

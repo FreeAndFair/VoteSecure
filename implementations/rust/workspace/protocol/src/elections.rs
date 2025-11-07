@@ -81,29 +81,27 @@ pub const ABSTAIN_SELECTION: Selection = 0;
 // Utility Functions
 // =============================================================================
 
-/// Create an ElectionHash from a string for testing purposes.
+/// Create an ElectionHash from a string using SHA3-256.
 ///
-/// This function creates a deterministic 32-byte hash by repeating the string
-/// bytes in a pattern. It's designed for testing and should not be used for
-/// production cryptographic hashing.
+/// This function creates a cryptographically secure 32-byte hash using SHA3-256
+/// from the crypto library. It can be used for both testing and production.
 ///
 /// # Arguments
-/// * `s` - The input string to convert
+/// * `s` - The input string to hash
 ///
 /// # Returns
-/// A 32-byte array suitable for use as an ElectionHash
+/// A 32-byte SHA3-256 hash suitable for use as an ElectionHash
 pub fn string_to_election_hash(s: &str) -> ElectionHash {
+    use crypto::utils::hash::{Hasher, Hasher256};
+    use sha3::Digest;
+
+    let mut hasher = Hasher256::hasher();
+    hasher.update(s.as_bytes());
+    let result = hasher.finalize();
+
+    // Convert to [u8; 32] array
     let mut hash = [0u8; 32];
-    let bytes = s.as_bytes();
-
-    if bytes.is_empty() {
-        return hash;
-    }
-
-    for i in 0..32 {
-        hash[i] = bytes[i % bytes.len()];
-    }
-
+    hash.copy_from_slice(&result);
     hash
 }
 

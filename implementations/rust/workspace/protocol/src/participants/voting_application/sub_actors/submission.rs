@@ -198,7 +198,7 @@ impl SubmissionActor {
 
             (SubState::AwaitingBulletin { tracker_msg }, SubmissionInput::PBBData(bulletin)) => {
                 // Perform final verification that the bulletin contains our ballot
-                match self.perform_bulletin_verification_checks(&tracker_msg, &bulletin) {
+                match self.perform_bulletin_verification_checks(&bulletin) {
                     Ok(_) => SubmissionOutput::Success(BallotSubmissionSuccess {
                         tracker: tracker_msg.data.tracker,
                         randomizers: self
@@ -249,11 +249,7 @@ impl SubmissionActor {
 
     /// Check #2: The tracker corresponds to a BallotSubBulletin on the public bulletin board
     /// which contains the previously submitted SignedBallotMsg.
-    fn perform_bulletin_verification_checks(
-        &self,
-        _tracker_msg: &TrackerMsg,
-        bulletin: &Bulletin,
-    ) -> Result<(), String> {
+    fn perform_bulletin_verification_checks(&self, bulletin: &Bulletin) -> Result<(), String> {
         match bulletin {
             Bulletin::BallotSubmission(ballot_bulletin) => {
                 // Verify the bulletin contains our exact ballot
@@ -385,7 +381,7 @@ mod tests {
         let data = SignedBallotMsgData {
             election_hash: crate::elections::string_to_election_hash("test_election_2024"),
             voter_pseudonym: "test_pseudonym".to_string(),
-            voter_verifying_key: voter_verifying_key,
+            voter_verifying_key,
             ballot_style: 1,
             ballot_cryptogram,
         };
@@ -415,7 +411,7 @@ mod tests {
                 .unwrap();
 
         let signed_ballot_data = crate::messages::SignedBallotMsgData {
-            election_hash: election_hash,
+            election_hash,
             voter_pseudonym: "voter_123".to_string(),
             voter_verifying_key: verifying_key,
             ballot_style: 1,
@@ -429,7 +425,7 @@ mod tests {
 
         // Test TrackerMsgData serialization
         let tracker_data = crate::messages::TrackerMsgData {
-            election_hash: election_hash,
+            election_hash,
             tracker: "tracker_123".to_string(),
         };
         let serialized_tracker = tracker_data.ser();
@@ -468,9 +464,9 @@ mod tests {
                 .unwrap();
 
         let data = SignedBallotMsgData {
-            election_hash: election_hash,
+            election_hash,
             voter_pseudonym: "voter_123".to_string(),
-            voter_verifying_key: voter_verifying_key,
+            voter_verifying_key,
             ballot_style: 1,
             ballot_cryptogram,
         };

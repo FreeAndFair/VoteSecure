@@ -284,7 +284,7 @@ mod tests {
         let data = CastReqMsgData {
             election_hash: crate::elections::string_to_election_hash(&election_hash),
             voter_pseudonym: voter_pseudonym.clone(),
-            voter_verifying_key: voter_verifying_key,
+            voter_verifying_key,
             ballot_tracker: "test_tracker".to_string(),
         };
 

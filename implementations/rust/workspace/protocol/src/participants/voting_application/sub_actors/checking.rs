@@ -5,7 +5,7 @@
 #![allow(clippy::large_enum_variant)]
 
 use crate::crypto::{
-    ElectionKey, RandomizersCryptogram, RandomizersStruct, Signature, SigningKey, VerifyingKey,
+    RandomizersCryptogram, RandomizersStruct, Signature, SigningKey, VerifyingKey,
 };
 use crate::elections::{ElectionHash, VoterPseudonym};
 use crate::messages::{
@@ -185,10 +185,7 @@ impl CheckingActor {
     fn check_fwd_req_message(&self, message: &CheckReqMsg) -> Result<(), String> {
         self.check_embedded_check_req_election_hash(&message.data.election_hash)?;
         self.check_embedded_check_req_tracker(&message.data.tracker)?;
-        self.check_embedded_check_req_public_keys(
-            &message.data.public_enc_key,
-            &message.data.public_sign_key,
-        )?;
+        self.check_embedded_check_req_public_keys()?;
         self.check_embedded_check_req_signature(&message.data, &message.signature)?;
 
         Ok(())
@@ -238,11 +235,7 @@ impl CheckingActor {
     }
 
     /// Embedded Check #3: The public_enc_key and public_sign_key are valid public keys
-    fn check_embedded_check_req_public_keys(
-        &self,
-        _public_enc_key: &ElectionKey,
-        _public_sign_key: &VerifyingKey,
-    ) -> Result<(), String> {
+    fn check_embedded_check_req_public_keys(&self) -> Result<(), String> {
         // The crypto library types ensure these are valid by construction
         // Additional validation could be done here if needed (key format, curve validation, etc.)
         Ok(())
@@ -336,7 +329,7 @@ mod tests {
         // Verify initial state
         assert!(matches!(actor.state, SubState::ReadyToStart));
         assert_eq!(actor.ballot_randomizers.ballot_style, 1);
-        assert!(actor.ballot_randomizers.randomizers.len() > 0);
+        assert!(!actor.ballot_randomizers.randomizers.is_empty());
     }
 
     #[test]

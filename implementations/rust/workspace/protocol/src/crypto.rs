@@ -554,7 +554,7 @@ mod tests {
 
         // Verify randomizers structure
         assert_eq!(randomizers.ballot_style, ballot_style);
-        assert!(randomizers.randomizers.len() > 0);
+        assert!(!randomizers.randomizers.is_empty());
     }
 
     #[test]
@@ -647,9 +647,9 @@ mod tests {
 
         // Test 2: Create ciphertext with swapped proof (proof from ciphertext2 in ciphertext1's components)
         let swapped_ciphertext = BallotCiphertext {
-            u_b: ciphertext1.u_b.clone(),
-            v_b: ciphertext1.v_b.clone(),
-            u_a: ciphertext1.u_a.clone(),
+            u_b: ciphertext1.u_b,
+            v_b: ciphertext1.v_b,
+            u_a: ciphertext1.u_a,
             proof: ciphertext2.proof.clone(), // Wrong proof!
         };
 
@@ -713,7 +713,7 @@ mod tests {
         assert!(decrypted_result.is_ok());
         let decrypted = decrypted_result.unwrap();
         assert_eq!(decrypted.ballot_style, original_randomizers.ballot_style);
-        assert!(decrypted.randomizers.len() > 0);
+        assert!(!decrypted.randomizers.is_empty());
     }
 
     #[test]
@@ -742,7 +742,7 @@ mod tests {
         assert!(decrypted_result.is_ok());
         let decrypted = decrypted_result.unwrap();
         assert_eq!(decrypted.ballot_style, original_randomizers.ballot_style);
-        assert!(decrypted.randomizers.len() > 0);
+        assert!(!decrypted.randomizers.is_empty());
     }
 
     #[test]

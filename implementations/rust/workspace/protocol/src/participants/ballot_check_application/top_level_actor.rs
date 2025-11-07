@@ -107,7 +107,7 @@ impl TopLevelActor {
 
             Command::StartBallotCheck(ballot_tracker, ballot) => {
                 // Verify integrity of the (signed) ballot ...
-                self.check_signed_ballot(&ballot_tracker, &ballot)?;
+                self.check_signed_ballot(&ballot)?;
 
                 // ... so that BallotCheckActor::new(...) can rely upon it!
                 let mut actor = BallotCheckActor::new(
@@ -178,11 +178,7 @@ impl TopLevelActor {
     // at least carrying out some basic integrity checks. If any of these fail,
     // the protocol immediately bails out with an error during execution of the
     // [`Command::StartBallotCheck`] command.
-    pub fn check_signed_ballot(
-        &self,
-        _tracker: &String,
-        msg: &SignedBallotMsg,
-    ) -> Result<(), String> {
+    pub fn check_signed_ballot(&self, msg: &SignedBallotMsg) -> Result<(), String> {
         if verify_signature(
             &msg.data.ser(),
             &msg.signature,
