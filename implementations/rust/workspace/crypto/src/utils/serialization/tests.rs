@@ -9,6 +9,8 @@
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use crate::context::Context;
     use crate::context::P256Ctx as PCtx;
     use crate::context::RistrettoCtx as RCtx;
@@ -359,5 +361,44 @@ mod tests {
         let back = Option::<u32>::deser(&serialized).unwrap();
 
         assert_eq!(n, back);
+    }
+
+    pub fn test_btreemap_u64_vec_ciphertext() {
+        test_btreemap_u64_vec_ciphertext_internal::<RCtx, 2>(10, 10, 20);
+        test_btreemap_u64_vec_ciphertext_internal::<RCtx, 2>(0, 10, 20);
+    }
+
+    /// Generates a random `BTreeMap` from `u64 to lists of ciphertexts, with
+    /// `num_entries` entries and between `cts_lower` and `cts_upper` ciphertexts
+    /// (exclusive of `cts_upper`) per entry, then tests whether it can be
+    /// serialized and deserialized correctly.
+    pub fn test_btreemap_u64_vec_ciphertext_internal<Ctx: Context + PartialEq, const W: usize>(
+        num_entries: usize,
+        cts_lower: usize,
+        cts_upper: usize,
+    ) {
+        use rand::Rng;
+
+        let mut map: BTreeMap<u64, Vec<Ciphertext<Ctx, W>>> = BTreeMap::new();
+        let mut rng = rand::thread_rng();
+        for _ in 0..num_entries {
+            let mut key: u64 = rng.r#gen();
+            while map.contains_key(&key) {
+                key = rng.r#gen();
+            }
+            let mut ct_vec: Vec<Ciphertext<Ctx, W>> = Vec::new();
+            let num_ciphertexts = rng.gen_range(cts_lower..cts_upper);
+            for _ in 0..num_ciphertexts {
+                let keypair = KeyPair::<Ctx>::generate();
+                let message: [Ctx::Element; W] = core::array::from_fn(|_| Ctx::random_element());
+                let ciphertext: Ciphertext<Ctx, W> = keypair.encrypt(&message);
+                ct_vec.push(ciphertext);
+            }
+            map.insert(key, ct_vec);
+        }
+
+        let serialized = map.ser();
+        let deserialized = BTreeMap::<u64, Vec<Ciphertext<Ctx, W>>>::deser(&serialized).unwrap();
+        assert_eq!(map, deserialized);
     }
 }

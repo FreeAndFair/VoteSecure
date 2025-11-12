@@ -301,7 +301,7 @@ impl<C: Context, const T: usize> VerifiableShare<C, T> {
     /// The standard way to obtain verifiable shares for some recipient `P` is through
     /// the [`Dealer::get_verifiable_shares`] method combined with the [`DealerShares::for_recipient`]
     /// method.
-    pub(crate) fn new(value: C::Scalar, checking_values: [C::Element; T]) -> Self {
+    pub fn new(value: C::Scalar, checking_values: [C::Element; T]) -> Self {
         Self {
             value,
             checking_values,

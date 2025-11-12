@@ -447,11 +447,11 @@ impl<C: Context, const T: usize, const P: usize> Recipient<C, T, P> {
 #[derive(Debug, Clone, VSerializable, PartialEq)]
 pub struct DecryptionFactor<C: Context, const P: usize, const W: usize> {
     /// The partial decryption of the ciphertext
-    pub(crate) value: [C::Element; W],
+    pub value: [C::Element; W],
     /// The proof of decryption correctness
-    pub(crate) proof: DlogEqProof<C, W>,
+    pub proof: DlogEqProof<C, W>,
     /// The position of the participant who computed this partial decryption
-    pub(crate) source: ParticipantPosition<P>,
+    pub source: ParticipantPosition<P>,
 }
 
 impl<C: Context, const P: usize, const W: usize> DecryptionFactor<C, P, W> {

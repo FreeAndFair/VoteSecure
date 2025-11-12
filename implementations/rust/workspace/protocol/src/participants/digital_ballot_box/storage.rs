@@ -260,10 +260,10 @@ impl DBBStorage for InMemoryStorage {
 mod tests {
     use super::*;
     use crate::crypto::generate_signature_keypair;
-    use crate::elections::string_to_election_hash;
+    use crate::elections::{BallotStyle, string_to_election_hash};
     use crate::messages::{AuthVoterMsgData, SignedBallotMsgData};
 
-    fn create_test_auth_msg(pseudonym: &str, ballot_style: u8) -> AuthVoterMsg {
+    fn create_test_auth_msg(pseudonym: &str, ballot_style: BallotStyle) -> AuthVoterMsg {
         let (_, verifying_key) = generate_signature_keypair();
         let data = AuthVoterMsgData {
             election_hash: string_to_election_hash("test_election"),
@@ -281,7 +281,6 @@ mod tests {
         let ballot = crate::elections::Ballot::test_ballot(12345);
         let (ballot_cryptogram, _) = crate::crypto::encrypt_ballot(
             ballot,
-            1,
             &election_keypair.pkey,
             &string_to_election_hash("test_election"),
         )

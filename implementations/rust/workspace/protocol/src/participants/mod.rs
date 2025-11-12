@@ -1,8 +1,8 @@
-/*! Declares all submodules for actors. Namely, these are:
- * - The Ballot Check Application (BCA)
- * - The Digital Ballot Box (DBB)
+/*! Declares all submodules for actors:
+ * - Ballot Check Application (BCA)
+ * - Digital Ballot Box (DBB)
  * - Election Administration Server (EAS)
- * - The Voting Application (VA)
+ * - Voting Application (VA)
  */
 
 /// Declares the Ballot Check Application (BCA) submodule.

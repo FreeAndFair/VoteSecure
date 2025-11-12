@@ -11,7 +11,7 @@ submits an encrypted and signed ballot to be recorded on the bulletin board.
 
 use crate::bulletins::{BallotSubBulletin, BallotSubBulletinData, Bulletin};
 use crate::crypto::{ElectionKey, SigningKey, verify_ciphertext_proof};
-use crate::elections::ElectionHash;
+use crate::elections::{BallotStyle, ElectionHash};
 use crate::messages::{ProtocolMessage, SignedBallotMsg, TrackerMsg, TrackerMsgData};
 use crate::participants::digital_ballot_box::{BulletinBoard, DBBStorage};
 use crypto::utils::serialization::VSerializable;
@@ -174,7 +174,7 @@ impl SubmissionActor {
     }
 
     /// Check #4: The ballot_style is a valid ballot style for this election
-    fn check_ballot_style_valid(&self, ballot_style: u8) -> Result<(), String> {
+    fn check_ballot_style_valid(&self, ballot_style: BallotStyle) -> Result<(), String> {
         // BallotStyle is u8, so we just check it's greater than 0
         if ballot_style == 0 {
             return Err("Ballot style must be greater than 0".to_string());
@@ -188,7 +188,7 @@ impl SubmissionActor {
     fn check_ballot_style_matches(
         &self,
         auth_msg: &crate::messages::AuthVoterMsg,
-        ballot_style: u8,
+        ballot_style: BallotStyle,
     ) -> Result<(), String> {
         if auth_msg.data.ballot_style != ballot_style {
             return Err(format!(
@@ -326,7 +326,7 @@ mod tests {
         storage: &mut InMemoryStorage,
         pseudonym: &str,
         verifying_key: VerifyingKey,
-        ballot_style: u8,
+        ballot_style: BallotStyle,
         election_hash: ElectionHash,
     ) {
         let auth_data = AuthVoterMsgData {
@@ -368,7 +368,7 @@ mod tests {
         // Create and encrypt ballot
         let ballot = Ballot::test_ballot(12345);
         let (ballot_cryptogram, _) =
-            encrypt_ballot(ballot, 1, &election_public_key, &election_hash).unwrap();
+            encrypt_ballot(ballot, &election_public_key, &election_hash).unwrap();
 
         // Create signed ballot message
         let ballot_data = SignedBallotMsgData {
@@ -425,7 +425,7 @@ mod tests {
 
         let ballot = Ballot::test_ballot(12345);
         let (ballot_cryptogram, _) =
-            encrypt_ballot(ballot, 1, &election_public_key, &election_hash).unwrap();
+            encrypt_ballot(ballot, &election_public_key, &election_hash).unwrap();
 
         // Use wrong election hash
         let wrong_hash = string_to_election_hash("wrong_election");
@@ -471,7 +471,7 @@ mod tests {
 
         let ballot = Ballot::test_ballot(12345);
         let (ballot_cryptogram, _) =
-            encrypt_ballot(ballot, 1, &election_public_key, &election_hash).unwrap();
+            encrypt_ballot(ballot, &election_public_key, &election_hash).unwrap();
 
         let ballot_data = SignedBallotMsgData {
             election_hash,
@@ -523,7 +523,7 @@ mod tests {
 
         let ballot = Ballot::test_ballot(12345);
         let (ballot_cryptogram, _) =
-            encrypt_ballot(ballot, 1, &election_public_key, &election_hash).unwrap();
+            encrypt_ballot(ballot, &election_public_key, &election_hash).unwrap();
 
         let ballot_data = SignedBallotMsgData {
             election_hash,
@@ -577,7 +577,7 @@ mod tests {
 
         let ballot = Ballot::test_ballot(12345);
         let (ballot_cryptogram, _) =
-            encrypt_ballot(ballot, 1, &election_public_key, &election_hash).unwrap();
+            encrypt_ballot(ballot, &election_public_key, &election_hash).unwrap();
 
         let ballot_data = SignedBallotMsgData {
             election_hash,
@@ -636,7 +636,7 @@ mod tests {
 
         let ballot = Ballot::test_ballot(12345);
         let (ballot_cryptogram, _) =
-            encrypt_ballot(ballot, 1, &election_public_key, &election_hash).unwrap();
+            encrypt_ballot(ballot, &election_public_key, &election_hash).unwrap();
 
         let ballot_data = SignedBallotMsgData {
             election_hash,
@@ -649,7 +649,7 @@ mod tests {
         // Sign different data (different ballot)
         let different_ballot = Ballot::test_ballot(99999);
         let (different_cryptogram, _) =
-            encrypt_ballot(different_ballot, 1, &election_public_key, &election_hash).unwrap();
+            encrypt_ballot(different_ballot, &election_public_key, &election_hash).unwrap();
         let different_data = SignedBallotMsgData {
             election_hash,
             voter_pseudonym: "voter123".to_string(),
@@ -700,7 +700,7 @@ mod tests {
 
         let ballot = Ballot::test_ballot(12345);
         let (ballot_cryptogram, _) =
-            encrypt_ballot(ballot, 1, &election_public_key, &election_hash).unwrap();
+            encrypt_ballot(ballot, &election_public_key, &election_hash).unwrap();
 
         let ballot_data = SignedBallotMsgData {
             election_hash,
@@ -751,7 +751,7 @@ mod tests {
 
         let ballot = Ballot::test_ballot(12345);
         let (ballot_cryptogram, _) =
-            encrypt_ballot(ballot, 1, &election_public_key, &election_hash).unwrap();
+            encrypt_ballot(ballot, &election_public_key, &election_hash).unwrap();
 
         let ballot_data = SignedBallotMsgData {
             election_hash,

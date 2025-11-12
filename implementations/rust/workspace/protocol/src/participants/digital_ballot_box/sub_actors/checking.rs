@@ -423,7 +423,7 @@ mod tests {
         BallotCryptogram, Signature, VerifyingKey, generate_encryption_keypair,
         generate_signature_keypair,
     };
-    use crate::elections::string_to_election_hash;
+    use crate::elections::{BallotStyle, string_to_election_hash};
     use crate::messages::{
         AuthVoterMsg, AuthVoterMsgData, CheckReqMsgData, RandomizerMsgData, SignedBallotMsg,
         SignedBallotMsgData,
@@ -433,7 +433,7 @@ mod tests {
     };
 
     // Helper to create a test ballot cryptogram
-    fn create_test_ballot_cryptogram(ballot_style: u8) -> BallotCryptogram {
+    fn create_test_ballot_cryptogram(ballot_style: BallotStyle) -> BallotCryptogram {
         let keypair = generate_encryption_keypair(b"test").unwrap();
         use crypto::groups::ristretto255::RistrettoElement;
         use crypto::traits::groups::GroupElement;
@@ -450,7 +450,7 @@ mod tests {
 
     // Helper to create test randomizers cryptogram
     fn create_test_randomizers_cryptogram(
-        ballot_style: u8,
+        ballot_style: BallotStyle,
     ) -> crate::crypto::RandomizersCryptogram {
         let keypair = generate_encryption_keypair(b"test").unwrap();
         use crypto::groups::ristretto255::RistrettoElement;

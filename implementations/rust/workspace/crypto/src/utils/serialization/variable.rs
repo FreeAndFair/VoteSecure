@@ -40,6 +40,7 @@
 use crate::utils::error::Error;
 use crate::utils::serialization::get_slice;
 use crate::utils::serialization::{FDeserializable, FSerializable};
+use std::collections::BTreeMap;
 
 /// Type for byte length prefixes
 // Ensures that usize can fit in LengthU, for LengthU = 64
@@ -754,4 +755,44 @@ fn checked_add(a: usize, b: usize) -> Result<usize, Error> {
 fn checked_div(a: usize, b: usize) -> Result<usize, Error> {
     a.checked_div(b)
         .ok_or_else(|| Error::DeserializationError("Division by zero".into()))
+}
+
+/// Implements [`VSerializable`] for `BTreeMap<K, V>`.
+/// A `BTreeMap` is just a sorted map from K to V; we implement this
+/// naively by converting the `BTreeMap` into a vector of (K, V) pairs
+/// sorted in the same order as the `BTreeMap` and serializing it.
+#[crate::warning("This might need optimization")]
+impl<K: VSerializable, V: VSerializable> VSerializable for BTreeMap<K, V> {
+    fn ser(&self) -> Vec<u8> {
+        let converted_vec: Vec<(&K, &V)> = self.iter().collect();
+        let bytes = converted_vec.ser();
+        let len: LengthU = bytes.len().try_into().expect("usize::MAX <= LengthU::MAX");
+        let mut ret = len.to_be_bytes().to_vec();
+        ret.extend_from_slice(&bytes);
+
+        ret
+    }
+}
+
+/// Implements [`VDeserializable`] for `BTreeMap<K, V>`.
+#[crate::warning("This might need optimization")]
+impl<K: VDeserializable + Ord, V: VDeserializable> VDeserializable for BTreeMap<K, V> {
+    fn deser(buffer: &[u8]) -> Result<Self, Error> {
+        let len_bytes: [u8; LENGTH_BYTES] = buffer
+            .get(0..LENGTH_BYTES)
+            .ok_or_else(|| Error::DeserializationError("Buffer too short for length".into()))?
+            .try_into()?;
+        let len: usize = LengthU::from_be_bytes(len_bytes).try_into()?;
+
+        let bytes = buffer
+            .get(LENGTH_BYTES..checked_add(LENGTH_BYTES, len)?)
+            .ok_or_else(|| Error::DeserializationError("Buffer too short for data".into()))?;
+        let vec: Vec<(K, V)> = Vec::deser(bytes)?;
+        let mut res: BTreeMap<K, V> = BTreeMap::new();
+        for (k, v) in vec {
+            res.insert(k, v);
+        }
+
+        Ok(res)
+    }
 }

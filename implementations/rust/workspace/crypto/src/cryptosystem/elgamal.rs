@@ -12,6 +12,7 @@ use crate::traits::groups::DistGroupOps;
 use crate::traits::groups::GroupElement;
 use crate::traits::groups::GroupScalar;
 use crate::traits::groups::ReplGroupOps;
+use crate::utils::Error;
 use vser_derive::VSerializable;
 
 /**
@@ -39,7 +40,7 @@ use vser_derive::VSerializable;
  * ```
  */
 
-#[derive(Debug, PartialEq, VSerializable)]
+#[derive(Debug, PartialEq, Clone, VSerializable)]
 pub struct KeyPair<C: Context> {
     /// the private key as a raw group scalar
     pub skey: C::Scalar,
@@ -144,6 +145,11 @@ impl<C: Context> KeyPair<C> {
     ///
     /// The input ciphertext can have arbitrary width `W`.
     ///
+    /// # Errors
+    ///
+    /// Decryption fails if the supplied randomness is not the exponent of the
+    /// first part of the ciphertext.
+    ///
     /// # Examples
     ///
     /// ```
@@ -158,14 +164,14 @@ impl<C: Context> KeyPair<C> {
     /// let r = [RCtx::random_scalar(); 2];
     /// let ciphertext = keypair.encrypt_with_r(&message, &r);
     ///
-    /// let decrypted = keypair.decrypt_with_r(&ciphertext, &r);
+    /// let decrypted = keypair.decrypt_with_r(&ciphertext, &r).unwrap();
     /// assert_eq!(message, decrypted);
     /// ```
     pub fn decrypt_with_r<const W: usize>(
         &self,
         ciphertext: &Ciphertext<C, W>,
         r: &[C::Scalar; W],
-    ) -> [C::Element; W] {
+    ) -> Result<[C::Element; W], Error> {
         self.pkey.decrypt_with_r(ciphertext, r)
     }
 }
@@ -270,6 +276,11 @@ impl<C: Context> PublicKey<C> {
     ///
     /// The message can have arbitrary width `W`.
     ///
+    /// # Errors
+    ///
+    /// Decryption fails if the supplied randomness is not the exponent of the
+    /// first part of the ciphertext.
+    ///
     /// # Examples
     ///
     /// ```
@@ -285,18 +296,25 @@ impl<C: Context> PublicKey<C> {
     /// let r = [RCtx::random_scalar(); 2];
     /// let ciphertext = public_key.encrypt_with_r(&message, &r);
     ///
-    /// let decrypted = keypair.decrypt_with_r(&ciphertext, &r);
+    /// let decrypted = keypair.decrypt_with_r(&ciphertext, &r).unwrap();
     /// assert_eq!(message, decrypted);
     /// ```
     pub fn decrypt_with_r<const W: usize>(
         &self,
         ciphertext: &Ciphertext<C, W>,
         r: &[C::Scalar; W],
-    ) -> [C::Element; W] {
+    ) -> Result<[C::Element; W], Error> {
+        let generator = C::generator();
+        if generator.repl_exp(r) != *ciphertext.u() {
+            return Err(Error::DecryptionError(
+                "Invalid randomness for decryption".to_string(),
+            ));
+        }
+
         let v = self.y.repl_exp(r);
         let div = v.inv();
 
-        ciphertext.0[1].mul(&div)
+        Ok(ciphertext.0[1].mul(&div))
     }
 }
 
@@ -518,8 +536,13 @@ mod tests {
         assert_eq!(message, decrypted_message);
 
         // decrypt with r
-        let decrypted_message = keypair.decrypt_with_r(&ciphertext, &r);
+        let decrypted_message = keypair.decrypt_with_r(&ciphertext, &r).unwrap();
         assert_eq!(message, decrypted_message);
+
+        // decrypt with wrong r
+        let wrong_r = [Ctx::random_scalar(), Ctx::random_scalar()];
+        let decrypted_message = keypair.decrypt_with_r(&ciphertext, &wrong_r);
+        assert!(decrypted_message.is_err());
 
         // decrypt with r, manually
         let divisor = pk.repl_exp(&r).inv();
@@ -555,7 +578,7 @@ mod tests {
         let decrypted_rs = encrypted_rs.map(|ct| keypair2.decrypt(&ct));
         let decoded_rs = decrypted_rs.map(|es| Ristretto255Group::decode_scalar(&es).unwrap());
 
-        let decrypted_message = keypair.decrypt_with_r(&ciphertext, &decoded_rs);
+        let decrypted_message = keypair.decrypt_with_r(&ciphertext, &decoded_rs).unwrap();
         assert_eq!(message, decrypted_message);
     }
 

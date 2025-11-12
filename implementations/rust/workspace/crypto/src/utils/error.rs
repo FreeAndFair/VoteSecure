@@ -75,4 +75,8 @@ pub enum Error {
     /// Occurs when a scalar cannot be decoded from two elements
     #[error("{0}")]
     ScalarDecodeError(String),
+
+    /// Occurs when randomness used to decrypt is invalid
+    #[error("{0}")]
+    DecryptionError(String),
 }

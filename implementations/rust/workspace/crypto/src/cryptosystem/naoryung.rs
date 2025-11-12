@@ -51,7 +51,7 @@ use vser_derive::VSerializable;
  * assert_eq!(message, decrypted);
  * ```
  */
-#[derive(Debug, PartialEq, VSerializable)]
+#[derive(Debug, PartialEq, Clone, VSerializable)]
 pub struct KeyPair<C: Context> {
     /// the secret key x, for y = g^x
     pub sk_b: C::Scalar,

@@ -365,14 +365,14 @@ mod tests {
     use super::*;
     use crate::bulletins::{BallotSubBulletin, BallotSubBulletinData};
     use crate::crypto::{BallotCryptogram, Signature, VerifyingKey, generate_signature_keypair};
-    use crate::elections::string_to_election_hash;
+    use crate::elections::{BallotStyle, string_to_election_hash};
     use crate::messages::{AuthVoterMsg, AuthVoterMsgData, SignedBallotMsg, SignedBallotMsgData};
     use crate::participants::digital_ballot_box::{
         bulletin_board::InMemoryBulletinBoard, storage::InMemoryStorage,
     };
 
     // Helper to create a test ballot cryptogram
-    fn create_test_ballot_cryptogram(ballot_style: u8) -> BallotCryptogram {
+    fn create_test_ballot_cryptogram(ballot_style: BallotStyle) -> BallotCryptogram {
         // Create a test keypair and encrypt a placeholder message
         let keypair = crate::crypto::generate_encryption_keypair(b"test").unwrap();
         // Create dummy group elements (identity elements work for testing)

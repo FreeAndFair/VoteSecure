@@ -50,17 +50,11 @@ pub struct Ballot {
 /// Fixed-size 32-byte array (256 bits) compatible with SHA-256.
 pub type ElectionHash = [u8; 32];
 
-/// Type alias for selection identifiers.
-///
-/// Selections identify specific choices/candidates within a contest.
-/// Each selection is a choice index (1-based) with 0 reserved for abstain/no selection.
-pub type Selection = u8;
-
 /// Type alias for ballot style identifiers.
 ///
 /// Ballot styles define which contests a voter is eligible to vote in,
 /// typically based on their geographical location or voter registration.
-pub type BallotStyle = u8;
+pub type BallotStyle = u16;
 
 /// Type alias for ballot trackers.
 ///
@@ -73,9 +67,6 @@ pub type BallotTracker = String;
 /// Pseudonyms provide voter privacy while enabling ballot verification
 /// and preventing double-voting within an election.
 pub type VoterPseudonym = String;
-
-/// Reserved value for abstain/no selection in a contest.
-pub const ABSTAIN_SELECTION: Selection = 0;
 
 // =============================================================================
 // Utility Functions
@@ -137,8 +128,8 @@ impl Ballot {
         (seed ^ 0x5555555555555555).hash(&mut hasher3);
         let hash3 = hasher3.finish();
 
-        // Generate ballot style (1-255, avoiding 0)
-        let ballot_style = ((hash1 % 255) + 1) as u8;
+        // Generate ballot style (1-65535, avoiding 0)
+        let ballot_style = ((hash1 % 65535) + 1) as BallotStyle;
 
         // Generate rank using two hash values to get full u128 range
         let rank = ((hash2 as u128) << 64) | (hash3 as u128);

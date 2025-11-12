@@ -137,7 +137,6 @@ impl SubmissionActor {
                 // Encrypt the complete ballot using encrypt_ballot function
                 let (ballot_cryptogram, randomizers) = match crate::crypto::encrypt_ballot(
                     ballot,
-                    self.ballot_style,
                     &self.election_public_key,
                     &self.election_hash,
                 ) {
@@ -350,7 +349,6 @@ mod tests {
 
         let (ballot_cryptogram, randomizers) = crate::crypto::encrypt_ballot(
             ballot,
-            1,
             &election_keypair.pkey,
             &crate::elections::string_to_election_hash("test_election_hash"),
         )
@@ -407,7 +405,7 @@ mod tests {
         // Test SignedBallotMsgData serialization
         let test_ballot = crate::elections::Ballot::test_ballot(1);
         let (ballot_cryptogram, _) =
-            crate::crypto::encrypt_ballot(test_ballot, 1, &election_keypair.pkey, &election_hash)
+            crate::crypto::encrypt_ballot(test_ballot, &election_keypair.pkey, &election_hash)
                 .unwrap();
 
         let signed_ballot_data = crate::messages::SignedBallotMsgData {
@@ -460,8 +458,7 @@ mod tests {
         use crate::messages::{SignedBallotMsg, SignedBallotMsgData};
 
         let (ballot_cryptogram, _randomizers) =
-            crate::crypto::encrypt_ballot(ballot, 1, &election_keypair.pkey, &election_hash)
-                .unwrap();
+            crate::crypto::encrypt_ballot(ballot, &election_keypair.pkey, &election_hash).unwrap();
 
         let data = SignedBallotMsgData {
             election_hash,

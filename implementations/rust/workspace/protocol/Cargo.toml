@@ -6,7 +6,13 @@ edition = "2024"
 [dependencies]
 crypto = { path = "../crypto" }
 vser_derive = { path = "../crypto/macros/vser_derive" }
-# generic-array version needs to be pinned, newer versions break SW supply chain checks
-generic-array = "=0.14.7"
+custom_warning_macro = { path = "../macros/custom_warning_macro" }
+enum_dispatch = "0.3.13"
+ascent = "0.8"
+rand = "0.8"
+strum = { version = "0.26", features = ["derive"] }
+stateright = "0.31.0"
 sha3 = "0.10"
 hex = "0.4"
+# generic-array version needs to be pinned, newer versions break SW supply chain checks
+generic-array = "=0.14.7"

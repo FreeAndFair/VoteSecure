@@ -309,10 +309,10 @@ mod tests {
         // Create proper randomizers by encrypting a test ballot
         let election_keypair = generate_encryption_keypair(b"test_election").unwrap();
         let test_ballot = crate::elections::Ballot::test_ballot(1);
+        let ballot_style = test_ballot.ballot_style;
 
         let (_, randomizers) = encrypt_ballot(
             test_ballot,
-            1, // ballot_style
             &election_keypair.pkey,
             &crate::elections::string_to_election_hash(&election_hash),
         )
@@ -328,7 +328,7 @@ mod tests {
 
         // Verify initial state
         assert!(matches!(actor.state, SubState::ReadyToStart));
-        assert_eq!(actor.ballot_randomizers.ballot_style, 1);
+        assert_eq!(actor.ballot_randomizers.ballot_style, ballot_style);
         assert!(!actor.ballot_randomizers.randomizers.is_empty());
     }
 
@@ -344,7 +344,6 @@ mod tests {
 
         let (_, randomizers) = encrypt_ballot(
             test_ballot,
-            1, // ballot_style
             &election_keypair.pkey,
             &crate::elections::string_to_election_hash(&election_hash),
         )
@@ -461,6 +460,7 @@ mod tests {
         // STEP 1: Test ballot encryption and randomizer generation (core crypto)
         let election_keypair = crate::crypto::create_test_encryption_keypair();
         let test_ballot = crate::crypto::create_test_ballot_small();
+        let ballot_style = test_ballot.ballot_style;
         let (ballot_cryptogram, randomizers) = crate::crypto::encrypt_test_ballot(
             test_ballot.clone(),
             &election_keypair,
@@ -471,7 +471,7 @@ mod tests {
             randomizers.randomizers.len(),
             crate::crypto::BALLOT_CIPHERTEXT_WIDTH
         );
-        assert_eq!(ballot_cryptogram.ballot_style, 1);
+        assert_eq!(ballot_cryptogram.ballot_style, ballot_style);
 
         // STEP 2: Test CheckingActor creation and validation
         let actor = CheckingActor::new(
@@ -505,7 +505,7 @@ mod tests {
         );
 
         let encrypted = encrypted_randomizers.unwrap();
-        assert_eq!(encrypted.ballot_style, 1);
+        assert_eq!(encrypted.ballot_style, ballot_style);
 
         // STEP 4: Test end-to-end randomizer decryption and ballot recovery
         let decrypted_randomizers =
@@ -682,7 +682,6 @@ mod tests {
 
         let (_, randomizers) = encrypt_ballot(
             test_ballot,
-            1, // ballot_style
             &election_keypair.pkey,
             &crate::elections::string_to_election_hash(&election_hash),
         )
@@ -709,7 +708,6 @@ mod tests {
 
         let (_, randomizers) = encrypt_ballot(
             test_ballot,
-            1, // ballot_style
             &election_keypair.pkey,
             &crate::elections::string_to_election_hash(&election_hash),
         )
@@ -780,7 +778,6 @@ mod tests {
         let test_ballot = crate::elections::Ballot::test_ballot(1);
         let (_, test_randomizers) = encrypt_ballot(
             test_ballot,
-            1,
             &bca_keypair.pkey,
             &crate::elections::string_to_election_hash("test"),
         )
@@ -817,7 +814,6 @@ mod tests {
 
         let (_, randomizers) = encrypt_ballot(
             test_ballot,
-            1, // ballot_style
             &election_keypair.pkey,
             &crate::elections::string_to_election_hash(&election_hash),
         )

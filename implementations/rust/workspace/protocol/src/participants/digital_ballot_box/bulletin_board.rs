@@ -265,7 +265,6 @@ mod tests {
         let ballot = crate::elections::Ballot::test_ballot(12345);
         let (ballot_cryptogram, _) = crate::crypto::encrypt_ballot(
             ballot,
-            1,
             &election_keypair.pkey,
             &string_to_election_hash("test_election"),
         )

@@ -7,6 +7,11 @@
 //! The primary entry point is the `TopLevelActor`, which manages the state
 //! for all subprotocols.
 
+// Only necessary for custom_warning_macro
+#![feature(stmt_expr_attributes)]
+// Only necessary for custom_warning_macro
+#![feature(proc_macro_hygiene)]
+
 // --- Public Modules ---
 // These modules contain the data structures that are passed to and from the actor.
 
@@ -22,10 +27,12 @@ pub mod bulletins;
 pub mod crypto;
 /// Contains election data structures and ballot representations.
 pub mod elections;
-/// Contains all network message structures, unified under the `ProtocolMessage` enum.
+/// Contains all non-trustee message structures.
 pub mod messages;
 /// Contains the protocol participant actor implementations.
 pub mod participants;
+/// Contains all trustee-related protocol implementations.
+pub mod trustee_protocols;
 
 // --- Public API Exports ---
 // Re-export the most important types for convenient access by the library user.
@@ -55,3 +62,5 @@ pub use participants::voting_application::{
         VoterAuthenticationSuccess,
     },
 };
+
+pub use custom_warning_macro::warning;
