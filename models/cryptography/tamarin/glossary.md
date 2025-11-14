@@ -1,6 +1,6 @@
 # Glossary
 
-This file summarizes the Tamarin constructs (restriction actions, roles, state facts) that are used across the various subprotocols within the E2E-VIV Core Cryptography model.
+This file summarizes the Tamarin constructs (restriction actions, roles, state facts) that are used across the various subprotocols within the VoteSecure model.
 
 ## Restriction Actions
 
