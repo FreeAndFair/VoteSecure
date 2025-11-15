@@ -3,181 +3,181 @@ requirements log 1.4 "E2E-VIV_Requirements"
 requirement M1_Implementation {
     description "M1 - Append-only trustee board: Each trustee maintains a local, append-only view of the protocol board."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK29.M1-1", "E2E-VIV_SafetyArchitecture.ATK29.M1-2";
+    source "E2E-VIV_SafetyArchitecture.ATK30.M1-1", "E2E-VIV_SafetyArchitecture.ATK30.M1-2";
     allocation "E2E-VIV_FunctionalArchitecture.partially-core";
     relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M1_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M1_OUTSIDE" ]
 }
 
 requirement M2_Implementation {
-    description "M2 - Audited platforms: OS/Hardware dependencies are selected prioritizing those that have been subject to audits."
+    description "M2 - Auditable pseudonyms: Pseudonyms can be constructed from auditable, but private, information using a one way function. This allows external auditors to privately verify that the identities certified by the EA are in fact eligible, without revealing those identities to the public (note that even if these identities were revealed, ballots are still protected by encryption)."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK7.M2-1", "E2E-VIV_SafetyArchitecture.ATK8.M2-1", "E2E-VIV_SafetyArchitecture.ATK9.M2-1", "E2E-VIV_SafetyArchitecture.ATK10.M2-1", "E2E-VIV_SafetyArchitecture.ATK10.M2-2", "E2E-VIV_SafetyArchitecture.ATK10.M2-3", "E2E-VIV_SafetyArchitecture.ATK16.M2-1", "E2E-VIV_SafetyArchitecture.ATK16.M2-2";
+    source "E2E-VIV_SafetyArchitecture.ATK16.M2-1";
     allocation "E2E-VIV_FunctionalArchitecture.non-core";
     relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M2" ]
 }
 
 requirement M3_Implementation {
-    description "M3 - Ballot uniqueness audit: From Küsters et al.~[[KustersEtAlClashAttacks2012]]: In addition to checking whether the audited ballot is in fact computed with the voter's choice and the random coins provided by the browser for that ballot, a voter also ensures that all ballots (including the submitted ballot) constructed by the browser are different. For this purpose, a voter would typically record the ballots in some way, e.g., by having them emailed to her, and then compare these ballots."
+    description "M3 - Audited platforms: OS/Hardware dependencies are selected prioritizing those that have been subject to audits."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK21.M3-1";
-    allocation "E2E-VIV_FunctionalArchitecture.partially-core";
-    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M3_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M3_OUTSIDE" ]
+    source "E2E-VIV_SafetyArchitecture.ATK7.M3-1", "E2E-VIV_SafetyArchitecture.ATK8.M3-1", "E2E-VIV_SafetyArchitecture.ATK9.M3-1", "E2E-VIV_SafetyArchitecture.ATK10.M3-1", "E2E-VIV_SafetyArchitecture.ATK10.M3-2", "E2E-VIV_SafetyArchitecture.ATK10.M3-3", "E2E-VIV_SafetyArchitecture.ATK17.M3-1", "E2E-VIV_SafetyArchitecture.ATK17.M3-2";
+    allocation "E2E-VIV_FunctionalArchitecture.non-core";
+    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M3" ]
 }
 
 requirement M4_Implementation {
-    description "M4 - Ballot weeding: Duplicates are removed from the set of ballots submitted to the mixnet; see Bernhard et al.~[[BernhardEtAlAdaptingHelios2011]] Typically a duplicate ballot is defined as a ballot that is identical to one cast previously. It is important to carefully consider when the duplicate weeding takes place, either at cast time or during mixnet submission. For example, detection at cast time can lead to performance problems, whereas postponing this to mixnet submission time can lead to disputes."
+    description "M4 - Ballot uniqueness audit: From Küsters et al.~[[KustersEtAlClashAttacks2012]]: In addition to checking whether the audited ballot is in fact computed with the voter's choice and the random coins provided by the browser for that ballot, a voter also ensures that all ballots (including the submitted ballot) constructed by the browser are different. For this purpose, a voter would typically record the ballots in some way, e.g., by having them emailed to her, and then compare these ballots."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK6.M4-1";
+    source ;
     allocation "E2E-VIV_FunctionalArchitecture.partially-core";
     relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M4_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M4_OUTSIDE" ]
 }
 
 requirement M5_Implementation {
-    description "M5 - Cast as intended verifiability: A voter can verify that their ballot was cast as they intended."
+    description "M5 - Ballot weeding: Duplicates are removed from the set of ballots submitted to the mixnet; see Bernhard et al.~[[BernhardEtAlAdaptingHelios2011]] Typically a duplicate ballot is defined as a ballot that is identical to one cast previously. It is important to carefully consider when the duplicate weeding takes place, either at cast time or during mixnet submission. For example, detection at cast time can lead to performance problems, whereas postponing this to mixnet submission time can lead to disputes."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK25.M5-1";
+    source "E2E-VIV_SafetyArchitecture.ATK6.M5-1";
     allocation "E2E-VIV_FunctionalArchitecture.partially-core";
     relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M5_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M5_OUTSIDE" ]
 }
 
 requirement M6_Implementation {
-    description "M6 - Controlled environment: The physical location housing the AGN as well as the hardware on which the TA and TAS run is a controlled environment with restricted access."
+    description "M6 - Cast as intended verifiability: A voter can verify that their ballot was cast as they intended."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK11.M6-1", "E2E-VIV_SafetyArchitecture.ATK12.M6-1", "E2E-VIV_SafetyArchitecture.ATK14.M6-1", "E2E-VIV_SafetyArchitecture.ATK14.M6-2", "E2E-VIV_SafetyArchitecture.ATK14.M6-3", "E2E-VIV_SafetyArchitecture.ATK14.M6-4", "E2E-VIV_SafetyArchitecture.ATK20.M6-1", "E2E-VIV_SafetyArchitecture.ATK20.M6-2", "E2E-VIV_SafetyArchitecture.ATK20.M6-3", "E2E-VIV_SafetyArchitecture.ATK20.M6-4", "E2E-VIV_SafetyArchitecture.ATK25.M6-1", "E2E-VIV_SafetyArchitecture.ATK25.M6-2", "E2E-VIV_SafetyArchitecture.ATK25.M6-3", "E2E-VIV_SafetyArchitecture.ATK25.M6-4";
-    allocation "E2E-VIV_FunctionalArchitecture.non-core";
-    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M6" ]
+    source "E2E-VIV_SafetyArchitecture.ATK26.M6-1";
+    allocation "E2E-VIV_FunctionalArchitecture.partially-core";
+    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M6_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M6_OUTSIDE" ]
 }
 
 requirement M7_Implementation {
-    description "M7 - Counted as recorded verifiability: A voter can verify that their ballot was counted."
+    description "M7 - Controlled environment: The physical location housing the AGN as well as the hardware on which the TA and TAS run is a controlled environment with restricted access."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK1.M7-1", "E2E-VIV_SafetyArchitecture.ATK1.M7-2", "E2E-VIV_SafetyArchitecture.ATK1.M7-3", "E2E-VIV_SafetyArchitecture.ATK1.M7-4", "E2E-VIV_SafetyArchitecture.ATK1.M7-5", "E2E-VIV_SafetyArchitecture.ATK1.M7-6", "E2E-VIV_SafetyArchitecture.ATK1.M7-7", "E2E-VIV_SafetyArchitecture.ATK1.M7-8", "E2E-VIV_SafetyArchitecture.ATK1.M7-9", "E2E-VIV_SafetyArchitecture.ATK1.M7-10", "E2E-VIV_SafetyArchitecture.ATK1.M7-11", "E2E-VIV_SafetyArchitecture.ATK2.M7-1", "E2E-VIV_SafetyArchitecture.ATK2.M7-2", "E2E-VIV_SafetyArchitecture.ATK2.M7-3", "E2E-VIV_SafetyArchitecture.ATK2.M7-4", "E2E-VIV_SafetyArchitecture.ATK2.M7-5", "E2E-VIV_SafetyArchitecture.ATK2.M7-6", "E2E-VIV_SafetyArchitecture.ATK2.M7-7", "E2E-VIV_SafetyArchitecture.ATK2.M7-8", "E2E-VIV_SafetyArchitecture.ATK3.M7-1", "E2E-VIV_SafetyArchitecture.ATK3.M7-2", "E2E-VIV_SafetyArchitecture.ATK3.M7-3", "E2E-VIV_SafetyArchitecture.ATK4.M7-1", "E2E-VIV_SafetyArchitecture.ATK4.M7-2", "E2E-VIV_SafetyArchitecture.ATK4.M7-3", "E2E-VIV_SafetyArchitecture.ATK4.M7-4";
-    allocation "E2E-VIV_FunctionalArchitecture.partially-core";
-    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M7_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M7_OUTSIDE" ]
+    source "E2E-VIV_SafetyArchitecture.ATK12.M7-1", "E2E-VIV_SafetyArchitecture.ATK13.M7-1", "E2E-VIV_SafetyArchitecture.ATK15.M7-1", "E2E-VIV_SafetyArchitecture.ATK15.M7-2", "E2E-VIV_SafetyArchitecture.ATK15.M7-3", "E2E-VIV_SafetyArchitecture.ATK15.M7-4", "E2E-VIV_SafetyArchitecture.ATK21.M7-1", "E2E-VIV_SafetyArchitecture.ATK21.M7-2", "E2E-VIV_SafetyArchitecture.ATK21.M7-3", "E2E-VIV_SafetyArchitecture.ATK21.M7-4", "E2E-VIV_SafetyArchitecture.ATK26.M7-1", "E2E-VIV_SafetyArchitecture.ATK26.M7-2", "E2E-VIV_SafetyArchitecture.ATK26.M7-3", "E2E-VIV_SafetyArchitecture.ATK26.M7-4";
+    allocation "E2E-VIV_FunctionalArchitecture.non-core";
+    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M7" ]
 }
 
 requirement M8_Implementation {
-    description "M8 - Cybersecurity—Escalation: The system deployment incorporates general cybersecurity practices aimed to protect against privilege escalation."
+    description "M8 - Counted as recorded verifiability: A voter can verify that their ballot was counted."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK1.M8-1", "E2E-VIV_SafetyArchitecture.ATK1.M8-2", "E2E-VIV_SafetyArchitecture.ATK1.M8-3", "E2E-VIV_SafetyArchitecture.ATK1.M8-4", "E2E-VIV_SafetyArchitecture.ATK1.M8-5", "E2E-VIV_SafetyArchitecture.ATK1.M8-6", "E2E-VIV_SafetyArchitecture.ATK2.M8-1", "E2E-VIV_SafetyArchitecture.ATK2.M8-2", "E2E-VIV_SafetyArchitecture.ATK2.M8-3", "E2E-VIV_SafetyArchitecture.ATK3.M8-1", "E2E-VIV_SafetyArchitecture.ATK3.M8-2", "E2E-VIV_SafetyArchitecture.ATK4.M8-1", "E2E-VIV_SafetyArchitecture.ATK5.M8-1", "E2E-VIV_SafetyArchitecture.ATK5.M8-2", "E2E-VIV_SafetyArchitecture.ATK5.M8-3", "E2E-VIV_SafetyArchitecture.ATK5.M8-4", "E2E-VIV_SafetyArchitecture.ATK11.M8-1", "E2E-VIV_SafetyArchitecture.ATK12.M8-1", "E2E-VIV_SafetyArchitecture.ATK18.M8-1", "E2E-VIV_SafetyArchitecture.ATK18.M8-2", "E2E-VIV_SafetyArchitecture.ATK18.M8-3", "E2E-VIV_SafetyArchitecture.ATK19.M8-1", "E2E-VIV_SafetyArchitecture.ATK19.M8-2", "E2E-VIV_SafetyArchitecture.ATK19.M8-3", "E2E-VIV_SafetyArchitecture.ATK19.M8-4", "E2E-VIV_SafetyArchitecture.ATK21.M8-1", "E2E-VIV_SafetyArchitecture.ATK21.M8-2", "E2E-VIV_SafetyArchitecture.ATK21.M8-3", "E2E-VIV_SafetyArchitecture.ATK21.M8-4", "E2E-VIV_SafetyArchitecture.ATK21.M8-5", "E2E-VIV_SafetyArchitecture.ATK29.M8-1", "E2E-VIV_SafetyArchitecture.ATK30.M8-1", "E2E-VIV_SafetyArchitecture.ATK31.M8-1", "E2E-VIV_SafetyArchitecture.ATK31.M8-2", "E2E-VIV_SafetyArchitecture.ATK31.M8-3";
-    allocation "E2E-VIV_FunctionalArchitecture.non-core";
-    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M8" ]
+    source "E2E-VIV_SafetyArchitecture.ATK1.M8-1", "E2E-VIV_SafetyArchitecture.ATK1.M8-2", "E2E-VIV_SafetyArchitecture.ATK1.M8-3", "E2E-VIV_SafetyArchitecture.ATK1.M8-4", "E2E-VIV_SafetyArchitecture.ATK1.M8-5", "E2E-VIV_SafetyArchitecture.ATK1.M8-6", "E2E-VIV_SafetyArchitecture.ATK1.M8-7", "E2E-VIV_SafetyArchitecture.ATK1.M8-8", "E2E-VIV_SafetyArchitecture.ATK1.M8-9", "E2E-VIV_SafetyArchitecture.ATK1.M8-10", "E2E-VIV_SafetyArchitecture.ATK1.M8-11", "E2E-VIV_SafetyArchitecture.ATK2.M8-1", "E2E-VIV_SafetyArchitecture.ATK2.M8-2", "E2E-VIV_SafetyArchitecture.ATK2.M8-3", "E2E-VIV_SafetyArchitecture.ATK2.M8-4", "E2E-VIV_SafetyArchitecture.ATK2.M8-5", "E2E-VIV_SafetyArchitecture.ATK2.M8-6", "E2E-VIV_SafetyArchitecture.ATK2.M8-7", "E2E-VIV_SafetyArchitecture.ATK2.M8-8", "E2E-VIV_SafetyArchitecture.ATK3.M8-1", "E2E-VIV_SafetyArchitecture.ATK3.M8-2", "E2E-VIV_SafetyArchitecture.ATK3.M8-3", "E2E-VIV_SafetyArchitecture.ATK4.M8-1", "E2E-VIV_SafetyArchitecture.ATK4.M8-2", "E2E-VIV_SafetyArchitecture.ATK4.M8-3", "E2E-VIV_SafetyArchitecture.ATK4.M8-4";
+    allocation "E2E-VIV_FunctionalArchitecture.partially-core";
+    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M8_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M8_OUTSIDE" ]
 }
 
 requirement M9_Implementation {
-    description "M9 - Cybersecurity—Intrusion: The system deployment incorporates general cybersecurity practices aimed to protect against intrusion."
+    description "M9 - Cybersecurity—Escalation: The system deployment incorporates general cybersecurity practices aimed to protect against privilege escalation."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK1.M9-1", "E2E-VIV_SafetyArchitecture.ATK1.M9-2", "E2E-VIV_SafetyArchitecture.ATK1.M9-3", "E2E-VIV_SafetyArchitecture.ATK1.M9-4", "E2E-VIV_SafetyArchitecture.ATK1.M9-5", "E2E-VIV_SafetyArchitecture.ATK1.M9-6", "E2E-VIV_SafetyArchitecture.ATK2.M9-1", "E2E-VIV_SafetyArchitecture.ATK2.M9-2", "E2E-VIV_SafetyArchitecture.ATK2.M9-3", "E2E-VIV_SafetyArchitecture.ATK3.M9-1", "E2E-VIV_SafetyArchitecture.ATK3.M9-2", "E2E-VIV_SafetyArchitecture.ATK4.M9-1", "E2E-VIV_SafetyArchitecture.ATK5.M9-1", "E2E-VIV_SafetyArchitecture.ATK5.M9-2", "E2E-VIV_SafetyArchitecture.ATK5.M9-3", "E2E-VIV_SafetyArchitecture.ATK5.M9-4", "E2E-VIV_SafetyArchitecture.ATK11.M9-1", "E2E-VIV_SafetyArchitecture.ATK12.M9-1", "E2E-VIV_SafetyArchitecture.ATK18.M9-1", "E2E-VIV_SafetyArchitecture.ATK18.M9-2", "E2E-VIV_SafetyArchitecture.ATK18.M9-3", "E2E-VIV_SafetyArchitecture.ATK19.M9-1", "E2E-VIV_SafetyArchitecture.ATK19.M9-2", "E2E-VIV_SafetyArchitecture.ATK19.M9-3", "E2E-VIV_SafetyArchitecture.ATK19.M9-4", "E2E-VIV_SafetyArchitecture.ATK21.M9-1", "E2E-VIV_SafetyArchitecture.ATK21.M9-2", "E2E-VIV_SafetyArchitecture.ATK21.M9-3", "E2E-VIV_SafetyArchitecture.ATK21.M9-4", "E2E-VIV_SafetyArchitecture.ATK21.M9-5", "E2E-VIV_SafetyArchitecture.ATK29.M9-1", "E2E-VIV_SafetyArchitecture.ATK30.M9-1", "E2E-VIV_SafetyArchitecture.ATK31.M9-1", "E2E-VIV_SafetyArchitecture.ATK31.M9-2", "E2E-VIV_SafetyArchitecture.ATK31.M9-3";
+    source "E2E-VIV_SafetyArchitecture.ATK1.M9-1", "E2E-VIV_SafetyArchitecture.ATK1.M9-2", "E2E-VIV_SafetyArchitecture.ATK1.M9-3", "E2E-VIV_SafetyArchitecture.ATK1.M9-4", "E2E-VIV_SafetyArchitecture.ATK1.M9-5", "E2E-VIV_SafetyArchitecture.ATK1.M9-6", "E2E-VIV_SafetyArchitecture.ATK2.M9-1", "E2E-VIV_SafetyArchitecture.ATK2.M9-2", "E2E-VIV_SafetyArchitecture.ATK2.M9-3", "E2E-VIV_SafetyArchitecture.ATK3.M9-1", "E2E-VIV_SafetyArchitecture.ATK3.M9-2", "E2E-VIV_SafetyArchitecture.ATK4.M9-1", "E2E-VIV_SafetyArchitecture.ATK5.M9-1", "E2E-VIV_SafetyArchitecture.ATK5.M9-2", "E2E-VIV_SafetyArchitecture.ATK5.M9-3", "E2E-VIV_SafetyArchitecture.ATK5.M9-4", "E2E-VIV_SafetyArchitecture.ATK12.M9-1", "E2E-VIV_SafetyArchitecture.ATK13.M9-1", "E2E-VIV_SafetyArchitecture.ATK19.M9-1", "E2E-VIV_SafetyArchitecture.ATK19.M9-2", "E2E-VIV_SafetyArchitecture.ATK19.M9-3", "E2E-VIV_SafetyArchitecture.ATK20.M9-1", "E2E-VIV_SafetyArchitecture.ATK20.M9-2", "E2E-VIV_SafetyArchitecture.ATK20.M9-3", "E2E-VIV_SafetyArchitecture.ATK20.M9-4", "E2E-VIV_SafetyArchitecture.ATK22.M9-1", "E2E-VIV_SafetyArchitecture.ATK22.M9-2", "E2E-VIV_SafetyArchitecture.ATK22.M9-3", "E2E-VIV_SafetyArchitecture.ATK22.M9-4", "E2E-VIV_SafetyArchitecture.ATK22.M9-5", "E2E-VIV_SafetyArchitecture.ATK30.M9-1", "E2E-VIV_SafetyArchitecture.ATK31.M9-1", "E2E-VIV_SafetyArchitecture.ATK32.M9-1", "E2E-VIV_SafetyArchitecture.ATK32.M9-2", "E2E-VIV_SafetyArchitecture.ATK32.M9-3";
     allocation "E2E-VIV_FunctionalArchitecture.non-core";
     relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M9" ]
 }
 
 requirement M10_Implementation {
-    description "M10 - Cybersecurity—Malware: The system deployment incorporates general cybersecurity practices aimed to protect against malware."
+    description "M10 - Cybersecurity—Intrusion: The system deployment incorporates general cybersecurity practices aimed to protect against intrusion."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK1.M10-1", "E2E-VIV_SafetyArchitecture.ATK1.M10-2", "E2E-VIV_SafetyArchitecture.ATK1.M10-3", "E2E-VIV_SafetyArchitecture.ATK1.M10-4", "E2E-VIV_SafetyArchitecture.ATK1.M10-5", "E2E-VIV_SafetyArchitecture.ATK1.M10-6", "E2E-VIV_SafetyArchitecture.ATK2.M10-1", "E2E-VIV_SafetyArchitecture.ATK2.M10-2", "E2E-VIV_SafetyArchitecture.ATK2.M10-3", "E2E-VIV_SafetyArchitecture.ATK3.M10-1", "E2E-VIV_SafetyArchitecture.ATK3.M10-2", "E2E-VIV_SafetyArchitecture.ATK4.M10-1", "E2E-VIV_SafetyArchitecture.ATK5.M10-1", "E2E-VIV_SafetyArchitecture.ATK5.M10-2", "E2E-VIV_SafetyArchitecture.ATK5.M10-3", "E2E-VIV_SafetyArchitecture.ATK5.M10-4", "E2E-VIV_SafetyArchitecture.ATK11.M10-1", "E2E-VIV_SafetyArchitecture.ATK12.M10-1", "E2E-VIV_SafetyArchitecture.ATK18.M10-1", "E2E-VIV_SafetyArchitecture.ATK18.M10-2", "E2E-VIV_SafetyArchitecture.ATK18.M10-3", "E2E-VIV_SafetyArchitecture.ATK19.M10-1", "E2E-VIV_SafetyArchitecture.ATK19.M10-2", "E2E-VIV_SafetyArchitecture.ATK19.M10-3", "E2E-VIV_SafetyArchitecture.ATK19.M10-4", "E2E-VIV_SafetyArchitecture.ATK21.M10-1", "E2E-VIV_SafetyArchitecture.ATK21.M10-2", "E2E-VIV_SafetyArchitecture.ATK21.M10-3", "E2E-VIV_SafetyArchitecture.ATK21.M10-4", "E2E-VIV_SafetyArchitecture.ATK21.M10-5", "E2E-VIV_SafetyArchitecture.ATK29.M10-1", "E2E-VIV_SafetyArchitecture.ATK30.M10-1", "E2E-VIV_SafetyArchitecture.ATK31.M10-1", "E2E-VIV_SafetyArchitecture.ATK31.M10-2", "E2E-VIV_SafetyArchitecture.ATK31.M10-3";
+    source "E2E-VIV_SafetyArchitecture.ATK1.M10-1", "E2E-VIV_SafetyArchitecture.ATK1.M10-2", "E2E-VIV_SafetyArchitecture.ATK1.M10-3", "E2E-VIV_SafetyArchitecture.ATK1.M10-4", "E2E-VIV_SafetyArchitecture.ATK1.M10-5", "E2E-VIV_SafetyArchitecture.ATK1.M10-6", "E2E-VIV_SafetyArchitecture.ATK2.M10-1", "E2E-VIV_SafetyArchitecture.ATK2.M10-2", "E2E-VIV_SafetyArchitecture.ATK2.M10-3", "E2E-VIV_SafetyArchitecture.ATK3.M10-1", "E2E-VIV_SafetyArchitecture.ATK3.M10-2", "E2E-VIV_SafetyArchitecture.ATK4.M10-1", "E2E-VIV_SafetyArchitecture.ATK5.M10-1", "E2E-VIV_SafetyArchitecture.ATK5.M10-2", "E2E-VIV_SafetyArchitecture.ATK5.M10-3", "E2E-VIV_SafetyArchitecture.ATK5.M10-4", "E2E-VIV_SafetyArchitecture.ATK12.M10-1", "E2E-VIV_SafetyArchitecture.ATK13.M10-1", "E2E-VIV_SafetyArchitecture.ATK19.M10-1", "E2E-VIV_SafetyArchitecture.ATK19.M10-2", "E2E-VIV_SafetyArchitecture.ATK19.M10-3", "E2E-VIV_SafetyArchitecture.ATK20.M10-1", "E2E-VIV_SafetyArchitecture.ATK20.M10-2", "E2E-VIV_SafetyArchitecture.ATK20.M10-3", "E2E-VIV_SafetyArchitecture.ATK20.M10-4", "E2E-VIV_SafetyArchitecture.ATK22.M10-1", "E2E-VIV_SafetyArchitecture.ATK22.M10-2", "E2E-VIV_SafetyArchitecture.ATK22.M10-3", "E2E-VIV_SafetyArchitecture.ATK22.M10-4", "E2E-VIV_SafetyArchitecture.ATK22.M10-5", "E2E-VIV_SafetyArchitecture.ATK30.M10-1", "E2E-VIV_SafetyArchitecture.ATK31.M10-1", "E2E-VIV_SafetyArchitecture.ATK32.M10-1", "E2E-VIV_SafetyArchitecture.ATK32.M10-2", "E2E-VIV_SafetyArchitecture.ATK32.M10-3";
     allocation "E2E-VIV_FunctionalArchitecture.non-core";
     relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M10" ]
 }
 
 requirement M11_Implementation {
-    description "M11 - Cybersecurity—Supply chains: The system deployment incorporates general cybersecurity practices aimed to protect against supply chain attacks, for example attestation."
+    description "M11 - Cybersecurity—Malware: The system deployment incorporates general cybersecurity practices aimed to protect against malware."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK1.M11-1", "E2E-VIV_SafetyArchitecture.ATK1.M11-2", "E2E-VIV_SafetyArchitecture.ATK1.M11-3", "E2E-VIV_SafetyArchitecture.ATK1.M11-4", "E2E-VIV_SafetyArchitecture.ATK1.M11-5", "E2E-VIV_SafetyArchitecture.ATK1.M11-6", "E2E-VIV_SafetyArchitecture.ATK2.M11-1", "E2E-VIV_SafetyArchitecture.ATK2.M11-2", "E2E-VIV_SafetyArchitecture.ATK2.M11-3", "E2E-VIV_SafetyArchitecture.ATK3.M11-1", "E2E-VIV_SafetyArchitecture.ATK3.M11-2", "E2E-VIV_SafetyArchitecture.ATK4.M11-1", "E2E-VIV_SafetyArchitecture.ATK5.M11-1", "E2E-VIV_SafetyArchitecture.ATK5.M11-2", "E2E-VIV_SafetyArchitecture.ATK5.M11-3", "E2E-VIV_SafetyArchitecture.ATK5.M11-4", "E2E-VIV_SafetyArchitecture.ATK11.M11-1", "E2E-VIV_SafetyArchitecture.ATK12.M11-1", "E2E-VIV_SafetyArchitecture.ATK18.M11-1", "E2E-VIV_SafetyArchitecture.ATK18.M11-2", "E2E-VIV_SafetyArchitecture.ATK18.M11-3", "E2E-VIV_SafetyArchitecture.ATK19.M11-1", "E2E-VIV_SafetyArchitecture.ATK19.M11-2", "E2E-VIV_SafetyArchitecture.ATK19.M11-3", "E2E-VIV_SafetyArchitecture.ATK19.M11-4", "E2E-VIV_SafetyArchitecture.ATK21.M11-1", "E2E-VIV_SafetyArchitecture.ATK21.M11-2", "E2E-VIV_SafetyArchitecture.ATK21.M11-3", "E2E-VIV_SafetyArchitecture.ATK21.M11-4", "E2E-VIV_SafetyArchitecture.ATK21.M11-5", "E2E-VIV_SafetyArchitecture.ATK29.M11-1", "E2E-VIV_SafetyArchitecture.ATK30.M11-1", "E2E-VIV_SafetyArchitecture.ATK31.M11-1", "E2E-VIV_SafetyArchitecture.ATK31.M11-2", "E2E-VIV_SafetyArchitecture.ATK31.M11-3";
+    source "E2E-VIV_SafetyArchitecture.ATK1.M11-1", "E2E-VIV_SafetyArchitecture.ATK1.M11-2", "E2E-VIV_SafetyArchitecture.ATK1.M11-3", "E2E-VIV_SafetyArchitecture.ATK1.M11-4", "E2E-VIV_SafetyArchitecture.ATK1.M11-5", "E2E-VIV_SafetyArchitecture.ATK1.M11-6", "E2E-VIV_SafetyArchitecture.ATK2.M11-1", "E2E-VIV_SafetyArchitecture.ATK2.M11-2", "E2E-VIV_SafetyArchitecture.ATK2.M11-3", "E2E-VIV_SafetyArchitecture.ATK3.M11-1", "E2E-VIV_SafetyArchitecture.ATK3.M11-2", "E2E-VIV_SafetyArchitecture.ATK4.M11-1", "E2E-VIV_SafetyArchitecture.ATK5.M11-1", "E2E-VIV_SafetyArchitecture.ATK5.M11-2", "E2E-VIV_SafetyArchitecture.ATK5.M11-3", "E2E-VIV_SafetyArchitecture.ATK5.M11-4", "E2E-VIV_SafetyArchitecture.ATK12.M11-1", "E2E-VIV_SafetyArchitecture.ATK13.M11-1", "E2E-VIV_SafetyArchitecture.ATK19.M11-1", "E2E-VIV_SafetyArchitecture.ATK19.M11-2", "E2E-VIV_SafetyArchitecture.ATK19.M11-3", "E2E-VIV_SafetyArchitecture.ATK20.M11-1", "E2E-VIV_SafetyArchitecture.ATK20.M11-2", "E2E-VIV_SafetyArchitecture.ATK20.M11-3", "E2E-VIV_SafetyArchitecture.ATK20.M11-4", "E2E-VIV_SafetyArchitecture.ATK22.M11-1", "E2E-VIV_SafetyArchitecture.ATK22.M11-2", "E2E-VIV_SafetyArchitecture.ATK22.M11-3", "E2E-VIV_SafetyArchitecture.ATK22.M11-4", "E2E-VIV_SafetyArchitecture.ATK22.M11-5", "E2E-VIV_SafetyArchitecture.ATK29.M11-1", "E2E-VIV_SafetyArchitecture.ATK30.M11-1", "E2E-VIV_SafetyArchitecture.ATK31.M11-1", "E2E-VIV_SafetyArchitecture.ATK32.M11-1", "E2E-VIV_SafetyArchitecture.ATK32.M11-2", "E2E-VIV_SafetyArchitecture.ATK32.M11-3";
     allocation "E2E-VIV_FunctionalArchitecture.non-core";
     relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M11" ]
 }
 
 requirement M12_Implementation {
-    description "M12 - Cybersecurity—Virtualization: The system deployment incorporates general cybersecurity practices aimed to protect against virtualization-related attack vectors."
+    description "M12 - Cybersecurity—Supply chains: The system deployment incorporates general cybersecurity practices aimed to protect against supply chain attacks, for example attestation."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK1.M12-1", "E2E-VIV_SafetyArchitecture.ATK1.M12-2", "E2E-VIV_SafetyArchitecture.ATK1.M12-3", "E2E-VIV_SafetyArchitecture.ATK1.M12-4", "E2E-VIV_SafetyArchitecture.ATK1.M12-5", "E2E-VIV_SafetyArchitecture.ATK1.M12-6", "E2E-VIV_SafetyArchitecture.ATK2.M12-1", "E2E-VIV_SafetyArchitecture.ATK2.M12-2", "E2E-VIV_SafetyArchitecture.ATK2.M12-3", "E2E-VIV_SafetyArchitecture.ATK3.M12-1", "E2E-VIV_SafetyArchitecture.ATK3.M12-2", "E2E-VIV_SafetyArchitecture.ATK4.M12-1", "E2E-VIV_SafetyArchitecture.ATK5.M12-1", "E2E-VIV_SafetyArchitecture.ATK5.M12-2", "E2E-VIV_SafetyArchitecture.ATK5.M12-3", "E2E-VIV_SafetyArchitecture.ATK5.M12-4", "E2E-VIV_SafetyArchitecture.ATK11.M12-1", "E2E-VIV_SafetyArchitecture.ATK12.M12-1", "E2E-VIV_SafetyArchitecture.ATK18.M12-1", "E2E-VIV_SafetyArchitecture.ATK18.M12-2", "E2E-VIV_SafetyArchitecture.ATK18.M12-3", "E2E-VIV_SafetyArchitecture.ATK19.M12-1", "E2E-VIV_SafetyArchitecture.ATK19.M12-2", "E2E-VIV_SafetyArchitecture.ATK19.M12-3", "E2E-VIV_SafetyArchitecture.ATK19.M12-4", "E2E-VIV_SafetyArchitecture.ATK21.M12-1", "E2E-VIV_SafetyArchitecture.ATK21.M12-2", "E2E-VIV_SafetyArchitecture.ATK21.M12-3", "E2E-VIV_SafetyArchitecture.ATK21.M12-4", "E2E-VIV_SafetyArchitecture.ATK21.M12-5", "E2E-VIV_SafetyArchitecture.ATK29.M12-1", "E2E-VIV_SafetyArchitecture.ATK30.M12-1", "E2E-VIV_SafetyArchitecture.ATK31.M12-1", "E2E-VIV_SafetyArchitecture.ATK31.M12-2", "E2E-VIV_SafetyArchitecture.ATK31.M12-3";
+    source "E2E-VIV_SafetyArchitecture.ATK1.M12-1", "E2E-VIV_SafetyArchitecture.ATK1.M12-2", "E2E-VIV_SafetyArchitecture.ATK1.M12-3", "E2E-VIV_SafetyArchitecture.ATK1.M12-4", "E2E-VIV_SafetyArchitecture.ATK1.M12-5", "E2E-VIV_SafetyArchitecture.ATK1.M12-6", "E2E-VIV_SafetyArchitecture.ATK2.M12-1", "E2E-VIV_SafetyArchitecture.ATK2.M12-2", "E2E-VIV_SafetyArchitecture.ATK2.M12-3", "E2E-VIV_SafetyArchitecture.ATK3.M12-1", "E2E-VIV_SafetyArchitecture.ATK3.M12-2", "E2E-VIV_SafetyArchitecture.ATK4.M12-1", "E2E-VIV_SafetyArchitecture.ATK5.M12-1", "E2E-VIV_SafetyArchitecture.ATK5.M12-2", "E2E-VIV_SafetyArchitecture.ATK5.M12-3", "E2E-VIV_SafetyArchitecture.ATK5.M12-4", "E2E-VIV_SafetyArchitecture.ATK12.M12-1", "E2E-VIV_SafetyArchitecture.ATK13.M12-1", "E2E-VIV_SafetyArchitecture.ATK19.M12-1", "E2E-VIV_SafetyArchitecture.ATK19.M12-2", "E2E-VIV_SafetyArchitecture.ATK19.M12-3", "E2E-VIV_SafetyArchitecture.ATK20.M12-1", "E2E-VIV_SafetyArchitecture.ATK20.M12-2", "E2E-VIV_SafetyArchitecture.ATK20.M12-3", "E2E-VIV_SafetyArchitecture.ATK20.M12-4", "E2E-VIV_SafetyArchitecture.ATK22.M12-1", "E2E-VIV_SafetyArchitecture.ATK22.M12-2", "E2E-VIV_SafetyArchitecture.ATK22.M12-3", "E2E-VIV_SafetyArchitecture.ATK22.M12-4", "E2E-VIV_SafetyArchitecture.ATK22.M12-5", "E2E-VIV_SafetyArchitecture.ATK30.M12-1", "E2E-VIV_SafetyArchitecture.ATK31.M12-1", "E2E-VIV_SafetyArchitecture.ATK32.M12-1", "E2E-VIV_SafetyArchitecture.ATK32.M12-2", "E2E-VIV_SafetyArchitecture.ATK32.M12-3";
     allocation "E2E-VIV_FunctionalArchitecture.non-core";
     relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M12" ]
 }
 
 requirement M13_Implementation {
-    description "M13 - Denial of service protection: Standard denial of service protection techniques, typically offered by cloud vendors, are employed."
+    description "M13 - Cybersecurity—Virtualization: The system deployment incorporates general cybersecurity practices aimed to protect against virtualization-related attack vectors."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK14.M13-1", "E2E-VIV_SafetyArchitecture.ATK14.M13-2";
+    source "E2E-VIV_SafetyArchitecture.ATK1.M13-1", "E2E-VIV_SafetyArchitecture.ATK1.M13-2", "E2E-VIV_SafetyArchitecture.ATK1.M13-3", "E2E-VIV_SafetyArchitecture.ATK1.M13-4", "E2E-VIV_SafetyArchitecture.ATK1.M13-5", "E2E-VIV_SafetyArchitecture.ATK1.M13-6", "E2E-VIV_SafetyArchitecture.ATK2.M13-1", "E2E-VIV_SafetyArchitecture.ATK2.M13-2", "E2E-VIV_SafetyArchitecture.ATK2.M13-3", "E2E-VIV_SafetyArchitecture.ATK3.M13-1", "E2E-VIV_SafetyArchitecture.ATK3.M13-2", "E2E-VIV_SafetyArchitecture.ATK4.M13-1", "E2E-VIV_SafetyArchitecture.ATK5.M13-1", "E2E-VIV_SafetyArchitecture.ATK5.M13-2", "E2E-VIV_SafetyArchitecture.ATK5.M13-3", "E2E-VIV_SafetyArchitecture.ATK5.M13-4", "E2E-VIV_SafetyArchitecture.ATK12.M13-1", "E2E-VIV_SafetyArchitecture.ATK13.M13-1", "E2E-VIV_SafetyArchitecture.ATK19.M13-1", "E2E-VIV_SafetyArchitecture.ATK19.M13-2", "E2E-VIV_SafetyArchitecture.ATK19.M13-3", "E2E-VIV_SafetyArchitecture.ATK20.M13-1", "E2E-VIV_SafetyArchitecture.ATK20.M13-2", "E2E-VIV_SafetyArchitecture.ATK20.M13-3", "E2E-VIV_SafetyArchitecture.ATK20.M13-4", "E2E-VIV_SafetyArchitecture.ATK22.M13-1", "E2E-VIV_SafetyArchitecture.ATK22.M13-2", "E2E-VIV_SafetyArchitecture.ATK22.M13-3", "E2E-VIV_SafetyArchitecture.ATK22.M13-4", "E2E-VIV_SafetyArchitecture.ATK22.M13-5", "E2E-VIV_SafetyArchitecture.ATK30.M13-1", "E2E-VIV_SafetyArchitecture.ATK31.M13-1", "E2E-VIV_SafetyArchitecture.ATK32.M13-1", "E2E-VIV_SafetyArchitecture.ATK32.M13-2", "E2E-VIV_SafetyArchitecture.ATK32.M13-3";
     allocation "E2E-VIV_FunctionalArchitecture.non-core";
     relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M13" ]
 }
 
 requirement M14_Implementation {
-    description "M14 - Dependency minimization: External software dependencies are minimized to those that are essential to system operation."
+    description "M14 - Denial of service protection: Standard denial of service protection techniques, typically offered by cloud vendors, are employed."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK1.M14-1", "E2E-VIV_SafetyArchitecture.ATK1.M14-2", "E2E-VIV_SafetyArchitecture.ATK1.M14-3", "E2E-VIV_SafetyArchitecture.ATK1.M14-4", "E2E-VIV_SafetyArchitecture.ATK1.M14-5", "E2E-VIV_SafetyArchitecture.ATK1.M14-6", "E2E-VIV_SafetyArchitecture.ATK2.M14-1", "E2E-VIV_SafetyArchitecture.ATK2.M14-2", "E2E-VIV_SafetyArchitecture.ATK2.M14-3", "E2E-VIV_SafetyArchitecture.ATK3.M14-1", "E2E-VIV_SafetyArchitecture.ATK3.M14-2", "E2E-VIV_SafetyArchitecture.ATK4.M14-1", "E2E-VIV_SafetyArchitecture.ATK5.M14-1", "E2E-VIV_SafetyArchitecture.ATK5.M14-2", "E2E-VIV_SafetyArchitecture.ATK5.M14-3", "E2E-VIV_SafetyArchitecture.ATK5.M14-4", "E2E-VIV_SafetyArchitecture.ATK7.M14-1", "E2E-VIV_SafetyArchitecture.ATK8.M14-1", "E2E-VIV_SafetyArchitecture.ATK9.M14-1", "E2E-VIV_SafetyArchitecture.ATK10.M14-1", "E2E-VIV_SafetyArchitecture.ATK10.M14-2", "E2E-VIV_SafetyArchitecture.ATK10.M14-3", "E2E-VIV_SafetyArchitecture.ATK11.M14-1", "E2E-VIV_SafetyArchitecture.ATK12.M14-1", "E2E-VIV_SafetyArchitecture.ATK16.M14-1", "E2E-VIV_SafetyArchitecture.ATK16.M14-2", "E2E-VIV_SafetyArchitecture.ATK18.M14-1", "E2E-VIV_SafetyArchitecture.ATK18.M14-2", "E2E-VIV_SafetyArchitecture.ATK18.M14-3", "E2E-VIV_SafetyArchitecture.ATK19.M14-1", "E2E-VIV_SafetyArchitecture.ATK19.M14-2", "E2E-VIV_SafetyArchitecture.ATK19.M14-3", "E2E-VIV_SafetyArchitecture.ATK19.M14-4", "E2E-VIV_SafetyArchitecture.ATK21.M14-1", "E2E-VIV_SafetyArchitecture.ATK21.M14-2", "E2E-VIV_SafetyArchitecture.ATK21.M14-3", "E2E-VIV_SafetyArchitecture.ATK21.M14-4", "E2E-VIV_SafetyArchitecture.ATK21.M14-5", "E2E-VIV_SafetyArchitecture.ATK29.M14-1", "E2E-VIV_SafetyArchitecture.ATK30.M14-1", "E2E-VIV_SafetyArchitecture.ATK31.M14-1", "E2E-VIV_SafetyArchitecture.ATK31.M14-2", "E2E-VIV_SafetyArchitecture.ATK31.M14-3";
-    allocation "E2E-VIV_FunctionalArchitecture.partially-core";
-    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M14_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M14_OUTSIDE" ]
+    source "E2E-VIV_SafetyArchitecture.ATK15.M14-1", "E2E-VIV_SafetyArchitecture.ATK15.M14-2";
+    allocation "E2E-VIV_FunctionalArchitecture.non-core";
+    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M14" ]
 }
 
 requirement M15_Implementation {
-    description "M15 - Domain separation: Cryptographic primitives are used in a way that ensures that they are not used in multiple contexts."
+    description "M15 - Dependency minimization: External software dependencies are minimized to those that are essential to system operation."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK23.M15-1";
+    source "E2E-VIV_SafetyArchitecture.ATK1.M15-1", "E2E-VIV_SafetyArchitecture.ATK1.M15-2", "E2E-VIV_SafetyArchitecture.ATK1.M15-3", "E2E-VIV_SafetyArchitecture.ATK1.M15-4", "E2E-VIV_SafetyArchitecture.ATK1.M15-5", "E2E-VIV_SafetyArchitecture.ATK1.M15-6", "E2E-VIV_SafetyArchitecture.ATK2.M15-1", "E2E-VIV_SafetyArchitecture.ATK2.M15-2", "E2E-VIV_SafetyArchitecture.ATK2.M15-3", "E2E-VIV_SafetyArchitecture.ATK3.M15-1", "E2E-VIV_SafetyArchitecture.ATK3.M15-2", "E2E-VIV_SafetyArchitecture.ATK4.M15-1", "E2E-VIV_SafetyArchitecture.ATK5.M15-1", "E2E-VIV_SafetyArchitecture.ATK5.M15-2", "E2E-VIV_SafetyArchitecture.ATK5.M15-3", "E2E-VIV_SafetyArchitecture.ATK5.M15-4", "E2E-VIV_SafetyArchitecture.ATK7.M15-1", "E2E-VIV_SafetyArchitecture.ATK8.M15-1", "E2E-VIV_SafetyArchitecture.ATK9.M15-1", "E2E-VIV_SafetyArchitecture.ATK10.M15-1", "E2E-VIV_SafetyArchitecture.ATK10.M15-2", "E2E-VIV_SafetyArchitecture.ATK10.M15-3", "E2E-VIV_SafetyArchitecture.ATK12.M15-1", "E2E-VIV_SafetyArchitecture.ATK13.M15-1", "E2E-VIV_SafetyArchitecture.ATK17.M15-1", "E2E-VIV_SafetyArchitecture.ATK17.M15-2", "E2E-VIV_SafetyArchitecture.ATK19.M15-1", "E2E-VIV_SafetyArchitecture.ATK19.M15-2", "E2E-VIV_SafetyArchitecture.ATK19.M15-3", "E2E-VIV_SafetyArchitecture.ATK20.M15-1", "E2E-VIV_SafetyArchitecture.ATK20.M15-2", "E2E-VIV_SafetyArchitecture.ATK20.M15-3", "E2E-VIV_SafetyArchitecture.ATK20.M15-4", "E2E-VIV_SafetyArchitecture.ATK22.M15-1", "E2E-VIV_SafetyArchitecture.ATK22.M15-2", "E2E-VIV_SafetyArchitecture.ATK22.M15-3", "E2E-VIV_SafetyArchitecture.ATK22.M15-4", "E2E-VIV_SafetyArchitecture.ATK22.M15-5", "E2E-VIV_SafetyArchitecture.ATK30.M15-1", "E2E-VIV_SafetyArchitecture.ATK31.M15-1", "E2E-VIV_SafetyArchitecture.ATK32.M15-1", "E2E-VIV_SafetyArchitecture.ATK32.M15-2", "E2E-VIV_SafetyArchitecture.ATK32.M15-3";
     allocation "E2E-VIV_FunctionalArchitecture.partially-core";
     relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M15_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M15_OUTSIDE" ]
 }
 
 requirement M16_Implementation {
-    description "M16 - Eligibility verifiability: An independent verifier can verify that no ineligible ballots were counted."
+    description "M16 - Domain separation: Cryptographic primitives are used in a way that ensures that they are not used in multiple contexts."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK18.M16-1", "E2E-VIV_SafetyArchitecture.ATK18.M16-2", "E2E-VIV_SafetyArchitecture.ATK18.M16-3", "E2E-VIV_SafetyArchitecture.ATK18.M16-4", "E2E-VIV_SafetyArchitecture.ATK18.M16-5", "E2E-VIV_SafetyArchitecture.ATK18.M16-6";
+    source "E2E-VIV_SafetyArchitecture.ATK24.M16-1";
     allocation "E2E-VIV_FunctionalArchitecture.partially-core";
     relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M16_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M16_OUTSIDE" ]
 }
 
 requirement M17_Implementation {
-    description "M17 - External audits: External performers are engaged to conduct source code audits of internal code."
+    description "M17 - Eligibility verifiability: An independent verifier can verify that no ineligible ballots were counted."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK7.M17-1", "E2E-VIV_SafetyArchitecture.ATK8.M17-1", "E2E-VIV_SafetyArchitecture.ATK9.M17-1", "E2E-VIV_SafetyArchitecture.ATK10.M17-1", "E2E-VIV_SafetyArchitecture.ATK10.M17-2", "E2E-VIV_SafetyArchitecture.ATK10.M17-3", "E2E-VIV_SafetyArchitecture.ATK11.M17-1", "E2E-VIV_SafetyArchitecture.ATK12.M17-1", "E2E-VIV_SafetyArchitecture.ATK16.M17-1", "E2E-VIV_SafetyArchitecture.ATK16.M17-2", "E2E-VIV_SafetyArchitecture.ATK20.M17-1";
-    allocation "E2E-VIV_FunctionalArchitecture.non-core";
-    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M17" ]
+    source "E2E-VIV_SafetyArchitecture.ATK19.M17-1", "E2E-VIV_SafetyArchitecture.ATK19.M17-2", "E2E-VIV_SafetyArchitecture.ATK19.M17-3", "E2E-VIV_SafetyArchitecture.ATK19.M17-4", "E2E-VIV_SafetyArchitecture.ATK19.M17-5", "E2E-VIV_SafetyArchitecture.ATK19.M17-6";
+    allocation "E2E-VIV_FunctionalArchitecture.partially-core";
+    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M17_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M17_OUTSIDE" ]
 }
 
 requirement M18_Implementation {
-    description "M18 - Formal verification: Formal verification techniques are used to formally prove implementation correctness for internal code."
+    description "M18 - External audits: External performers are engaged to conduct source code audits of internal code."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK7.M18-1", "E2E-VIV_SafetyArchitecture.ATK8.M18-1", "E2E-VIV_SafetyArchitecture.ATK9.M18-1", "E2E-VIV_SafetyArchitecture.ATK10.M18-1", "E2E-VIV_SafetyArchitecture.ATK10.M18-2", "E2E-VIV_SafetyArchitecture.ATK10.M18-3", "E2E-VIV_SafetyArchitecture.ATK16.M18-1", "E2E-VIV_SafetyArchitecture.ATK16.M18-2";
-    allocation "E2E-VIV_FunctionalArchitecture.partially-core";
-    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M18_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M18_OUTSIDE" ]
+    source "E2E-VIV_SafetyArchitecture.ATK7.M18-1", "E2E-VIV_SafetyArchitecture.ATK8.M18-1", "E2E-VIV_SafetyArchitecture.ATK9.M18-1", "E2E-VIV_SafetyArchitecture.ATK10.M18-1", "E2E-VIV_SafetyArchitecture.ATK10.M18-2", "E2E-VIV_SafetyArchitecture.ATK10.M18-3", "E2E-VIV_SafetyArchitecture.ATK12.M18-1", "E2E-VIV_SafetyArchitecture.ATK13.M18-1", "E2E-VIV_SafetyArchitecture.ATK17.M18-1", "E2E-VIV_SafetyArchitecture.ATK17.M18-2", "E2E-VIV_SafetyArchitecture.ATK21.M18-1";
+    allocation "E2E-VIV_FunctionalArchitecture.non-core";
+    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M18" ]
 }
 
 requirement M19_Implementation {
-    description "M19 - Formally verified dependencies: External software dependencies are selected prioritizing those that have been subject to previous verification."
+    description "M19 - Formal verification: Formal verification techniques are used to formally prove implementation correctness for internal code."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK7.M19-1", "E2E-VIV_SafetyArchitecture.ATK8.M19-1", "E2E-VIV_SafetyArchitecture.ATK9.M19-1", "E2E-VIV_SafetyArchitecture.ATK10.M19-1", "E2E-VIV_SafetyArchitecture.ATK10.M19-2", "E2E-VIV_SafetyArchitecture.ATK10.M19-3", "E2E-VIV_SafetyArchitecture.ATK16.M19-1", "E2E-VIV_SafetyArchitecture.ATK16.M19-2";
+    source "E2E-VIV_SafetyArchitecture.ATK7.M19-1", "E2E-VIV_SafetyArchitecture.ATK8.M19-1", "E2E-VIV_SafetyArchitecture.ATK9.M19-1", "E2E-VIV_SafetyArchitecture.ATK10.M19-1", "E2E-VIV_SafetyArchitecture.ATK10.M19-2", "E2E-VIV_SafetyArchitecture.ATK10.M19-3", "E2E-VIV_SafetyArchitecture.ATK17.M19-1", "E2E-VIV_SafetyArchitecture.ATK17.M19-2";
     allocation "E2E-VIV_FunctionalArchitecture.partially-core";
     relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M19_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M19_OUTSIDE" ]
 }
 
 requirement M20_Implementation {
-    description "M20 - Message signatures: Messages on the network are digitally signed."
+    description "M20 - Formally verified dependencies: External software dependencies are selected prioritizing those that have been subject to previous verification."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK1.M20-1", "E2E-VIV_SafetyArchitecture.ATK1.M20-2", "E2E-VIV_SafetyArchitecture.ATK1.M20-3", "E2E-VIV_SafetyArchitecture.ATK1.M20-4", "E2E-VIV_SafetyArchitecture.ATK1.M20-5", "E2E-VIV_SafetyArchitecture.ATK1.M20-6", "E2E-VIV_SafetyArchitecture.ATK1.M20-7", "E2E-VIV_SafetyArchitecture.ATK1.M20-8", "E2E-VIV_SafetyArchitecture.ATK2.M20-1", "E2E-VIV_SafetyArchitecture.ATK2.M20-2", "E2E-VIV_SafetyArchitecture.ATK2.M20-3", "E2E-VIV_SafetyArchitecture.ATK2.M20-4", "E2E-VIV_SafetyArchitecture.ATK2.M20-5", "E2E-VIV_SafetyArchitecture.ATK2.M20-6", "E2E-VIV_SafetyArchitecture.ATK3.M20-1", "E2E-VIV_SafetyArchitecture.ATK3.M20-2", "E2E-VIV_SafetyArchitecture.ATK3.M20-3", "E2E-VIV_SafetyArchitecture.ATK4.M20-1", "E2E-VIV_SafetyArchitecture.ATK4.M20-2", "E2E-VIV_SafetyArchitecture.ATK5.M20-1", "E2E-VIV_SafetyArchitecture.ATK5.M20-2", "E2E-VIV_SafetyArchitecture.ATK14.M20-1", "E2E-VIV_SafetyArchitecture.ATK14.M20-2", "E2E-VIV_SafetyArchitecture.ATK14.M20-3", "E2E-VIV_SafetyArchitecture.ATK14.M20-4", "E2E-VIV_SafetyArchitecture.ATK18.M20-1", "E2E-VIV_SafetyArchitecture.ATK18.M20-2", "E2E-VIV_SafetyArchitecture.ATK20.M20-1", "E2E-VIV_SafetyArchitecture.ATK20.M20-2", "E2E-VIV_SafetyArchitecture.ATK20.M20-3", "E2E-VIV_SafetyArchitecture.ATK20.M20-4", "E2E-VIV_SafetyArchitecture.ATK25.M20-1", "E2E-VIV_SafetyArchitecture.ATK25.M20-2", "E2E-VIV_SafetyArchitecture.ATK25.M20-3", "E2E-VIV_SafetyArchitecture.ATK25.M20-4", "E2E-VIV_SafetyArchitecture.ATK31.M20-1", "E2E-VIV_SafetyArchitecture.ATK31.M20-2", "E2E-VIV_SafetyArchitecture.ATK31.M20-3", "E2E-VIV_SafetyArchitecture.ATK31.M20-4", "E2E-VIV_SafetyArchitecture.ATK31.M20-5", "E2E-VIV_SafetyArchitecture.ATK31.M20-6";
-    allocation "E2E-VIV_FunctionalArchitecture.core";
-    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M20" ]
+    source "E2E-VIV_SafetyArchitecture.ATK7.M20-1", "E2E-VIV_SafetyArchitecture.ATK8.M20-1", "E2E-VIV_SafetyArchitecture.ATK9.M20-1", "E2E-VIV_SafetyArchitecture.ATK10.M20-1", "E2E-VIV_SafetyArchitecture.ATK10.M20-2", "E2E-VIV_SafetyArchitecture.ATK10.M20-3", "E2E-VIV_SafetyArchitecture.ATK17.M20-1", "E2E-VIV_SafetyArchitecture.ATK17.M20-2";
+    allocation "E2E-VIV_FunctionalArchitecture.partially-core";
+    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M20_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M20_OUTSIDE" ]
 }
 
 requirement M21_Implementation {
-    description "M21 - Non-malleable cryptosystem: A CCA2-secure cryptosystem (e.g., Naor-Yung) is used to make ciphertexts non-malleable."
+    description "M21 - Message signatures: Messages on the network are digitally signed."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK6.M21-1";
+    source "E2E-VIV_SafetyArchitecture.ATK1.M21-1", "E2E-VIV_SafetyArchitecture.ATK1.M21-2", "E2E-VIV_SafetyArchitecture.ATK1.M21-3", "E2E-VIV_SafetyArchitecture.ATK1.M21-4", "E2E-VIV_SafetyArchitecture.ATK1.M21-5", "E2E-VIV_SafetyArchitecture.ATK1.M21-6", "E2E-VIV_SafetyArchitecture.ATK1.M21-7", "E2E-VIV_SafetyArchitecture.ATK1.M21-8", "E2E-VIV_SafetyArchitecture.ATK2.M21-1", "E2E-VIV_SafetyArchitecture.ATK2.M21-2", "E2E-VIV_SafetyArchitecture.ATK2.M21-3", "E2E-VIV_SafetyArchitecture.ATK2.M21-4", "E2E-VIV_SafetyArchitecture.ATK2.M21-5", "E2E-VIV_SafetyArchitecture.ATK2.M21-6", "E2E-VIV_SafetyArchitecture.ATK3.M21-1", "E2E-VIV_SafetyArchitecture.ATK3.M21-2", "E2E-VIV_SafetyArchitecture.ATK3.M21-3", "E2E-VIV_SafetyArchitecture.ATK4.M21-1", "E2E-VIV_SafetyArchitecture.ATK4.M21-2", "E2E-VIV_SafetyArchitecture.ATK5.M21-1", "E2E-VIV_SafetyArchitecture.ATK5.M21-2", "E2E-VIV_SafetyArchitecture.ATK15.M21-1", "E2E-VIV_SafetyArchitecture.ATK15.M21-2", "E2E-VIV_SafetyArchitecture.ATK15.M21-3", "E2E-VIV_SafetyArchitecture.ATK15.M21-4", "E2E-VIV_SafetyArchitecture.ATK19.M21-1", "E2E-VIV_SafetyArchitecture.ATK19.M21-2", "E2E-VIV_SafetyArchitecture.ATK21.M21-1", "E2E-VIV_SafetyArchitecture.ATK21.M21-2", "E2E-VIV_SafetyArchitecture.ATK21.M21-3", "E2E-VIV_SafetyArchitecture.ATK21.M21-4", "E2E-VIV_SafetyArchitecture.ATK26.M21-1", "E2E-VIV_SafetyArchitecture.ATK26.M21-2", "E2E-VIV_SafetyArchitecture.ATK26.M21-3", "E2E-VIV_SafetyArchitecture.ATK26.M21-4", "E2E-VIV_SafetyArchitecture.ATK32.M21-1", "E2E-VIV_SafetyArchitecture.ATK32.M21-2", "E2E-VIV_SafetyArchitecture.ATK32.M21-3", "E2E-VIV_SafetyArchitecture.ATK32.M21-4", "E2E-VIV_SafetyArchitecture.ATK32.M21-5", "E2E-VIV_SafetyArchitecture.ATK32.M21-6";
     allocation "E2E-VIV_FunctionalArchitecture.core";
     relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M21" ]
 }
 
 requirement M22_Implementation {
-    description "M22 - Operational redundancy: The use of redundant subsystems or actors allows individual elements to fail without compromising the overall operation of the system. The use of a threshold cryptographic system is an example of Operational redundancy, but also of M17 (Trust distribution)."
+    description "M22 - No checks on cast ballots: An honest BCA will refuse to initiate, and an honest DBB will refuse to carry out, the ballot check protocol on a ballot that has already been cast, based on the presence of a matching cast ballot bulletin on the PBB."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK1.M22-1", "E2E-VIV_SafetyArchitecture.ATK1.M22-2", "E2E-VIV_SafetyArchitecture.ATK1.M22-3", "E2E-VIV_SafetyArchitecture.ATK2.M22-1", "E2E-VIV_SafetyArchitecture.ATK2.M22-2", "E2E-VIV_SafetyArchitecture.ATK2.M22-3", "E2E-VIV_SafetyArchitecture.ATK3.M22-1", "E2E-VIV_SafetyArchitecture.ATK4.M22-1", "E2E-VIV_SafetyArchitecture.ATK5.M22-1", "E2E-VIV_SafetyArchitecture.ATK11.M22-1", "E2E-VIV_SafetyArchitecture.ATK12.M22-1", "E2E-VIV_SafetyArchitecture.ATK15.M22-1", "E2E-VIV_SafetyArchitecture.ATK18.M22-1", "E2E-VIV_SafetyArchitecture.ATK19.M22-1", "E2E-VIV_SafetyArchitecture.ATK19.M22-2", "E2E-VIV_SafetyArchitecture.ATK19.M22-3", "E2E-VIV_SafetyArchitecture.ATK19.M22-4", "E2E-VIV_SafetyArchitecture.ATK19.M22-5", "E2E-VIV_SafetyArchitecture.ATK19.M22-6", "E2E-VIV_SafetyArchitecture.ATK19.M22-7", "E2E-VIV_SafetyArchitecture.ATK19.M22-8", "E2E-VIV_SafetyArchitecture.ATK19.M22-9", "E2E-VIV_SafetyArchitecture.ATK19.M22-10", "E2E-VIV_SafetyArchitecture.ATK19.M22-11", "E2E-VIV_SafetyArchitecture.ATK19.M22-12", "E2E-VIV_SafetyArchitecture.ATK19.M22-13", "E2E-VIV_SafetyArchitecture.ATK19.M22-14", "E2E-VIV_SafetyArchitecture.ATK19.M22-15", "E2E-VIV_SafetyArchitecture.ATK19.M22-16", "E2E-VIV_SafetyArchitecture.ATK19.M22-17", "E2E-VIV_SafetyArchitecture.ATK19.M22-18", "E2E-VIV_SafetyArchitecture.ATK19.M22-19", "E2E-VIV_SafetyArchitecture.ATK19.M22-20", "E2E-VIV_SafetyArchitecture.ATK19.M22-21", "E2E-VIV_SafetyArchitecture.ATK21.M22-1", "E2E-VIV_SafetyArchitecture.ATK21.M22-2", "E2E-VIV_SafetyArchitecture.ATK21.M22-3", "E2E-VIV_SafetyArchitecture.ATK21.M22-4", "E2E-VIV_SafetyArchitecture.ATK21.M22-5", "E2E-VIV_SafetyArchitecture.ATK21.M22-6", "E2E-VIV_SafetyArchitecture.ATK22.M22-1", "E2E-VIV_SafetyArchitecture.ATK27.M22-1", "E2E-VIV_SafetyArchitecture.ATK27.M22-2", "E2E-VIV_SafetyArchitecture.ATK29.M22-1", "E2E-VIV_SafetyArchitecture.ATK30.M22-1", "E2E-VIV_SafetyArchitecture.ATK31.M22-1";
-    allocation "E2E-VIV_FunctionalArchitecture.partially-core";
-    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M22_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M22_OUTSIDE" ]
+    source "E2E-VIV_SafetyArchitecture.ATK11.M22-1";
+    allocation "E2E-VIV_FunctionalArchitecture.core";
+    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M22" ]
 }
 
 requirement M23_Implementation {
-    description "M23 - Proof of plaintext knowledge: Zero-knowledge proofs of plaintext knowledge attached to cast ballots are required when casting. Adversaries casting related ballots will not be able to produce such proofs. See Bernhard et al.~[[BernhardEtAlHowNot2012a]]"
+    description "M23 - Non-malleable cryptosystem: A CCA2-secure cryptosystem (e.g., Naor-Yung) is used to make ciphertexts non-malleable."
     type security, functional;
     source "E2E-VIV_SafetyArchitecture.ATK6.M23-1";
     allocation "E2E-VIV_FunctionalArchitecture.core";
@@ -185,56 +185,80 @@ requirement M23_Implementation {
 }
 
 requirement M24_Implementation {
-    description "M24 - Recorded as cast verifiability: A voter can verify that their recorded ballot is identical to the one they cast."
+    description "M24 - Operational redundancy: The use of redundant subsystems or actors allows individual elements to fail without compromising the overall operation of the system. The use of a threshold cryptographic system is an example of Operational redundancy, but also of M17 (Trust distribution)."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK5.M24-1", "E2E-VIV_SafetyArchitecture.ATK5.M24-2", "E2E-VIV_SafetyArchitecture.ATK5.M24-3", "E2E-VIV_SafetyArchitecture.ATK5.M24-4", "E2E-VIV_SafetyArchitecture.ATK5.M24-5", "E2E-VIV_SafetyArchitecture.ATK5.M24-6", "E2E-VIV_SafetyArchitecture.ATK5.M24-7";
+    source "E2E-VIV_SafetyArchitecture.ATK1.M24-1", "E2E-VIV_SafetyArchitecture.ATK1.M24-2", "E2E-VIV_SafetyArchitecture.ATK1.M24-3", "E2E-VIV_SafetyArchitecture.ATK2.M24-1", "E2E-VIV_SafetyArchitecture.ATK2.M24-2", "E2E-VIV_SafetyArchitecture.ATK2.M24-3", "E2E-VIV_SafetyArchitecture.ATK3.M24-1", "E2E-VIV_SafetyArchitecture.ATK4.M24-1", "E2E-VIV_SafetyArchitecture.ATK5.M24-1", "E2E-VIV_SafetyArchitecture.ATK12.M24-1", "E2E-VIV_SafetyArchitecture.ATK13.M24-1", "E2E-VIV_SafetyArchitecture.ATK16.M24-1", "E2E-VIV_SafetyArchitecture.ATK19.M24-1", "E2E-VIV_SafetyArchitecture.ATK20.M24-1", "E2E-VIV_SafetyArchitecture.ATK20.M24-2", "E2E-VIV_SafetyArchitecture.ATK20.M24-3", "E2E-VIV_SafetyArchitecture.ATK20.M24-4", "E2E-VIV_SafetyArchitecture.ATK20.M24-5", "E2E-VIV_SafetyArchitecture.ATK20.M24-6", "E2E-VIV_SafetyArchitecture.ATK20.M24-7", "E2E-VIV_SafetyArchitecture.ATK20.M24-8", "E2E-VIV_SafetyArchitecture.ATK20.M24-9", "E2E-VIV_SafetyArchitecture.ATK20.M24-10", "E2E-VIV_SafetyArchitecture.ATK20.M24-11", "E2E-VIV_SafetyArchitecture.ATK20.M24-12", "E2E-VIV_SafetyArchitecture.ATK20.M24-13", "E2E-VIV_SafetyArchitecture.ATK20.M24-14", "E2E-VIV_SafetyArchitecture.ATK20.M24-15", "E2E-VIV_SafetyArchitecture.ATK20.M24-16", "E2E-VIV_SafetyArchitecture.ATK20.M24-17", "E2E-VIV_SafetyArchitecture.ATK20.M24-18", "E2E-VIV_SafetyArchitecture.ATK20.M24-19", "E2E-VIV_SafetyArchitecture.ATK20.M24-20", "E2E-VIV_SafetyArchitecture.ATK20.M24-21", "E2E-VIV_SafetyArchitecture.ATK22.M24-1", "E2E-VIV_SafetyArchitecture.ATK22.M24-2", "E2E-VIV_SafetyArchitecture.ATK22.M24-3", "E2E-VIV_SafetyArchitecture.ATK22.M24-4", "E2E-VIV_SafetyArchitecture.ATK22.M24-5", "E2E-VIV_SafetyArchitecture.ATK23.M24-1", "E2E-VIV_SafetyArchitecture.ATK28.M24-1", "E2E-VIV_SafetyArchitecture.ATK28.M24-2", "E2E-VIV_SafetyArchitecture.ATK30.M24-1", "E2E-VIV_SafetyArchitecture.ATK31.M24-1", "E2E-VIV_SafetyArchitecture.ATK32.M24-1";
     allocation "E2E-VIV_FunctionalArchitecture.partially-core";
     relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M24_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M24_OUTSIDE" ]
 }
 
 requirement M25_Implementation {
-    description "M25 - Security proof: A security proof of the protocol provides evidence that the selected primitives are secure with respect to precise assumptions and choices of security parameters."
+    description "M25 - Proof of plaintext knowledge: Zero-knowledge proofs of plaintext knowledge attached to cast ballots are required when casting. Adversaries casting related ballots will not be able to produce such proofs. See Bernhard et al.~[[BernhardEtAlHowNot2012a]]"
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK7.M25-1", "E2E-VIV_SafetyArchitecture.ATK8.M25-1", "E2E-VIV_SafetyArchitecture.ATK9.M25-1", "E2E-VIV_SafetyArchitecture.ATK10.M25-1", "E2E-VIV_SafetyArchitecture.ATK10.M25-2", "E2E-VIV_SafetyArchitecture.ATK10.M25-3", "E2E-VIV_SafetyArchitecture.ATK16.M25-1", "E2E-VIV_SafetyArchitecture.ATK16.M25-2";
+    source "E2E-VIV_SafetyArchitecture.ATK6.M25-1";
     allocation "E2E-VIV_FunctionalArchitecture.core";
     relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M25" ]
 }
 
 requirement M26_Implementation {
-    description "M26 - TLS: Messages on the network use transport level security."
+    description "M26 - Recorded as cast verifiability: A voter can verify that their recorded ballot is identical to the one they cast."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK1.M26-1", "E2E-VIV_SafetyArchitecture.ATK1.M26-2", "E2E-VIV_SafetyArchitecture.ATK2.M26-1", "E2E-VIV_SafetyArchitecture.ATK2.M26-2", "E2E-VIV_SafetyArchitecture.ATK3.M26-1", "E2E-VIV_SafetyArchitecture.ATK4.M26-1", "E2E-VIV_SafetyArchitecture.ATK4.M26-2", "E2E-VIV_SafetyArchitecture.ATK5.M26-1", "E2E-VIV_SafetyArchitecture.ATK5.M26-2", "E2E-VIV_SafetyArchitecture.ATK18.M26-1", "E2E-VIV_SafetyArchitecture.ATK18.M26-2", "E2E-VIV_SafetyArchitecture.ATK31.M26-1", "E2E-VIV_SafetyArchitecture.ATK31.M26-2";
-    allocation "E2E-VIV_FunctionalArchitecture.non-core";
-    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M26" ]
+    source "E2E-VIV_SafetyArchitecture.ATK5.M26-1", "E2E-VIV_SafetyArchitecture.ATK5.M26-2", "E2E-VIV_SafetyArchitecture.ATK5.M26-3", "E2E-VIV_SafetyArchitecture.ATK5.M26-4", "E2E-VIV_SafetyArchitecture.ATK5.M26-5", "E2E-VIV_SafetyArchitecture.ATK5.M26-6", "E2E-VIV_SafetyArchitecture.ATK5.M26-7", "E2E-VIV_SafetyArchitecture.ATK26.M26-1";
+    allocation "E2E-VIV_FunctionalArchitecture.partially-core";
+    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M26_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M26_OUTSIDE" ]
 }
 
 requirement M27_Implementation {
-    description "M27 - Tamper evident bulletin board: A hash chain is used to implement the bulletin board."
+    description "M27 - Security proof: A security proof of the protocol provides evidence that the selected primitives are secure with respect to precise assumptions and choices of security parameters."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK21.M27-1", "E2E-VIV_SafetyArchitecture.ATK21.M27-2", "E2E-VIV_SafetyArchitecture.ATK21.M27-3", "E2E-VIV_SafetyArchitecture.ATK21.M27-4";
-    allocation "E2E-VIV_FunctionalArchitecture.partially-core";
-    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M27_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M27_OUTSIDE" ]
+    source "E2E-VIV_SafetyArchitecture.ATK7.M27-1", "E2E-VIV_SafetyArchitecture.ATK8.M27-1", "E2E-VIV_SafetyArchitecture.ATK9.M27-1", "E2E-VIV_SafetyArchitecture.ATK10.M27-1", "E2E-VIV_SafetyArchitecture.ATK10.M27-2", "E2E-VIV_SafetyArchitecture.ATK10.M27-3", "E2E-VIV_SafetyArchitecture.ATK17.M27-1", "E2E-VIV_SafetyArchitecture.ATK17.M27-2";
+    allocation "E2E-VIV_FunctionalArchitecture.core";
+    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M27" ]
 }
 
 requirement M28_Implementation {
-    description "M28 - Trust distribution: The actor's role is distributed such that the cooperation of several parties is required to perform its operations. An adversary must control or convince a sufficient number of parties to carry out the attack. The use of a threshold cryptographic system is an example of Trust distribution, but also of M25 (Operational redundancy)."
+    description "M28 - TLS: Messages on the network use transport level security."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK1.M28-1", "E2E-VIV_SafetyArchitecture.ATK1.M28-2", "E2E-VIV_SafetyArchitecture.ATK1.M28-3", "E2E-VIV_SafetyArchitecture.ATK2.M28-1", "E2E-VIV_SafetyArchitecture.ATK2.M28-2", "E2E-VIV_SafetyArchitecture.ATK2.M28-3", "E2E-VIV_SafetyArchitecture.ATK3.M28-1", "E2E-VIV_SafetyArchitecture.ATK4.M28-1", "E2E-VIV_SafetyArchitecture.ATK5.M28-1", "E2E-VIV_SafetyArchitecture.ATK11.M28-1", "E2E-VIV_SafetyArchitecture.ATK11.M28-2", "E2E-VIV_SafetyArchitecture.ATK12.M28-1", "E2E-VIV_SafetyArchitecture.ATK12.M28-2", "E2E-VIV_SafetyArchitecture.ATK15.M28-1", "E2E-VIV_SafetyArchitecture.ATK18.M28-1", "E2E-VIV_SafetyArchitecture.ATK19.M28-1", "E2E-VIV_SafetyArchitecture.ATK19.M28-2", "E2E-VIV_SafetyArchitecture.ATK19.M28-3", "E2E-VIV_SafetyArchitecture.ATK19.M28-4", "E2E-VIV_SafetyArchitecture.ATK19.M28-5", "E2E-VIV_SafetyArchitecture.ATK21.M28-1", "E2E-VIV_SafetyArchitecture.ATK21.M28-2", "E2E-VIV_SafetyArchitecture.ATK21.M28-3", "E2E-VIV_SafetyArchitecture.ATK21.M28-4", "E2E-VIV_SafetyArchitecture.ATK21.M28-5", "E2E-VIV_SafetyArchitecture.ATK21.M28-6", "E2E-VIV_SafetyArchitecture.ATK22.M28-1", "E2E-VIV_SafetyArchitecture.ATK27.M28-1", "E2E-VIV_SafetyArchitecture.ATK27.M28-2", "E2E-VIV_SafetyArchitecture.ATK29.M28-1", "E2E-VIV_SafetyArchitecture.ATK30.M28-1", "E2E-VIV_SafetyArchitecture.ATK30.M28-2", "E2E-VIV_SafetyArchitecture.ATK31.M28-1";
-    allocation "E2E-VIV_FunctionalArchitecture.partially-core";
-    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M28_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M28_OUTSIDE" ]
+    source "E2E-VIV_SafetyArchitecture.ATK1.M28-1", "E2E-VIV_SafetyArchitecture.ATK1.M28-2", "E2E-VIV_SafetyArchitecture.ATK2.M28-1", "E2E-VIV_SafetyArchitecture.ATK2.M28-2", "E2E-VIV_SafetyArchitecture.ATK3.M28-1", "E2E-VIV_SafetyArchitecture.ATK4.M28-1", "E2E-VIV_SafetyArchitecture.ATK4.M28-2", "E2E-VIV_SafetyArchitecture.ATK5.M28-1", "E2E-VIV_SafetyArchitecture.ATK5.M28-2", "E2E-VIV_SafetyArchitecture.ATK19.M28-1", "E2E-VIV_SafetyArchitecture.ATK19.M28-2", "E2E-VIV_SafetyArchitecture.ATK32.M28-1", "E2E-VIV_SafetyArchitecture.ATK32.M28-2";
+    allocation "E2E-VIV_FunctionalArchitecture.non-core";
+    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M28" ]
 }
 
 requirement M29_Implementation {
-    description "M29 - Voter pseudonyms: Data published to achieve M4 (Eligibility verifiability) only reveals pseudonyms. Even if ballot encryption is compromised, its content cannot be linked to real identities using public information. See Haines et al.~[[HainesEtAlSoKSecure2023]] for other approaches to everlasting privacy."
+    description "M29 - Tamper evident bulletin board: A hash chain is used to implement the bulletin board."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK17.M29-1";
+    source "E2E-VIV_SafetyArchitecture.ATK22.M29-1", "E2E-VIV_SafetyArchitecture.ATK22.M29-2", "E2E-VIV_SafetyArchitecture.ATK22.M29-3", "E2E-VIV_SafetyArchitecture.ATK22.M29-4";
+    allocation "E2E-VIV_FunctionalArchitecture.partially-core";
+    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M29_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M29_OUTSIDE" ]
+}
+
+requirement M30_Implementation {
+    description "M30 - Trust distribution: The actor's role is distributed such that the cooperation of several parties is required to perform its operations. An adversary must control or convince a sufficient number of parties to carry out the attack. The use of a threshold cryptographic system is an example of Trust distribution, but also of M25 (Operational redundancy)."
+    type security, functional;
+    source "E2E-VIV_SafetyArchitecture.ATK1.M30-1", "E2E-VIV_SafetyArchitecture.ATK1.M30-2", "E2E-VIV_SafetyArchitecture.ATK1.M30-3", "E2E-VIV_SafetyArchitecture.ATK2.M30-1", "E2E-VIV_SafetyArchitecture.ATK2.M30-2", "E2E-VIV_SafetyArchitecture.ATK2.M30-3", "E2E-VIV_SafetyArchitecture.ATK3.M30-1", "E2E-VIV_SafetyArchitecture.ATK4.M30-1", "E2E-VIV_SafetyArchitecture.ATK5.M30-1", "E2E-VIV_SafetyArchitecture.ATK12.M30-1", "E2E-VIV_SafetyArchitecture.ATK12.M30-2", "E2E-VIV_SafetyArchitecture.ATK13.M30-1", "E2E-VIV_SafetyArchitecture.ATK13.M30-2", "E2E-VIV_SafetyArchitecture.ATK16.M30-1", "E2E-VIV_SafetyArchitecture.ATK19.M30-1", "E2E-VIV_SafetyArchitecture.ATK20.M30-1", "E2E-VIV_SafetyArchitecture.ATK20.M30-2", "E2E-VIV_SafetyArchitecture.ATK20.M30-3", "E2E-VIV_SafetyArchitecture.ATK20.M30-4", "E2E-VIV_SafetyArchitecture.ATK20.M30-5", "E2E-VIV_SafetyArchitecture.ATK22.M30-1", "E2E-VIV_SafetyArchitecture.ATK22.M30-2", "E2E-VIV_SafetyArchitecture.ATK22.M30-3", "E2E-VIV_SafetyArchitecture.ATK22.M30-4", "E2E-VIV_SafetyArchitecture.ATK22.M30-5", "E2E-VIV_SafetyArchitecture.ATK23.M30-1", "E2E-VIV_SafetyArchitecture.ATK28.M30-1", "E2E-VIV_SafetyArchitecture.ATK28.M30-2", "E2E-VIV_SafetyArchitecture.ATK30.M30-1", "E2E-VIV_SafetyArchitecture.ATK31.M30-1", "E2E-VIV_SafetyArchitecture.ATK31.M30-2", "E2E-VIV_SafetyArchitecture.ATK32.M30-1";
+    allocation "E2E-VIV_FunctionalArchitecture.partially-core";
+    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M30_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M30_OUTSIDE" ]
+}
+
+requirement M31_Implementation {
+    description "M31 - Voter pseudonyms: Data published to achieve M4 (Eligibility verifiability) only reveals pseudonyms. Even if ballot encryption is compromised, its content cannot be linked to real identities using public information. See Haines et al.~[[HainesEtAlSoKSecure2023]] for other approaches to everlasting privacy."
+    type security, functional;
+    source "E2E-VIV_SafetyArchitecture.ATK11.M31-1", "E2E-VIV_SafetyArchitecture.ATK18.M31-1";
     allocation "E2E-VIV_FunctionalArchitecture.core";
-    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M29" ]
+    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M31" ]
+}
+
+requirement M32_Implementation {
+    description "M32 - Voter specific Naor-Yung proofs: Ballot cryptogram Naor-Yung proofs are made voter-specific, for example by including the voter's pseudonym or signature public key (or other voter derived value) in the proof challenge generation."
+    type security, functional;
+    source "E2E-VIV_SafetyArchitecture.ATK6.M32-1", "E2E-VIV_SafetyArchitecture.ATK11.M32-1";
+    allocation "E2E-VIV_FunctionalArchitecture.core";
+    relatedArgumentNode [ "E2E-VIV_SecurityArgument.G_IMPLEMENT_M32" ]
 }
 
 requirement OOS_Implementation {
     description "OOS - Out of scope: The system cannot mitigate this attack."
     type security, functional;
-    source "E2E-VIV_SafetyArchitecture.ATK13.OOS-1", "E2E-VIV_SafetyArchitecture.ATK14.OOS-1", "E2E-VIV_SafetyArchitecture.ATK14.OOS-2", "E2E-VIV_SafetyArchitecture.ATK14.OOS-3", "E2E-VIV_SafetyArchitecture.ATK14.OOS-4", "E2E-VIV_SafetyArchitecture.ATK18.OOS-1", "E2E-VIV_SafetyArchitecture.ATK19.OOS-1", "E2E-VIV_SafetyArchitecture.ATK20.OOS-1", "E2E-VIV_SafetyArchitecture.ATK23.OOS-1", "E2E-VIV_SafetyArchitecture.ATK23.OOS-2", "E2E-VIV_SafetyArchitecture.ATK24.OOS-1", "E2E-VIV_SafetyArchitecture.ATK24.OOS-2", "E2E-VIV_SafetyArchitecture.ATK24.OOS-3", "E2E-VIV_SafetyArchitecture.ATK26.OOS-1", "E2E-VIV_SafetyArchitecture.ATK28.OOS-1", "E2E-VIV_SafetyArchitecture.ATK28.OOS-2", "E2E-VIV_SafetyArchitecture.ATK28.OOS-3", "E2E-VIV_SafetyArchitecture.ATK28.OOS-4", "E2E-VIV_SafetyArchitecture.ATK29.OOS-1";
+    source "E2E-VIV_SafetyArchitecture.ATK11.OOS-1", "E2E-VIV_SafetyArchitecture.ATK14.OOS-1", "E2E-VIV_SafetyArchitecture.ATK15.OOS-1", "E2E-VIV_SafetyArchitecture.ATK15.OOS-2", "E2E-VIV_SafetyArchitecture.ATK15.OOS-3", "E2E-VIV_SafetyArchitecture.ATK15.OOS-4", "E2E-VIV_SafetyArchitecture.ATK19.OOS-1", "E2E-VIV_SafetyArchitecture.ATK20.OOS-1", "E2E-VIV_SafetyArchitecture.ATK21.OOS-1", "E2E-VIV_SafetyArchitecture.ATK24.OOS-1", "E2E-VIV_SafetyArchitecture.ATK24.OOS-2", "E2E-VIV_SafetyArchitecture.ATK25.OOS-1", "E2E-VIV_SafetyArchitecture.ATK25.OOS-2", "E2E-VIV_SafetyArchitecture.ATK25.OOS-3", "E2E-VIV_SafetyArchitecture.ATK27.OOS-1", "E2E-VIV_SafetyArchitecture.ATK29.OOS-1", "E2E-VIV_SafetyArchitecture.ATK29.OOS-2", "E2E-VIV_SafetyArchitecture.ATK29.OOS-3", "E2E-VIV_SafetyArchitecture.ATK30.OOS-1";
     allocation "E2E-VIV_FunctionalArchitecture.oos";
 }

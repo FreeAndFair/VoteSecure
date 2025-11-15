@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 
 # Flask Server for Threat Model Visualization
-# Copyright (C) 2025 Free & Fair
-# Last Revised 19 March 2025 by Daniel M. Zimmerman
+# Copyright (C) 2025-26 Free & Fair
+# Last Revised 3 February 2026 by Daniel M. Zimmerman
 
 import argparse
 from natsort import natsorted
 from flask import Flask, jsonify, send_from_directory
 from waitress import serve
 
-# our shared database functions
-from read_database import build_data_structures
+# our shared data structures (via compatibility layer)
+from .compat import get_legacy_data
 
 app = Flask(__name__)
 STATIC_FOLDER = 'static'  # Folder where the front-end HTML is located
@@ -35,7 +35,7 @@ def initialize_data():
     global context_dict
     global mitigation_dict
     global attack_dict
-    property_dict, context_dict, mitigation_dict, attack_dict = build_data_structures(app.config['database'])
+    property_dict, context_dict, mitigation_dict, attack_dict = get_legacy_data()
 
 @app.route('/')
 @app.route('/view_properties.html')
@@ -301,13 +301,11 @@ def get_mitigations():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run server for interactive browser-based threat model view.')
-    parser.add_argument('-d', '--database', type=str, help='Path to the SQLite database file', nargs='?', default='./db.sqlite3')
     parser.add_argument('-p', '--port', type=int, help='Port on which to run the server', nargs='?', default=8911)
     parser.add_argument('--debug', action='store_true', help='Debugging mode')
 
     args = parser.parse_args()
 
-    app.config['database'] = args.database
     with app.app_context():
         initialize_data()
     if args.debug:

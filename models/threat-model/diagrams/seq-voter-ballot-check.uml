@@ -15,15 +15,15 @@ Voter -> BallotCheckApplication: Enter submission hash to\ninitiate check
 BallotCheckApplication -> PublicBulletinBoard: Retrieve submitted ballot with hash
 PublicBulletinBoard --> BallotCheckApplication: Submitted ballot bulletin board entry
 BallotCheckApplication -> DigitalBallotBox: Ballot check request with\nnewly-generated BCA public key,\nsubmission hash
-BallotCheckApplication -> Voter: Present generated BCA public key for matching
+BallotCheckApplication -> Voter: Present generated BCA public key\nand pseudonym for matching
 DigitalBallotBox -> VotingApplication: Ballot check request with BCA public key, submission hash
 VotingApplication -> Voter: Present check request with\ngenerated BCA public key\nfor matching
 Voter --> VotingApplication: Presented BCA public keys\nmatch, approve check request
 VotingApplication -> DigitalBallotBox: Encrypted randomizers (using BCA public key)
 DigitalBallotBox -> BallotCheckApplication: Forward encrypted randomizers
-BallotCheckApplication --> Voter: Display decrypted choices,\nprompt for post-cast bulletin\nboard check
+BallotCheckApplication --> Voter: Display decrypted choices,\nprompt for follow-up\nbulletin board check
 VotingApplication -> Voter: Ask whether decrypted choices\nmatched ballot choices
 Voter -> VotingApplication: Report a problem (if decrypted\nchoices didn't match or process\nfailed), or submit again,\nor cast/check again
-Voter -> BallotCheckApplication: (if ballot is cast)\nInitiate follow-up bulletin board check
+Voter -> BallotCheckApplication: Initiate follow-up bulletin board check
 BallotCheckApplication -> Voter: Display results of follow-up\nbulletin board check
 @enduml

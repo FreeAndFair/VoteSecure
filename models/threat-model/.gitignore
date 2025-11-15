@@ -1,4 +1,9 @@
+__pycache__/
+lib/
+dist/
+latex_inputs
 threat-model.pdf
+threat-model.html
 *.aux
 *.bbl
 *.bbl-SAVE-ERROR

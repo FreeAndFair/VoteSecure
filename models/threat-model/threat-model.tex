@@ -1,8 +1,8 @@
 %! program = pdflatexmk
 
-% Free Democracy Foundation Mobile Voting Threat Model Top-Level Document
-% Copyright (C) 2024-25 Free & Fair
-% Last Revision: 2025-11-18 Daniel M. Zimmerman
+% VoteSecure Threat Model Top-Level Document
+% Copyright (C) 2024-26 Free & Fair
+% Last Revision: 2026-02-03 Daniel M. Zimmerman
 
 \documentclass[10pt,letterpaper]{article}
 
@@ -66,12 +66,11 @@
 \begin{document}
 
 \begin{center}
-{\Large \textbf{E2E-VIV Cryptographic Core Threat Model}}
+{\Large \textbf{VoteSecure Threat Model}}
 \end{center}
 \vspace{-6pt}
 
-% note: until we finalize the details of the protocol, we aren't going to call this threat model "1.0"
-\notbool{draft}{\textit{Version 1.0}}{\textit{DRAFT---NOT FOR EXTERNAL DISTRIBUTION}} \hspace{\fill} \textit{November 2025}
+\notbool{draft}{\textit{Version 1.1}}{\textit{DRAFT---NOT FOR EXTERNAL DISTRIBUTION}} \hspace{\fill} \textit{February 2026}
 
 \vspace{-12pt}
 
@@ -83,7 +82,7 @@
 \label{sec:intro}
 \addcontentsline{toc}{section}{\nameref{sec:intro}}
 
-This is the threat model for the family of E2E-VIV systems being developed for the \href{https://freedemocracyfoundation.org/}{Free Democracy Foundation} \href{https://mobilevoting.org/}{mobile voting project}. This document describes the principals (subsystems, actors, and assets) involved, the system entry/exit points, trust zones, and trust levels, the data flows within the system, and the identified threats, risks, and mitigations.
+This is the threat model for VoteSecure, the family of E2E-VIV systems being developed for the \href{https://freedemocracyfoundation.org/}{Free Democracy Foundation} \href{https://mobilevoting.org/}{mobile voting project}. This document describes the principals (subsystems, actors, and assets) involved, the system entry/exit points, trust zones, and trust levels, the data flows within the system, and the identified threats, risks, and mitigations.
 
 As we are developing the cryptographic core to be used in E2E-VIV systems, rather than an entire actual E2E-VIV system for deployment, multiple aspects of a full system (such as voter registration, voter requests for digital absentee ballots, etc.)~are either not represented, or only represented as high-level abstractions, in this threat model. Despite this, for brevity, we refer to the system we are developing as the ``E2E-VIV system'' throughout the remainder of this document.
 
@@ -421,13 +420,13 @@ The e-voting properties of Accuracy, Eligibility, Fairness, Verifiability, and D
 
 \subsubsection{Correctness (Accuracy + Eligibility + Fairness)}
 
-\input{db/correctness_tree}
+\input{latex_inputs/correctness_tree}
 
 The following table\footnote{This and subsequent tables are generated automatically from the semi-formal threat model. They represent \emph{static views} into the overall threat model, which continues to evolve as we refine the protocol.} lists the attacks against correctness properties and their mitigations. Note that the numbering of attacks and mitigations in this and subsequent security objective-centered attack/mitigation tables matches the numbering in the \emph{complete} attack table (\autoref{appendix:attacks}) and mitigation table (\autoref{appendix:mitigations}), and some attack and mitigation numbers are therefore skipped. Note also that some attacks in these tables (e.g., \hyperlink{ATK27}{ATK27.~Premature tabulation}) do not have their own specific mitigations, but are instances of more general \emph{abstract} attacks (described in \autoref{sec:abstract-attacks}); in such cases the table refers to more general mitigations for the abstract attacks.
 
 Various tools and techniques enable rigorous analysis of attacks and their inter-dependencies, particularly attack trees and attack graphs~\cite{BruceSchneierAttackTrees1999,KonstaSurveyAutomaticGeneration2023,NguyenAutomatedAttack2020}. We have not used these concepts or tools in this analysis, as they are more appropriately applied to the design of a full system rather than a single component like a cryptographic protocol or library.
 
-\input{db/c_attack_mitigation_table}
+\input{latex_inputs/c_attack_mitigation_table}
 
 \subsubsection{Verifiability}
 
@@ -435,9 +434,9 @@ Verifiability refers to the ability to verify that the correctness requirements 
 
 Note also that although Verifiability and Correctness are related, they may vary independently. It is possible for a system to exhibit all four possible binary combinations of the two ($V\wedge C$, $V\wedge\neg C$, $\neg V\wedge C$, $\neg V\wedge \neg C$), just as it is possible for an adversary to perform attacks on either one. A system satisfying Integrity must satisfy all three sub-goals, including Correctness and Verifiability.
 
-\input{db/verifiability_tree}
+\input{latex_inputs/verifiability_tree}
 
-\input{db/v_attack_mitigation_table}
+\input{latex_inputs/v_attack_mitigation_table}
 
 \paragraph{Interpretation of verifiability}
 
@@ -476,42 +475,42 @@ It is also possible to split these two responsibilities such that one party defi
 
 Following Basin et al.\cite{BasinEtAlDisputeResolution2020}, we define the dispute set $D$ as
 %
-\input{db/d1_d2_tree}
+\input{latex_inputs/d1_d2_tree}
 
 Note that, though we refer to them in attack and mitigation tables as security objectives, these are not security objectives in the same sense as the other security objectives we have discussed so far; rather, each $Di$ should be thought of as generating security objectives of the form ``the dispute described in $Di$ can always be resolved.''
 
-\input{db/d1_d2_attack_mitigation_table}
+\input{latex_inputs/d1_d2_attack_mitigation_table}
 
 If we augment the dispute set $D$ to $D^*$ by adding the following:
 %
-\input{db/d3_tree}
+\input{latex_inputs/d3_tree}
 
 Then, if the system does not satisfy $D^*$-Dispute-freeness, and the election is protected against malicious voting applications by invalidating its outcome when a sufficient number of voters make reports, the following attack on availability becomes possible.
 
-\input{db/d3_attack_mitigation_table}
+\input{latex_inputs/d3_attack_mitigation_table}
 
 \subsection{Security Objective: Confidentiality}
 
 The e-voting properties of Privacy, Everlasting Privacy, Receipt-freeness, and Coercion-resistance are mapped to this security objective.
 
-\input{db/confidentiality_tree}
+\input{latex_inputs/confidentiality_tree}
 
-\input{db/p_attack_mitigation_table}
+\input{latex_inputs/p_attack_mitigation_table}
 
 \subsection{Security Objective: Availability}
 
 The e-voting properties of Robustness and Scalability are mapped to this security objective.
 
-\input{db/availability_tree}
+\input{latex_inputs/availability_tree}
 
-\input{db/a_attack_mitigation_table}
+\input{latex_inputs/a_attack_mitigation_table}
 
 \subsection{``Abstract'' Attacks}
 \label{sec:abstract-attacks}
 
 In the above sections the details of some attacks have been omitted for clarity; we call these \emph{abstract} attacks. They include attacks related to compromised devices, compromised networks, broken cryptography, phishing, spoofing, side channels, and generalized ``corruption.'' \emph{Concrete} attacks (like those described above) can be instantiations of these abstract attacks. For example, \hyperlink{ATK1.3}{ATK1.3 Compromised Device (TAS)} is a concrete attack that involves compromising the \textbf{Trustee Administration Server}, and is thus an instantiation of abstract attack \hyperlink{AATK2}{AATK2 Compromised Device}. It is not decomposed further into the various ways that the TAS can be compromised, and general mitigations against device compromise are not listed with it. In the following table, we list all the abstract attacks, their decompositions, and their general mitigations.
 
-\input{db/abstract_attack_table}
+\input{latex_inputs/abstract_attack_table}
 
 \appendix
 
@@ -521,7 +520,7 @@ In the above sections the details of some attacks have been omitted for clarity;
 
 The following table lists the abbreviations used throughout this document to refer to system entities, along with the entities to which they refer and each entity's type.
 
-\input{db/context_table}
+\input{latex_inputs/context_table}
 
 \pagebreak
 \section{Concrete Attack Table}
@@ -529,7 +528,7 @@ The following table lists the abbreviations used throughout this document to ref
 
 The following table lists all concrete attacks and their corresponding security objectives. Each of these attacks is listed along with its individual mitigations in the appropriate earlier section of the document; this listing is intended as a reference that gathers all the attacks in numerical order and links them to their corresponding security objectives.
 
-\input{db/all_attack_table}
+\input{latex_inputs/all_attack_table}
 
 \pagebreak
 \section{Mitigation Table}
@@ -537,7 +536,7 @@ The following table lists all concrete attacks and their corresponding security 
 
 The following table lists all mitigations and the attacks they mitigate. Each of these mitigations is referenced in an earlier section of the document; this listing is intended as a reference that gathers all the mitigations in numerical order and links them to the abstract and concrete attacks they mitigate.
 
-\input{db/mitigation_table}
+\input{latex_inputs/mitigation_table}
 
 \pagebreak
 \printbibliography[heading=bibintoc]

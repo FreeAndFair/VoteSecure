@@ -35,7 +35,7 @@ jobs:
 
       - name: Install Python Dependencies for Threat Model
         run: |
-          cd models/threat-model/db
+          cd models/threat-model
           pip install -r requirements.txt
 
       - name: Run `view` Smoke Test in Threat Model Directory
@@ -43,13 +43,19 @@ jobs:
           cd models/threat-model
           make view
 
-      - name: Render Threat Model PDF
+      - name: Render Threat Model
         run: |
           cd models/threat-model
-          make pdf
+          make all
 
       - name: Save the Generated Threat Model PDF
         uses: actions/upload-artifact@v4
         with:
           name: generated_threat_model_pdf
           path: models/threat-model/threat-model.pdf
+
+      - name: Save the Generated Threat Model HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated_threat_model_html
+          path: models/threat-model/threat-model.html

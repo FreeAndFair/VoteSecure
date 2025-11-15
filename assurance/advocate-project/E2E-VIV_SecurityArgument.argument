@@ -67,288 +67,309 @@ isSupportedBy ISB_IMPLEMENT_M1_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
 }
 
 goal toBeDeveloped G_IMPLEMENT_M2 {
-    description "Implement mitigation M2 (Audited platforms) outside the core cryptographic library."
+    description "Implement mitigation M2 (Auditable pseudonyms) outside the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M2_MITIGATIONS_NON_CORE {
     to G_IMPLEMENT_M2 from S_MITIGATIONS_NON_CORE
 }
 
-goal toBeDeveloped G_IMPLEMENT_M3_WITHIN {
-    description "Implement mitigation M3 (Ballot uniqueness audit) within the core cryptographic library."
+goal toBeDeveloped G_IMPLEMENT_M3 {
+    description "Implement mitigation M3 (Audited platforms) outside the core cryptographic library."
 }
-isSupportedBy ISB_IMPLEMENT_M3_MITIGATIONS_PARTIALLY_CORE_WITHIN {
-    to G_IMPLEMENT_M3_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
-}
-
-goal toBeDeveloped G_IMPLEMENT_M3_OUTSIDE {
-    description "Implement mitigation M3 (Ballot uniqueness audit) outside the core cryptographic library."
-}
-isSupportedBy ISB_IMPLEMENT_M3_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
-    to G_IMPLEMENT_M3_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
+isSupportedBy ISB_IMPLEMENT_M3_MITIGATIONS_NON_CORE {
+    to G_IMPLEMENT_M3 from S_MITIGATIONS_NON_CORE
 }
 
 goal toBeDeveloped G_IMPLEMENT_M4_WITHIN {
-    description "Implement mitigation M4 (Ballot weeding) within the core cryptographic library."
+    description "Implement mitigation M4 (Ballot uniqueness audit) within the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M4_MITIGATIONS_PARTIALLY_CORE_WITHIN {
     to G_IMPLEMENT_M4_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
 }
 
 goal toBeDeveloped G_IMPLEMENT_M4_OUTSIDE {
-    description "Implement mitigation M4 (Ballot weeding) outside the core cryptographic library."
+    description "Implement mitigation M4 (Ballot uniqueness audit) outside the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M4_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
     to G_IMPLEMENT_M4_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
 }
 
 goal toBeDeveloped G_IMPLEMENT_M5_WITHIN {
-    description "Implement mitigation M5 (Cast as intended verifiability) within the core cryptographic library."
+    description "Implement mitigation M5 (Ballot weeding) within the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M5_MITIGATIONS_PARTIALLY_CORE_WITHIN {
     to G_IMPLEMENT_M5_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
 }
 
 goal toBeDeveloped G_IMPLEMENT_M5_OUTSIDE {
-    description "Implement mitigation M5 (Cast as intended verifiability) outside the core cryptographic library."
+    description "Implement mitigation M5 (Ballot weeding) outside the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M5_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
     to G_IMPLEMENT_M5_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
 }
 
-goal toBeDeveloped G_IMPLEMENT_M6 {
-    description "Implement mitigation M6 (Controlled environment) outside the core cryptographic library."
+goal toBeDeveloped G_IMPLEMENT_M6_WITHIN {
+    description "Implement mitigation M6 (Cast as intended verifiability) within the core cryptographic library."
 }
-isSupportedBy ISB_IMPLEMENT_M6_MITIGATIONS_NON_CORE {
-    to G_IMPLEMENT_M6 from S_MITIGATIONS_NON_CORE
-}
-
-goal toBeDeveloped G_IMPLEMENT_M7_WITHIN {
-    description "Implement mitigation M7 (Counted as recorded verifiability) within the core cryptographic library."
-}
-isSupportedBy ISB_IMPLEMENT_M7_MITIGATIONS_PARTIALLY_CORE_WITHIN {
-    to G_IMPLEMENT_M7_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
+isSupportedBy ISB_IMPLEMENT_M6_MITIGATIONS_PARTIALLY_CORE_WITHIN {
+    to G_IMPLEMENT_M6_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
 }
 
-goal toBeDeveloped G_IMPLEMENT_M7_OUTSIDE {
-    description "Implement mitigation M7 (Counted as recorded verifiability) outside the core cryptographic library."
+goal toBeDeveloped G_IMPLEMENT_M6_OUTSIDE {
+    description "Implement mitigation M6 (Cast as intended verifiability) outside the core cryptographic library."
 }
-isSupportedBy ISB_IMPLEMENT_M7_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
-    to G_IMPLEMENT_M7_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
+isSupportedBy ISB_IMPLEMENT_M6_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
+    to G_IMPLEMENT_M6_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
 }
 
-goal toBeDeveloped G_IMPLEMENT_M8 {
-    description "Implement mitigation M8 (Cybersecurity—Escalation) outside the core cryptographic library."
+goal toBeDeveloped G_IMPLEMENT_M7 {
+    description "Implement mitigation M7 (Controlled environment) outside the core cryptographic library."
 }
-isSupportedBy ISB_IMPLEMENT_M8_MITIGATIONS_NON_CORE {
-    to G_IMPLEMENT_M8 from S_MITIGATIONS_NON_CORE
+isSupportedBy ISB_IMPLEMENT_M7_MITIGATIONS_NON_CORE {
+    to G_IMPLEMENT_M7 from S_MITIGATIONS_NON_CORE
+}
+
+goal toBeDeveloped G_IMPLEMENT_M8_WITHIN {
+    description "Implement mitigation M8 (Counted as recorded verifiability) within the core cryptographic library."
+}
+isSupportedBy ISB_IMPLEMENT_M8_MITIGATIONS_PARTIALLY_CORE_WITHIN {
+    to G_IMPLEMENT_M8_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
+}
+
+goal toBeDeveloped G_IMPLEMENT_M8_OUTSIDE {
+    description "Implement mitigation M8 (Counted as recorded verifiability) outside the core cryptographic library."
+}
+isSupportedBy ISB_IMPLEMENT_M8_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
+    to G_IMPLEMENT_M8_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
 }
 
 goal toBeDeveloped G_IMPLEMENT_M9 {
-    description "Implement mitigation M9 (Cybersecurity—Intrusion) outside the core cryptographic library."
+    description "Implement mitigation M9 (Cybersecurity—Escalation) outside the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M9_MITIGATIONS_NON_CORE {
     to G_IMPLEMENT_M9 from S_MITIGATIONS_NON_CORE
 }
 
 goal toBeDeveloped G_IMPLEMENT_M10 {
-    description "Implement mitigation M10 (Cybersecurity—Malware) outside the core cryptographic library."
+    description "Implement mitigation M10 (Cybersecurity—Intrusion) outside the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M10_MITIGATIONS_NON_CORE {
     to G_IMPLEMENT_M10 from S_MITIGATIONS_NON_CORE
 }
 
 goal toBeDeveloped G_IMPLEMENT_M11 {
-    description "Implement mitigation M11 (Cybersecurity—Supply chains) outside the core cryptographic library."
+    description "Implement mitigation M11 (Cybersecurity—Malware) outside the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M11_MITIGATIONS_NON_CORE {
     to G_IMPLEMENT_M11 from S_MITIGATIONS_NON_CORE
 }
 
 goal toBeDeveloped G_IMPLEMENT_M12 {
-    description "Implement mitigation M12 (Cybersecurity—Virtualization) outside the core cryptographic library."
+    description "Implement mitigation M12 (Cybersecurity—Supply chains) outside the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M12_MITIGATIONS_NON_CORE {
     to G_IMPLEMENT_M12 from S_MITIGATIONS_NON_CORE
 }
 
 goal toBeDeveloped G_IMPLEMENT_M13 {
-    description "Implement mitigation M13 (Denial of service protection) outside the core cryptographic library."
+    description "Implement mitigation M13 (Cybersecurity—Virtualization) outside the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M13_MITIGATIONS_NON_CORE {
     to G_IMPLEMENT_M13 from S_MITIGATIONS_NON_CORE
 }
 
-goal toBeDeveloped G_IMPLEMENT_M14_WITHIN {
-    description "Implement mitigation M14 (Dependency minimization) within the core cryptographic library."
+goal toBeDeveloped G_IMPLEMENT_M14 {
+    description "Implement mitigation M14 (Denial of service protection) outside the core cryptographic library."
 }
-isSupportedBy ISB_IMPLEMENT_M14_MITIGATIONS_PARTIALLY_CORE_WITHIN {
-    to G_IMPLEMENT_M14_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
-}
-
-goal toBeDeveloped G_IMPLEMENT_M14_OUTSIDE {
-    description "Implement mitigation M14 (Dependency minimization) outside the core cryptographic library."
-}
-isSupportedBy ISB_IMPLEMENT_M14_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
-    to G_IMPLEMENT_M14_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
+isSupportedBy ISB_IMPLEMENT_M14_MITIGATIONS_NON_CORE {
+    to G_IMPLEMENT_M14 from S_MITIGATIONS_NON_CORE
 }
 
 goal toBeDeveloped G_IMPLEMENT_M15_WITHIN {
-    description "Implement mitigation M15 (Domain separation) within the core cryptographic library."
+    description "Implement mitigation M15 (Dependency minimization) within the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M15_MITIGATIONS_PARTIALLY_CORE_WITHIN {
     to G_IMPLEMENT_M15_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
 }
 
 goal toBeDeveloped G_IMPLEMENT_M15_OUTSIDE {
-    description "Implement mitigation M15 (Domain separation) outside the core cryptographic library."
+    description "Implement mitigation M15 (Dependency minimization) outside the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M15_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
     to G_IMPLEMENT_M15_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
 }
 
 goal toBeDeveloped G_IMPLEMENT_M16_WITHIN {
-    description "Implement mitigation M16 (Eligibility verifiability) within the core cryptographic library."
+    description "Implement mitigation M16 (Domain separation) within the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M16_MITIGATIONS_PARTIALLY_CORE_WITHIN {
     to G_IMPLEMENT_M16_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
 }
 
 goal toBeDeveloped G_IMPLEMENT_M16_OUTSIDE {
-    description "Implement mitigation M16 (Eligibility verifiability) outside the core cryptographic library."
+    description "Implement mitigation M16 (Domain separation) outside the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M16_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
     to G_IMPLEMENT_M16_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
 }
 
-goal toBeDeveloped G_IMPLEMENT_M17 {
-    description "Implement mitigation M17 (External audits) outside the core cryptographic library."
+goal toBeDeveloped G_IMPLEMENT_M17_WITHIN {
+    description "Implement mitigation M17 (Eligibility verifiability) within the core cryptographic library."
 }
-isSupportedBy ISB_IMPLEMENT_M17_MITIGATIONS_NON_CORE {
-    to G_IMPLEMENT_M17 from S_MITIGATIONS_NON_CORE
-}
-
-goal toBeDeveloped G_IMPLEMENT_M18_WITHIN {
-    description "Implement mitigation M18 (Formal verification) within the core cryptographic library."
-}
-isSupportedBy ISB_IMPLEMENT_M18_MITIGATIONS_PARTIALLY_CORE_WITHIN {
-    to G_IMPLEMENT_M18_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
+isSupportedBy ISB_IMPLEMENT_M17_MITIGATIONS_PARTIALLY_CORE_WITHIN {
+    to G_IMPLEMENT_M17_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
 }
 
-goal toBeDeveloped G_IMPLEMENT_M18_OUTSIDE {
-    description "Implement mitigation M18 (Formal verification) outside the core cryptographic library."
+goal toBeDeveloped G_IMPLEMENT_M17_OUTSIDE {
+    description "Implement mitigation M17 (Eligibility verifiability) outside the core cryptographic library."
 }
-isSupportedBy ISB_IMPLEMENT_M18_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
-    to G_IMPLEMENT_M18_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
+isSupportedBy ISB_IMPLEMENT_M17_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
+    to G_IMPLEMENT_M17_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
+}
+
+goal toBeDeveloped G_IMPLEMENT_M18 {
+    description "Implement mitigation M18 (External audits) outside the core cryptographic library."
+}
+isSupportedBy ISB_IMPLEMENT_M18_MITIGATIONS_NON_CORE {
+    to G_IMPLEMENT_M18 from S_MITIGATIONS_NON_CORE
 }
 
 goal toBeDeveloped G_IMPLEMENT_M19_WITHIN {
-    description "Implement mitigation M19 (Formally verified dependencies) within the core cryptographic library."
+    description "Implement mitigation M19 (Formal verification) within the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M19_MITIGATIONS_PARTIALLY_CORE_WITHIN {
     to G_IMPLEMENT_M19_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
 }
 
 goal toBeDeveloped G_IMPLEMENT_M19_OUTSIDE {
-    description "Implement mitigation M19 (Formally verified dependencies) outside the core cryptographic library."
+    description "Implement mitigation M19 (Formal verification) outside the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M19_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
     to G_IMPLEMENT_M19_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
 }
 
-goal toBeDeveloped G_IMPLEMENT_M20 {
-    description "Implement mitigation M20 (Message signatures) within the core cryptographic library."
+goal toBeDeveloped G_IMPLEMENT_M20_WITHIN {
+    description "Implement mitigation M20 (Formally verified dependencies) within the core cryptographic library."
 }
-isSupportedBy ISB_IMPLEMENT_M20_MITIGATIONS_CORE {
-    to G_IMPLEMENT_M20 from S_MITIGATIONS_CORE
+isSupportedBy ISB_IMPLEMENT_M20_MITIGATIONS_PARTIALLY_CORE_WITHIN {
+    to G_IMPLEMENT_M20_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
+}
+
+goal toBeDeveloped G_IMPLEMENT_M20_OUTSIDE {
+    description "Implement mitigation M20 (Formally verified dependencies) outside the core cryptographic library."
+}
+isSupportedBy ISB_IMPLEMENT_M20_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
+    to G_IMPLEMENT_M20_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
 }
 
 goal toBeDeveloped G_IMPLEMENT_M21 {
-    description "Implement mitigation M21 (Non-malleable cryptosystem) within the core cryptographic library."
+    description "Implement mitigation M21 (Message signatures) within the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M21_MITIGATIONS_CORE {
     to G_IMPLEMENT_M21 from S_MITIGATIONS_CORE
 }
 
-goal toBeDeveloped G_IMPLEMENT_M22_WITHIN {
-    description "Implement mitigation M22 (Operational redundancy) within the core cryptographic library."
+goal toBeDeveloped G_IMPLEMENT_M22 {
+    description "Implement mitigation M22 (No checks on cast ballots) within the core cryptographic library."
 }
-isSupportedBy ISB_IMPLEMENT_M22_MITIGATIONS_PARTIALLY_CORE_WITHIN {
-    to G_IMPLEMENT_M22_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
-}
-
-goal toBeDeveloped G_IMPLEMENT_M22_OUTSIDE {
-    description "Implement mitigation M22 (Operational redundancy) outside the core cryptographic library."
-}
-isSupportedBy ISB_IMPLEMENT_M22_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
-    to G_IMPLEMENT_M22_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
+isSupportedBy ISB_IMPLEMENT_M22_MITIGATIONS_CORE {
+    to G_IMPLEMENT_M22 from S_MITIGATIONS_CORE
 }
 
 goal toBeDeveloped G_IMPLEMENT_M23 {
-    description "Implement mitigation M23 (Proof of plaintext knowledge) within the core cryptographic library."
+    description "Implement mitigation M23 (Non-malleable cryptosystem) within the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M23_MITIGATIONS_CORE {
     to G_IMPLEMENT_M23 from S_MITIGATIONS_CORE
 }
 
 goal toBeDeveloped G_IMPLEMENT_M24_WITHIN {
-    description "Implement mitigation M24 (Recorded as cast verifiability) within the core cryptographic library."
+    description "Implement mitigation M24 (Operational redundancy) within the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M24_MITIGATIONS_PARTIALLY_CORE_WITHIN {
     to G_IMPLEMENT_M24_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
 }
 
 goal toBeDeveloped G_IMPLEMENT_M24_OUTSIDE {
-    description "Implement mitigation M24 (Recorded as cast verifiability) outside the core cryptographic library."
+    description "Implement mitigation M24 (Operational redundancy) outside the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M24_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
     to G_IMPLEMENT_M24_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
 }
 
 goal toBeDeveloped G_IMPLEMENT_M25 {
-    description "Implement mitigation M25 (Security proof) within the core cryptographic library."
+    description "Implement mitigation M25 (Proof of plaintext knowledge) within the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M25_MITIGATIONS_CORE {
     to G_IMPLEMENT_M25 from S_MITIGATIONS_CORE
 }
 
-goal toBeDeveloped G_IMPLEMENT_M26 {
-    description "Implement mitigation M26 (TLS) outside the core cryptographic library."
+goal toBeDeveloped G_IMPLEMENT_M26_WITHIN {
+    description "Implement mitigation M26 (Recorded as cast verifiability) within the core cryptographic library."
 }
-isSupportedBy ISB_IMPLEMENT_M26_MITIGATIONS_NON_CORE {
-    to G_IMPLEMENT_M26 from S_MITIGATIONS_NON_CORE
-}
-
-goal toBeDeveloped G_IMPLEMENT_M27_WITHIN {
-    description "Implement mitigation M27 (Tamper evident bulletin board) within the core cryptographic library."
-}
-isSupportedBy ISB_IMPLEMENT_M27_MITIGATIONS_PARTIALLY_CORE_WITHIN {
-    to G_IMPLEMENT_M27_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
+isSupportedBy ISB_IMPLEMENT_M26_MITIGATIONS_PARTIALLY_CORE_WITHIN {
+    to G_IMPLEMENT_M26_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
 }
 
-goal toBeDeveloped G_IMPLEMENT_M27_OUTSIDE {
-    description "Implement mitigation M27 (Tamper evident bulletin board) outside the core cryptographic library."
+goal toBeDeveloped G_IMPLEMENT_M26_OUTSIDE {
+    description "Implement mitigation M26 (Recorded as cast verifiability) outside the core cryptographic library."
 }
-isSupportedBy ISB_IMPLEMENT_M27_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
-    to G_IMPLEMENT_M27_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
-}
-
-goal toBeDeveloped G_IMPLEMENT_M28_WITHIN {
-    description "Implement mitigation M28 (Trust distribution) within the core cryptographic library."
-}
-isSupportedBy ISB_IMPLEMENT_M28_MITIGATIONS_PARTIALLY_CORE_WITHIN {
-    to G_IMPLEMENT_M28_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
+isSupportedBy ISB_IMPLEMENT_M26_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
+    to G_IMPLEMENT_M26_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
 }
 
-goal toBeDeveloped G_IMPLEMENT_M28_OUTSIDE {
-    description "Implement mitigation M28 (Trust distribution) outside the core cryptographic library."
+goal toBeDeveloped G_IMPLEMENT_M27 {
+    description "Implement mitigation M27 (Security proof) within the core cryptographic library."
 }
-isSupportedBy ISB_IMPLEMENT_M28_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
-    to G_IMPLEMENT_M28_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
+isSupportedBy ISB_IMPLEMENT_M27_MITIGATIONS_CORE {
+    to G_IMPLEMENT_M27 from S_MITIGATIONS_CORE
 }
 
-goal toBeDeveloped G_IMPLEMENT_M29 {
-    description "Implement mitigation M29 (Voter pseudonyms) within the core cryptographic library."
+goal toBeDeveloped G_IMPLEMENT_M28 {
+    description "Implement mitigation M28 (TLS) outside the core cryptographic library."
 }
-isSupportedBy ISB_IMPLEMENT_M29_MITIGATIONS_CORE {
-    to G_IMPLEMENT_M29 from S_MITIGATIONS_CORE
+isSupportedBy ISB_IMPLEMENT_M28_MITIGATIONS_NON_CORE {
+    to G_IMPLEMENT_M28 from S_MITIGATIONS_NON_CORE
+}
+
+goal toBeDeveloped G_IMPLEMENT_M29_WITHIN {
+    description "Implement mitigation M29 (Tamper evident bulletin board) within the core cryptographic library."
+}
+isSupportedBy ISB_IMPLEMENT_M29_MITIGATIONS_PARTIALLY_CORE_WITHIN {
+    to G_IMPLEMENT_M29_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
+}
+
+goal toBeDeveloped G_IMPLEMENT_M29_OUTSIDE {
+    description "Implement mitigation M29 (Tamper evident bulletin board) outside the core cryptographic library."
+}
+isSupportedBy ISB_IMPLEMENT_M29_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
+    to G_IMPLEMENT_M29_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
+}
+
+goal toBeDeveloped G_IMPLEMENT_M30_WITHIN {
+    description "Implement mitigation M30 (Trust distribution) within the core cryptographic library."
+}
+isSupportedBy ISB_IMPLEMENT_M30_MITIGATIONS_PARTIALLY_CORE_WITHIN {
+    to G_IMPLEMENT_M30_WITHIN from S_MITIGATIONS_PARTIALLY_CORE_WITHIN
+}
+
+goal toBeDeveloped G_IMPLEMENT_M30_OUTSIDE {
+    description "Implement mitigation M30 (Trust distribution) outside the core cryptographic library."
+}
+isSupportedBy ISB_IMPLEMENT_M30_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
+    to G_IMPLEMENT_M30_OUTSIDE from S_MITIGATIONS_PARTIALLY_CORE_OUTSIDE
+}
+
+goal toBeDeveloped G_IMPLEMENT_M31 {
+    description "Implement mitigation M31 (Voter pseudonyms) within the core cryptographic library."
+}
+isSupportedBy ISB_IMPLEMENT_M31_MITIGATIONS_CORE {
+    to G_IMPLEMENT_M31 from S_MITIGATIONS_CORE
+}
+
+goal toBeDeveloped G_IMPLEMENT_M32 {
+    description "Implement mitigation M32 (Voter specific Naor-Yung proofs) within the core cryptographic library."
+}
+isSupportedBy ISB_IMPLEMENT_M32_MITIGATIONS_CORE {
+    to G_IMPLEMENT_M32 from S_MITIGATIONS_CORE
 }

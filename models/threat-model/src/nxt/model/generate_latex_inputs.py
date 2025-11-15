@@ -13,8 +13,8 @@ import re
 from natsort import natsorted
 from pathlib import Path
 
-# our shared database functions
-from read_database import build_data_structures
+# our shared data structures (from new Python model via compatibility layer)
+from .compat import get_legacy_data
 
 # global data structures
 property_dict = None
@@ -417,7 +417,7 @@ def write_lines_to_file(lines, filename):
 
     p = Path(output_file_path, filename)
     try:
-        with p.open(mode='w') as f:
+        with p.open(mode='w', encoding='utf-8', newline='\n') as f:
             for line in lines:
                 f.write(f'{line}\n')
     except Exception:
@@ -432,15 +432,13 @@ def main():
     global output_file_path
 
     parser = argparse.ArgumentParser(description='Generate LaTeX input files for threat model')
-    parser.add_argument('-d', '--database', type=str, help='Path to the SQLite database file',  nargs='?', default="db.sqlite3")
     parser.add_argument('-o', '--output', type=str, help='Path to write the generated LaTeX files', nargs='?', default='.')
     args = parser.parse_args()
 
-    db_file_path = args.database
     output_file_path = args.output
 
-    # Build data structures
-    property_dict, context_dict, mitigation_dict, attack_dict = build_data_structures(db_file_path)
+    # Build data structures from Python threat model
+    property_dict, context_dict, mitigation_dict, attack_dict = get_legacy_data()
 
     # Generate property trees, one for each "root" property (not actual roots, because
     # INTEGRITY is a root but we really want its 3 sub-properties)

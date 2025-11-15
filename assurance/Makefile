@@ -5,12 +5,10 @@
 
 # Definitions
 
-DB_DIR :=           ../models/threat-model/db
+NXT_DIR :=          ../models/threat-model/src
 SKELETON_DIR :=     ./advocate-project
 PARSE_CMD :=        ${DB_DIR}/parse.py
-GEN_SKELETON_CMD := PYTHONPATH="${PYTHONPATH}:${DB_DIR}" scripts/generate_advocate_skeleton.py
-DATABASE :=         db.sqlite3
-THREAT_YAML :=      ${DB_DIR}/tm.yaml
+GEN_SKELETON_CMD := PYTHONPATH="${PYTHONPATH}:${NXT_DIR}" scripts/generate_advocate_skeleton.py
 
 # Default target: show the help
 all: help
@@ -38,42 +36,32 @@ help:
 	@echo "    The update targets update all the skeleton files except the argument,"
 	@echo "    but leave other AdvoCATE project files untouched."
 	@echo ""
-	@echo "clean            - remove the generated SQLite database"
-	@echo ""
-
-# Build the database if necessary
-${DATABASE}: ${THREAT_YAML}
-	@echo "building the database"
-	${PARSE_CMD} ${THREAT_YAML} ${DATABASE}
 
 # Build the AdvoCATE skeleton files
-skeleton: ${DATABASE}
+skeleton:
 	@echo "generating AdvoCATE skeleton"
 	mkdir -p ${SKELETON_DIR}
-	${GEN_SKELETON_CMD} ${DATABASE} ${SKELETON_DIR}
+	${GEN_SKELETON_CMD} ${SKELETON_DIR}
 
 # Build the AdvoCATE skeleton files with implied security objectives included
-skeleton_implied: ${DATABASE}
+skeleton_implied:
 	@echo "generating AdvoCATE skeleton with implied security objectives"
 	mkdir -p ${SKELETON_DIR}
-	${GEN_SKELETON_CMD} --implied ${DATABASE} ${SKELETON_DIR}
+	${GEN_SKELETON_CMD} --implied ${SKELETON_DIR}
 
 # Build the non-argument AdvoCATE skeleton files
-update: ${DATABASE}
+update:
 	@echo "updating static parts of AdvoCATE skeleton"
 	mkdir -p ${SKELETON_DIR}
-	${GEN_SKELETON_CMD} --no-argument ${DATABASE} ${SKELETON_DIR}
+	${GEN_SKELETON_CMD} --no-argument ${SKELETON_DIR}
 
 # Build the non-argument AdvoCATE skeleton files with implied security
 # objectives included
-update_implied: ${DATABASE}
+update_implied:
 	@echo "updating static parts of AdvoCATE skeleton with implied security objectives"
 	mkdir -p ${SKELETON_DIR}
-	${GEN_SKELETON_CMD} --no-argument --implied ${DATABASE} ${SKELETON_DIR}
+	${GEN_SKELETON_CMD} --no-argument --implied ${SKELETON_DIR}
 
-ci: skeleton skeleton_implied update update_implied clean
+ci: skeleton skeleton_implied update update_implied
 
-clean:
-	rm -f ${DATABASE}
-
-PHONY: all help skeleton skeleton_implied update update_implied ci clean
+PHONY: all help skeleton skeleton_implied update update_implied ci

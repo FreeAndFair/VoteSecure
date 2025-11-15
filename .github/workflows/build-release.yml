@@ -37,12 +37,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Render Threat Model PDF
+      - name: Render Threat Model PDF and HTML
         run: |
-          cd models/threat-model/db
+          cd models/threat-model
           pip install -r requirements.txt
-          cd ..
-          make pdf
+          make all
 
       - name: Render Refinements Paper
         run: |
@@ -65,5 +64,6 @@ jobs:
           prerelease: true
           files: |
             models/threat-model/threat-model.pdf
+            models/threat-model/threat-model.html
             docs/papers/refinements_among_high_level_models/refinements_paper.pdf
             docs/faq/faq.pdf
