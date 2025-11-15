@@ -118,3 +118,25 @@ options:
 ## Database Schema
 
 ![Schema](db.sqlite3.png)
+
+### VSCode Schema validation
+
+You can use JSON Schema to validate the structure of `tm.yaml` and provide enhanced editing features in VS Code.
+
+#### 1. Install YAML Extension
+
+Install the [YAML extension by Red Hat](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml) in VS Code:
+
+```
+ext install redhat.vscode-yaml
+```
+
+#### 2. Schema Association
+
+The schema is automatically associated with `tm.yaml` via the first line of the file:
+
+```yaml
+# yaml-language-server: $schema=./threat-model-schema.json
+```
+
+This directive tells the YAML Language Server to validate the file against `threat-model-schema.json` in the same directory.

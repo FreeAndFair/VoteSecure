@@ -248,10 +248,10 @@ def generate_attack_inserts(yaml_data, is_child=False):
         :param is_child: Whether the current recursion requires linking to its parent attack
         :returns: Returns derived inserts data with the following structure:
 
-        return = {
+        return = [{
             'self_inserts': attack_map,
             'children': attack_children
-        }
+        }]
 
         attack_map = {
             'context': context_attack
@@ -624,136 +624,29 @@ def read_yaml(file_path):
     with open(file_path, 'r') as file:
         data = yaml.safe_load(file)
         try:
-            validate(data, json_schema())
+            schema = load_json_schema()
+            validate(data, schema)
         except exceptions.ValidationError as err:
             abort(f"Yaml file '{file_path}' failed to validate:{err}")
 
         return data
 
-def json_schema():
-    """ Returns the json schema describing our threat model schema.
+def load_json_schema():
+    """ Loads the JSON schema from the external schema file.
 
-        Note that this schema only describes the structure of the yaml file, not the content. A
-        yaml threat model can pass the validation and still have invalid data.
+        The schema file is expected to be in the same directory as this script,
+        named 'threat-model-schema.json'.
 
         :returns: The json schema.
     """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    schema_path = os.path.join(script_dir, 'threat-model-schema.json')
 
-    properties = {
-        "type" : "object",
-        "patternProperties": {
-            "^[a-zA-Z0-9_%+-]+$": {
-                "oneOf": [ {
-                    "type": "array",
-                    "prefixItems": [
-                        { "type": "string" },
-                    ],
-                    "items": {"$ref": "#/properties/properties"},
-                    "minItems": 2,
-                    "maxItems": 2,
-                    },
-                    {"type": "string"}
-                ]
-            }
-        }
-    }
+    if not os.path.exists(schema_path):
+        abort(f"Could not find schema file '{schema_path}'")
 
-    attacks = {
-        "type": "array",
-        "items": {
-            "type": "object",
-            "properties" : {
-                "kind" : {"type": "string"},
-                "name" : {"type": "string"},
-                "properties": {
-                    "type": "array",
-                    "items": {"type": "string"}
-                },
-                "description": {"type": "string"},
-                "instance_of": {"type": "string"},
-                "contexts": {
-                    "type": "array",
-                    "items": {"type": "string"}
-                },
-                "contexts": {
-                    "type": "array",
-                    "items": {"type": "string"}
-                },
-                "parents": {
-                    "type": "array",
-                    "items": {"type": "string"}
-                },
-                # FIXME this is better implemented as a map rather than an array
-                "mitigations": {
-                    "type": "array",
-                    "items": {
-                        "type": "array",
-                        "items": {"type": "string"}
-                    }
-                },
-                "children": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/properties/attacks/items"
-                    }
-                }
-            }
-        }
-    }
-
-    contexts = {
-        "type": "object",
-        "patternProperties": {
-            "^[a-zA-Z0-9_%+-]+$": {
-                "type": "array",
-                "items": {"type": "string"},
-                "minItems": 2,
-                "maxItems": 2,
-            }
-        }
-    }
-
-    mitigations = {
-        "type": "object",
-        "patternProperties": {
-            "^[a-zA-Z0-9_%+-]+$": {
-                "type": "array",
-                "items": {"type": "string"},
-                "minItems": 3,
-                "maxItems": 3,
-            }
-        }
-    }
-
-    evoting_stride = {
-        "type": "object",
-        "patternProperties": {
-            "^[a-zA-Z0-9_%+-]+$": {
-                "type": "array",
-                "prefixItems": [
-                    {
-                        "type": "string"
-                    },
-                    {
-                        "type": "array",
-                        "items": {"type": "string"},
-                    },
-                ],
-            }
-        }
-    }
-
-    return {
-        "type" : "object",
-        "properties" : {
-            "properties": properties,
-            "attacks": attacks,
-            "mitigations": mitigations,
-            "contexts": contexts,
-            "stride": evoting_stride,
-            "e-voting": evoting_stride
-        },
-    }
+    with open(schema_path, 'r') as schema_file:
+        return json.load(schema_file)
 
 def attack_dict(identifier, name, description, is_abstract, instance_of, context):
     """ Returns a python dict representing an attack.

@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=./threat-model-schema.json
 # The E2E-VIV Threat Model
 # Copyright (C) 2025 Free & Fair
 #
@@ -56,10 +57,10 @@
 #   abstract attacks)
 # * Freely selecting AND vs OR compositions for parent child
 #   relationships.
-# * Distinction between mitigations that aim to prevent and attack vs
+# * Distinguishing between mitigations that aim to prevent an attack vs
 #   those aimed at lessening its impact.
-# * Contexts as a general classification mechanism outside of
-#   instantiation of abstract attacks (@todo)
+# * Contexts as a general classification mechanism. Contexts only
+#   serve to materialize ("locate") the instantiation of abstract attacks.
 # * Attacks that target mitigations
 #
 
@@ -72,7 +73,7 @@
 # {[X][Y]}: link to anchor X with link text Y
 
 
-# Properties are desirable properties of the system. They correspond
+# Properties are desirable characteristics of the system. They correspond
 # to properties in the e-voting domain and security objectives in the
 # threat modeling domain.
 #
@@ -81,117 +82,117 @@
 #
 # Json Schema:
 #
-# See parse.py::json_schema().
+# See file `threat-model-schema.json`.
 #
 properties:
   CONFIDENTIALITY:
-  - The e-voting properties of Privacy, Everlasting privacy, Receipt-freeness, and
-    Coercion-resistance are mapped to this security objective.
-  - P1:
-    - It must not be possible to link a voter to their vote.
-    - P1.1: The only information on voter selections leaked by the voter application
-        is the computed cryptogram.
-      P1.2: It must not be possible for anyone to decrypt cryptograms in the absence
-        of a threshold of trustees.
-      P1.3: It must not be possible for anyone to determine the complete mixing permutations
-        or randomization factors.
-      P1.4: The decryption process must only operate on cryptograms output from the
-        mixing process.
-    P2: It must not be possible for future computationally unbounded adversaries to link a voter
-          to their vote using published data from past elections.
-    P3:
-    - It must not be possible for a voter to prove how they voted.
-    - P3.1: A voter does not gain a receipt that can be used to prove to anyone else
-        that they voted in a certain way.
-      P3.2: A voter cannot cooperate with a coercer to prove that they voted in a
-        certain way.
+    - The e-voting properties of Privacy, Everlasting privacy, Receipt-freeness, and
+      Coercion-resistance are mapped to this security objective.
+    - P1:
+        - It must not be possible to link a voter to their vote.
+        - P1.1: The only information on voter selections leaked by the voter application
+            is the computed cryptogram.
+          P1.2: It must not be possible for anyone to decrypt cryptograms in the absence
+            of a threshold of trustees.
+          P1.3: It must not be possible for anyone to determine the complete mixing permutations
+            or randomization factors.
+          P1.4: The decryption process must only operate on cryptograms output from the
+            mixing process.
+      P2: It must not be possible for future computationally unbounded adversaries to link a voter
+            to their vote using published data from past elections.
+      P3:
+        - It must not be possible for a voter to prove how they voted.
+        - P3.1: A voter does not gain a receipt that can be used to prove to anyone else
+            that they voted in a certain way.
+          P3.2: A voter cannot cooperate with a coercer to prove that they voted in a
+            certain way.
   INTEGRITY:
-  - The e-voting properties of Accuracy, Eligibility, Fairness, Verifiability, and
-    Dispute-freeness are mapped to this security objective.
-  - CORRECTNESS:
-    - Correctness is the sum of Accuracy + Eligibility + Fairness.
-    - C1:
-      - Votes are cast correctly.
-      - C1.1: Each cryptogram cast by the {VA} is an encryption of data that accurately
-          represents the voter's intent.
-      C2:
-      - Cast votes are correctly recorded.
-      - C2.1: Each cryptogram recorded in the {BB} is identical to a cryptogram cast
-          by the {VA}.
-      C3:
-      - Recorded votes are correctly counted.
-      - C3.1:
-        - The set of cryptograms input to the mixing process is correct.
-        - C3.1.1: Each cryptogram input to the mixing process must match one-to-one
-            with an eligible voter.
-          C3.1.2: Each cryptogram input to the mixing process must match one-to-one
-            with a cryptogram recorded in the ballot box.
-        C3.2: The set of cryptograms output by the mixing process must match one-to-one
-          with the input set of cryptograms, such that each output cryptogram is an
-          equivalent encryption of its matching input cryptogram.
-        C3.3: The set of cryptograms input to the decryption process is identical
-          to the output of the mixing process.
-        C3.4:
-        - Each plaintext output by the decryption process must have been decrypted
-          correctly.
-        - C3.4.1: Each partial decryption of every cryptogram must have been computed
-            correctly.
-          C3.4.2: Each plaintext for every cryptogram must have been computed correctly
-            from its partial decryptions.
-        C3.5:
-        - The election outcome is correctly computed.
-        - C3.5.1: The input to the tabulation algorithm is identical to the output
-            of the decryption process.
-          C3.5.2: The tabulation algorithm is correctly applied.
-        C3.6: The set of printed ballots must match one-to-one with the decrypted
-          plaintext outputs.
-        C3.7: The mixing, decryption, tabulation, and printing processes cannot begin
-          until the election period is over and all cryptograms have been collected
-          in the ballot box.
-    VERIFIABILITY:
-    - Verifiability refers to the ability to verify that {Correctness} properties
-      hold.
-    - V1:
-      - Cast-as-intended verifiability
-      - V1.1: Voters must be able to verify {C1.1} for their cryptograms.
-      V2:
-      - Recorded-as-cast verifiability
-      - V2.1: Voters must be able to verify {C2.1} for their cryptograms.
-      V3:
-      - Counted-as-recorded verifiability
-      - V3.1: Anyone must be able to verify {C3.1.2}, {C3.2}, {C3.3}, {C3.4}, and
-          {C3.5}.
-      V4:
-      - Eligibility verifiability
-      - V4.1: Anyone must be able to verify {C3.1.1}.
-      V5:
-      - Software independence
-      - V5.1: An (undetected) change or error in the software cannot cause an undetectable
-          change or error in an election outcome.
-    DISPUTE_FREENESS:
-    - In general, dispute-freeness refers to the existence of mechanisms
-      to resolve disputes that may arise during the electoral process.
-      Here, we restrict dispute-freeness to resolving three types of disputes, which
-      yield child properties {D1}, {D2}, and {D3}. For brevity, we describe these properties
-      as the disputes that must be resolved, but strictly speaking these properties
-      refer to the ability to resolve said disputes.
-    - D1: A voter claims to have cast a ballot $b$, while the election
-          authority claims that they did not cast $b$.
-      D2: A voter claims to have not cast a ballot $b$, while the
-          election authority claims that they did cast $b$.
-      D3: A voter claims that their device is producing incorrect
-          cryptograms, while the election authority is unable to
-          verify this claim.
+    - The e-voting properties of Accuracy, Eligibility, Fairness, Verifiability, and
+      Dispute-freeness are mapped to this security objective.
+    - CORRECTNESS:
+      - Correctness is the sum of Accuracy + Eligibility + Fairness.
+      - C1:
+          - Votes are cast correctly.
+          - C1.1: Each cryptogram cast by the {VA} is an encryption of data that accurately
+              represents the voter's intent.
+        C2:
+          - Cast votes are correctly recorded.
+          - C2.1: Each cryptogram recorded in the {BB} is identical to a cryptogram cast
+              by the {VA}.
+        C3:
+          - Recorded votes are correctly counted.
+          - C3.1:
+              - The set of cryptograms input to the mixing process is correct.
+              - C3.1.1: Each cryptogram input to the mixing process must match one-to-one
+                  with an eligible voter.
+                C3.1.2: Each cryptogram input to the mixing process must match one-to-one
+                  with a cryptogram recorded in the ballot box.
+            C3.2: The set of cryptograms output by the mixing process must match one-to-one
+              with the input set of cryptograms, such that each output cryptogram is an
+              equivalent encryption of its matching input cryptogram.
+            C3.3: The set of cryptograms input to the decryption process is identical
+              to the output of the mixing process.
+            C3.4:
+              - Each plaintext output by the decryption process must have been decrypted
+                correctly.
+              - C3.4.1: Each partial decryption of every cryptogram must have been computed
+                  correctly.
+                C3.4.2: Each plaintext for every cryptogram must have been computed correctly
+                  from its partial decryptions.
+            C3.5:
+              - The election outcome is correctly computed.
+              - C3.5.1: The input to the tabulation algorithm is identical to the output
+                  of the decryption process.
+                C3.5.2: The tabulation algorithm is correctly applied.
+            C3.6: The set of printed ballots must match one-to-one with the decrypted
+              plaintext outputs.
+            C3.7: The mixing, decryption, tabulation, and printing processes cannot begin
+              until the election period is over and all cryptograms have been collected
+              in the ballot box.
+      VERIFIABILITY:
+        - Verifiability refers to the ability to verify that {Correctness} properties
+          hold.
+        - V1:
+            - Cast-as-intended verifiability
+            - V1.1: Voters must be able to verify {C1.1} for their cryptograms.
+          V2:
+            - Recorded-as-cast verifiability
+            - V2.1: Voters must be able to verify {C2.1} for their cryptograms.
+          V3:
+            - Counted-as-recorded verifiability
+            - V3.1: Anyone must be able to verify {C3.1.2}, {C3.2}, {C3.3}, {C3.4}, and
+                {C3.5}.
+          V4:
+            - Eligibility verifiability
+            - V4.1: Anyone must be able to verify {C3.1.1}.
+          V5:
+            - Software independence
+            - V5.1: An (undetected) change or error in the software cannot cause an undetectable
+                change or error in an election outcome.
+      DISPUTE_FREENESS:
+        - In general, dispute-freeness refers to the existence of mechanisms
+          to resolve disputes that may arise during the electoral process.
+          Here, we restrict dispute-freeness to resolving three types of disputes, which
+          yield child properties {D1}, {D2}, and {D3}. For brevity, we describe these properties
+          as the disputes that must be resolved, but strictly speaking these properties
+          refer to the ability to resolve said disputes.
+        - D1: A voter claims to have cast a ballot $b$, while the election
+              authority claims that they did not cast $b$.
+          D2: A voter claims to have not cast a ballot $b$, while the
+              election authority claims that they did cast $b$.
+          D3: A voter claims that their device is producing incorrect
+              cryptograms, while the election authority is unable to
+              verify this claim.
   AVAILABILITY:
-  - The e-voting properties of {Robustness} and {Scalability} are
-    mapped to this security objective.
-  - A1: Every voter must be able to cast their vote ({C1}, {C2}) such
-        that their participation is not denied or hampered.
-    A2: All participants must be able to perform applicable
-        verification operations ({V1}, {V2}, {V3}, {V4}) such that
-        verifiability is not denied or hampered.
-    A3: The election outcome must be computed in a timely fashion.
-    A4: The election public key must be computed in a timely fashion.
+    - The e-voting properties of {Robustness} and {Scalability} are
+      mapped to this security objective.
+    - A1: Every voter must be able to cast their vote ({C1}, {C2}) such
+          that their participation is not denied or hampered.
+      A2: All participants must be able to perform applicable
+          verification operations ({V1}, {V2}, {V3}, {V4}) such that
+          verifiability is not denied or hampered.
+      A3: The election outcome must be computed in a timely fashion.
+      A4: The election public key must be computed in a timely fashion.
 
 # ========================================================================
 # Attacks are ways to undermine or negate Properties.
@@ -201,23 +202,19 @@ properties:
 #
 # Json Schema:
 #
-# See parse.py::json_schema().
+# See file `threat-model-schema.json`.
 #
 # Example attack mapping:
 #
 # - _:
 #     name: Spoofing
-#     properties:
-#     - C1.1
-#     - A1
-#     - A2
+#     properties: [C1.1, A1, A2]
 #     description: The voter is deceived into voting through a counterfeit application.
 #     instance_of: Spoofing
-#     contexts:
-#     - VA
+#     contexts: [VA]
 #     parents: [Mismatched encryption]
 #
-# The identifier is '_' and will be auto generated.
+# The identifier is set to '_', and will be auto generated.
 # The attack name is 'Spoofing'
 # The attacked properties are `C1.1`, `A1`, `A2`.
 # This attack is an instance of the `Spoofing` abstract attack.
@@ -228,483 +225,537 @@ attacks:
 
 ### Abstract attacks ###
 
-- _:
+-
+  _:
     kind: A
     name: Compromised device
     description: A device that runs one or more subsystems is altered in a way
       that affects the system's security.
   children:
-  - _:
-      kind: A
-      name: Malware
-      properties: null
-      description: Malicious software infects the device.
-    mitigations:
-    - - Cybersecurity---Malware
-      - General cybersecurity practices aimed to protect against malware reduce
-        the risk of device infection.
-  - _:
-      kind: A
-      name: Intrusion
-      properties: null
-      description: An adversary gains control of the device.
-    mitigations:
-    - - Cybersecurity---Intrusion
-      - General cybersecurity practices aimed to protect against intrusion reduce
-        the risk of an adversary gaining control of a device.
-  - _:
-      kind: A
-      name: Escalation of privilege
-      properties: null
-      description: An adversary with restricted access to the system gains unauthorized
-        privileges.
-      instance_of: null
-      contexts: null
-    mitigations:
-    - - Cybersecurity---Escalation
-      - General cybersecurity practices aimed to protect against privilege escalation
-        reduce the risk of an adversary gaining unauthorized privileges.
-  - _:
-      kind: A
-      name: Supply chain attack
-      properties: null
-      description: One or more software dependencies of a subsystem is programmed
-        maliciously.
-      instance_of: null
-      contexts: null
-    mitigations:
-    - - Dependency minimization
-      - Minimizing the number and size of dependencies reduces the likelihood of
-        malicious dependencies impacting system security.
-    - - Cybersecurity---Supply chains
-      - General cybersecurity practices aimed to protect against supply chain
-        attacks reduce the likelihood of an adversary introducing malicious
-        dependencies.
-  - _:
-      kind: A
-      name: Malicious programming
-      properties: null
-      description: One or more subsystems is programmed maliciously.
-    mitigations:
-    - - Out of scope
-      - We cannot provide mitigations against our own attacks, which could even extend
-        to this analysis.
-  - _:
-      kind: A
-      name: Malicious cloud provider
-      properties: null
-      description: One or more subsystems execute in a cloud environment where the
-        cloud provider is malicious.
-      instance_of: null
-      contexts: null
-    mitigations:
-    - - Out of scope
-      - A malicious cloud provider has access to the underlying hardware and therefore
-        has full control of subsystems executing within.
-  - _:
-      kind: A
-      name: Virtualization attack
-      properties: null
-      description: One or more subsystems execute in a cloud environment where other
-        cloud tenants sharing virtualized hardware are malicious.
-    mitigations:
-    - - Cybersecurity---Virtualization
-      - General cybersecurity practices aimed to prevent against
-        virtualization-related attacks reduce the likelihood of an adversary
-        successfully mounting such attacks.
-  - _:
-      kind: A
-      name: Malicious hardware
-      properties: null
-      description: One or more subsystems execute on malicious hardware.
-    mitigations:
-    - - Out of scope
-      - A malicious hardware vendor could design backdoors granting it full control
-        of subsystems executing within its devices.
+    -
+      _:
+        kind: A
+        name: Malware
+        description: Malicious software infects the device.
+      mitigations:
+        -
+          - Cybersecurity---Malware
+          - General cybersecurity practices aimed to protect against malware reduce
+            the risk of device infection.
+    -
+      _:
+        kind: A
+        name: Intrusion
+        description: An adversary gains control of the device.
+      mitigations:
+        -
+          - Cybersecurity---Intrusion
+          - General cybersecurity practices aimed to protect against intrusion reduce
+            the risk of an adversary gaining control of a device.
+    -
+      _:
+        kind: A
+        name: Escalation of privilege
+        description: An adversary with restricted access to the system gains unauthorized
+          privileges.
+      mitigations:
+        -
+          - Cybersecurity---Escalation
+          - General cybersecurity practices aimed to protect against privilege escalation
+            reduce the risk of an adversary gaining unauthorized privileges.
+    -
+      _:
+        kind: A
+        name: Supply chain attack
+        description: One or more software dependencies of a subsystem is programmed
+          maliciously.
+      mitigations:
+        -
+          - Dependency minimization
+          - Minimizing the number and size of dependencies reduces the likelihood of
+            malicious dependencies impacting system security.
+        -
+          - Cybersecurity---Supply chains
+          - General cybersecurity practices aimed to protect against supply chain
+            attacks reduce the likelihood of an adversary introducing malicious
+            dependencies.
+    -
+      _:
+        kind: A
+        name: Malicious programming
+        description: One or more subsystems is programmed maliciously.
+      mitigations:
+        -
+          - Out of scope
+          - We cannot provide mitigations against our own attacks, which could even extend
+            to this analysis.
+    -
+      _:
+        kind: A
+        name: Malicious cloud provider
+        description: One or more subsystems execute in a cloud environment where the
+          cloud provider is malicious.
+      mitigations:
+        -
+          - Out of scope
+          - A malicious cloud provider has access to the underlying hardware and therefore
+            has full control of subsystems executing within.
+    -
+      _:
+        kind: A
+        name: Virtualization attack
+        description: One or more subsystems execute in a cloud environment where other
+          cloud tenants sharing virtualized hardware are malicious.
+      mitigations:
+        -
+          - Cybersecurity---Virtualization
+          - General cybersecurity practices aimed to prevent against
+            virtualization-related attacks reduce the likelihood of an adversary
+            successfully mounting such attacks.
+    -
+      _:
+        kind: A
+        name: Malicious hardware
+        description: One or more subsystems execute on malicious hardware.
+      mitigations:
+        -
+          - Out of scope
+          - A malicious hardware vendor could design backdoors granting it full control
+            of subsystems executing within its devices.
 
-- _:
+-
+  _:
     kind: A
     name: Compromised user device
-    properties: null
     description: An adversary gains control of a user device that runs the {VA} or
       {BCA}. Unlike in attack {Compromised device}, this device is outside the control
       of the administrators of the voting system.
 
-- _:
+-
+  _:
     kind: A
     name: Broken cryptography
     description: An aspect of the cryptography used in the system is flawed in a way that
       invalidates some or all of its security properties.
   children:
-  - _:
+  -
+    _:
       kind: A
       name: Broken primitive
-      properties: null
       description: One or more employed cryptographic primitives is fundamentally
         broken and is exploited.
-      instance_of: null
-      contexts: null
     mitigations:
-    - - Security proof
-      - A (preferably formal) security proof provides some level of assurance that
-        a cryptographic primitive is not broken.
-  - _:
+      -
+        - Security proof
+        - A (preferably formal) security proof provides some level of assurance that
+          a cryptographic primitive is not broken.
+  -
+    _:
       kind: A
       name: Insecure implementation---Owned
-      properties: null
       description: The implementation within owned source code is insecure and is
         exploited.
-      instance_of: null
-      contexts: null
     mitigations:
-    - - Formal verification
-      - Formal verification provides assurance that the source code satisfies its
-        specification.
-    - - External audits
-      - External audits of the source code provide additional assurance about
-        its security.
-  - _:
+      -
+        - Formal verification
+        - Formal verification provides assurance that the source code satisfies its
+          specification.
+      -
+        - External audits
+        - External audits of the source code provide additional assurance about
+          its security.
+  -
+    _:
       kind: A
       name: Insecure implementation---Dependency
-      properties: null
       description: The implementation within a software dependency is insecure and
         is exploited.
-      instance_of: null
-      contexts: null
     mitigations:
-    - - Dependency minimization
-      - Minimizing the number and size of dependencies reduces the likelihood of
-        insecure dependencies impacting system security.
-    - - Formally verified dependencies
-      - Formal verification provides assurance that dependencies satisfy their
-        specifications and the system's requirements upon them.
-  - _:
+      -
+        - Dependency minimization
+        - Minimizing the number and size of dependencies reduces the likelihood of
+          insecure dependencies impacting system security.
+      -
+        - Formally verified dependencies
+        - Formal verification provides assurance that dependencies satisfy their
+          specifications and the system's requirements upon them.
+  -
+    _:
       kind: A
       name: Insecure platform
-      properties: null
       description: The implementation of an operating system or hardware service (such
         as entropy collection) is insecure and is exploited.
     mitigations:
-    - - Audited platforms
-      - Platform audits reduce the likelihood of insecure implementations.
-  - _:
+      -
+        - Audited platforms
+        - Platform audits reduce the likelihood of insecure implementations.
+  -
+    _:
       kind: A
       name: Insecure parameters
-      properties: null
       description: The parameters used to instantiate the cryptographic primitive
         are insecure and are exploited.
-      instance_of: null
-      contexts: null
     mitigations:
-    - - Security proof
-      - A (preferably formal) security proof provides some level of assurance that
-        cryptographic parameters are secure.
-    - - External audits
-      - External audits of the security parameters provide additional assurance about
-        their security.
-- _:
+      -
+        - Security proof
+        - A (preferably formal) security proof provides some level of assurance that
+          cryptographic parameters are secure.
+      -
+        - External audits
+        - External audits of the security parameters provide additional assurance about
+          their security.
+-
+  _:
     kind: A
     name: Compromised network
     description: Network behavior is altered in a way that affects the system's
       security.
   children:
-  - _:
+  -
+    _:
       kind: A
       name: Network tampering
       description: An adversary exploits network weaknesses to add, drop, or forge
         protocol communications.
     mitigations:
-    - - Message signatures
-      - Application-level digital signatures provide data integrity and authentication
-        for application messages sent on the network.
-    - - TLS
-      - Transport layer security provides data integrity and authentication within
-        the network.
-  - _:
+      -
+        - Message signatures
+        - Application-level digital signatures provide data integrity and authentication
+          for application messages sent on the network.
+      -
+        - TLS
+        - Transport layer security provides data integrity and authentication within
+          the network.
+  -
+    _:
       kind: A
       name: Network sabotage
       description: An adversary broadly disrupts network operation with respect to
         one or more subsystems or actors.
 
-- _:
+-
+  _:
     kind: A
     name: Corruption
     description: One or more subsystems or actors behaves maliciously.
   mitigations:
-  - - Trust distribution
-    - Distributing trust among multiple subsystems and actors reduces the likelihood
-      that a corrupt subsystem or actor can compromise the system's security.
-  - - Operational redundancy
-    - Redundancy in deployed implementations can reduce the likelihood that a corrupt
-      subsystem or actor can compromise the system's availability.
+    -
+      - Trust distribution
+      - Distributing trust among multiple subsystems and actors reduces the likelihood
+        that a corrupt subsystem or actor can compromise the system's security.
+    -
+      - Operational redundancy
+      - Redundancy in deployed implementations can reduce the likelihood that a corrupt
+        subsystem or actor can compromise the system's availability.
 
-- _:
+-
+  _:
     kind: A
     name: Side channel
     description: An adversary acquires sensitive information via unintended,
       indirect mechanisms (e.g., electromagnetic radiation) that arise from
       the execution of the protocol on physical machines and networks.
   mitigations:
-  - - External audits
-    - External audits to evaluate side-channel resistance of implementations can
-      often rule out or quantify the severity of specific side channel risks.
-- _:
+    -
+      - External audits
+      - External audits to evaluate side-channel resistance of implementations can
+        often rule out or quantify the severity of specific side channel risks.
+-
+  _:
     kind: A
     name: Phishing
     description: An adversary acquires sensitive information from a protocol
       actor via deceptive means external to the protocol.
   mitigations:
-  - - Out of scope
-    - If a protocol actor can be social engineered into revealing sufficient
-      information to enable an adversary to participate as them within the
-      protocol, there is no way for the system to distinguish between the
-      adversary and the legitimate actor.
-- _:
+    -
+      - Out of scope
+      - If a protocol actor can be social engineered into revealing sufficient
+        information to enable an adversary to participate as them within the
+        protocol, there is no way for the system to distinguish between the
+        adversary and the legitimate actor.
+-
+  _:
     kind: A
     name: Spoofing
     description: An adversary attacks the system by masquerading as
       a protocol subsystem or actor.
   mitigations:
-  - - Controlled environment
-    - For some parts of the system, a controlled environment can prevent
-      adversaries from masquerading as protocol actors (e.g., the identities
-      of trustees can be physically verified when they enter the room housing
-      the {AGN}). However, much of the system is run in uncontrolled
-      environments.
-  - - Message signatures
-    - Provided an adversary does not acquire the necessary signing keys (e.g.,
-      through {Phishing} or {Side channel}), the use of digitally signed
-      messages within the protocol can prevent spoofed messages from impacting
-      system security.
+    -
+      - Controlled environment
+      - For some parts of the system, a controlled environment can prevent
+        adversaries from masquerading as protocol actors (e.g., the identities
+        of trustees can be physically verified when they enter the room housing
+        the {AGN}). However, much of the system is run in uncontrolled
+        environments.
+    -
+      - Message signatures
+      - Provided an adversary does not acquire the necessary signing keys (e.g.,
+        through {Phishing} or {Side channel}), the use of digitally signed
+        messages within the protocol can prevent spoofed messages from impacting
+        system security.
 
 
 ### Attacks on Correctness ###
 
-- _:
+-
+  _:
     name: Mismatched encryption
   children:
-  - _:
+  -
+    _:
       name: Cheating voting device
-      properties: C1.1
+      properties: [C1.1]
       description: The voting application encrypts a cryptogram that does not correspond
         to the voter's intent.
       instance_of: Compromised user device
-      contexts:
-      - VA
+      contexts: [VA]
     mitigations:
-    - - Cast as intended verifiability
-      - For a single compromised device, the ballot checking process (assuming it
-        is carried out by the voter using a different, uncompromised device) detects
-        this attack, though only if the voter carries it out. For large scale attacks
-        that compromise multiple devices, the ballot checking process detects this
-        attack with high probability if enough voters carry it out using uncompromised
-        devices.
-- _:
+        # Note: Mismatched encryption attacks are most effective when carried out
+        # against ballots that are already _cast_ on the bulletin board. For ballots
+        # that are submitted but not yet cast, the voter has a corrective recourse,
+        # by submitting a new ballot.
+      -
+        - Cast as intended verifiability
+        - The ballot checking process will detect mismatched encrypted submissions.
+          For a single compromised device, this checking process (assuming it
+          is carried out by the voter using a different, uncompromised device) detects
+          this attack, though only if the voter carries it out. In this case, the
+          voter may resubmit their ballot using an uncompromised device, thwarting
+          the attack for that voter. For large scale attacks that compromise multiple devices,
+          the ballot checking process detects this attack with high probability if enough voters
+          carry it out using uncompromised devices. If a procedure is in place whereby an election
+          outcome is invalidated if a sufficient number of voters make reports of mismatched
+          ciphertexts, the attack is additionally on {A3}. See also Malicious reporting.
+      -
+        - Recorded as cast verifiability
+        - Ballot tracker checks on the bulletin boad will detect covert submit-and-cast
+          of mismatched ciphertexts. For a single compromised device, this checking pocess
+          (assuming it is carried out by the voter using a different, uncompromised device)
+          detects this attack, though only if the voter carries it out. For large scale attacks
+          that compromise multiple devices, the ballot tracking check detects this attack with
+          high probability if enough voters carry it out using uncompromised devices. If this
+          mitigation is successful, the attack may be thwarted for the voter, or becomes an attack on
+          availability, depending on whether the voter has a recourse to correct  their submission.
+          If the voter has a correcting recourse, the attack is thwarted for that voter.  If the
+          voter's recourse is restricted to reporting and canceling the ballot, the attack is on {A1}.
+          Finally, if a procedure is in place whereby an election outcome is invalidated if a sufficient
+          number of voters make reports of mismatched ciphertexts, the attack is additionally on {A3}.
+          See also Malicious reporting.
+-
+  _:
     name: Ballot tampering
   children:
-  - _:
+  -
+    _:
       name: Network tampering
-      properties: C2.1
+      properties: [C2.1]
       description: The network adds, alters or removes cryptograms.
       instance_of: Compromised network.Network tampering
-      contexts:
-      - IN
-      - EAN
+      contexts: [IN, EAN]
     mitigations:
-    - - Recorded as cast verifiability
-      - For a single altered or removed cryptogram, the ballot tracker checking process
-        detects this attack, though only if the voter carries it out. For large scale
-        attacks that compromise multiple cryptograms, the ballot tracker checking
-        process detects this attack with high probability if enough voters carry it
-        out.
-  - _:
+      -
+        - Recorded as cast verifiability
+        - For a single altered or removed cryptogram, the ballot tracker checking process
+          detects this attack, though only if the voter carries it out. For large scale
+          attacks that compromise multiple cryptograms, the ballot tracker checking
+          process detects this attack with high probability if enough voters carry it
+          out.
+  -
+    _:
       name: Compromised device
-      properties: C2.1
+      properties: [C2.1]
       description: One or more subsystems alters or removes cryptograms during input,
         storage in the ballot box or input to the mixing process.
       instance_of: Compromised device
-      contexts:
-      - EAS
-      - BB
-      - EAA
-      - EST
+      contexts: [EAS, BB, EAA, EST]
     mitigations:
-    - - Recorded as cast verifiability
-      - For a single altered or removed cryptogram, the ballot tracker checking process
-        detects this attack, though only if the voter carries it out. For large scale
-        attacks that compromise multiple cryptograms, the ballot tracker checking
-        process detects this attack with high probability if enough voters carry it
-        out.
-  - _:
+      -
+        - Recorded as cast verifiability
+        - For a single altered or removed cryptogram, the ballot tracker checking process
+          detects this attack, though only if the voter carries it out. For large scale
+          attacks that compromise multiple cryptograms, the ballot tracker checking
+          process detects this attack with high probability if enough voters carry it
+          out.
+  -
+    _:
       name: Corruption
-      properties: C2.1
+      properties: [C2.1]
       description: The election administrator alters or removes cryptograms in the
         ballot box or during input to the mixing process.
       instance_of: Corruption
-      contexts:
-      - EA
+      contexts: [EA]
     mitigations:
-    - - Recorded as cast verifiability
-      - For a single altered or removed cryptogram, the ballot tracker checking process
-        detects this attack, though only if the voter carries it out. For large scale
-        attacks that compromise multiple cryptograms, the ballot tracker checking
-        process detects this attack with high probability if enough voters carry it
-        out.
-- _:
+      -
+        - Recorded as cast verifiability
+        - For a single altered or removed cryptogram, the ballot tracker checking process
+          detects this attack, though only if the voter carries it out. For large scale
+          attacks that compromise multiple cryptograms, the ballot tracker checking
+          process detects this attack with high probability if enough voters carry it
+          out.
+-
+  _:
     name: Ineligible ballots
   children:
-  - _:
+  -
+    _:
       name: Compromised device
-      properties: C2.1
+      properties: [C2.1]
       description: One or more subsystems operate such that the ballot box contains
         or the mixing process input contains ineligible cryptograms.
       instance_of: Compromised device
-      contexts:
-      - EAS
-      - BB
+      contexts: [EAS, BB]
     mitigations:
-    - - Eligibility verifiability
-      - The election verification process detects any cryptograms that do not have
-        an eligible signature.
-  - _:
+      -
+        - Eligibility verifiability
+        - The election verification process detects any cryptograms that do not have
+          an eligible signature.
+  -
+    _:
       name: Corruption
-      properties: C2.1
+      properties: [C2.1]
       description: The election administrator manipulates a subsystem such that the
         ballot box or the mixing process input contain ineligible cryptograms.
       instance_of: Corruption
-      contexts:
-      - EA
+      contexts: [EA]
     mitigations:
-    - - Eligibility verifiability
-      - The election verification process detects any cryptograms that do not have
-        an eligible signature.
-  - _:
+      -
+        - Eligibility verifiability
+        - The election verification process detects any cryptograms that do not have
+          an eligible signature.
+  -
+    _:
       name: Network tampering
-      properties: C3.1
+      properties: [C3.1]
       description: The network adds ineligible cryptograms during input to the mixing
         process.
       instance_of: Compromised network.Network tampering
-      contexts:
-      - EAN
-      - EON
+      contexts: [EAN, EON]
     mitigations:
-    - - Eligibility verifiability
-      - The election verification process detects any cryptograms that do not have
-        an eligible signature.
-  - _:
+      -
+        - Eligibility verifiability
+        - The election verification process detects any cryptograms that do not have
+          an eligible signature.
+  -
+    _:
       name: Compromised device
-      properties: C3.1.1
+      properties: [C3.1.1]
       description: The authentication service works incorrectly.
       instance_of: Compromised device
-      contexts:
-      - AS
+      contexts: [AS]
     mitigations:
-    - - Eligibility verifiability
-      - The election verification process detects any cryptograms that do not have
-        an eligible signature.
-  - _:
+      -
+        - Eligibility verifiability
+        - The election verification process detects any cryptograms that do not have
+          an eligible signature.
+  -
+    _:
       name: Phishing
-      properties: C3.1.1
+      properties: [C3.1.1]
       description: The voter is deceived into revealing their authentication credentials.
       instance_of: Phishing
-      contexts:
-      - CRD
+      contexts: [CRD]
     mitigations:
-    - - Out of scope
-      - Preventing this attack is outside the system scope. If a voter can be social
-        engineered into giving somebody else full access to their required authentication
-        credentials, the new possessor of those credentials will be able to vote on
-        their behalf.
-- _:
+      -
+        - Out of scope
+        - Preventing this attack is outside the system scope. If a voter can be social
+          engineered into giving somebody else full access to their required authentication
+          credentials, the new possessor of those credentials will be able to vote on
+          their behalf.
+-
+  _:
     name: Bad mixing
   children:
-  - _:
+  -
+    _:
       name: Compromised device
-      properties: C3.2
+      properties: [C3.2]
       description: The trustee application shuffles incorrectly.
       instance_of: Compromised device
-      contexts:
-      - TA
+      contexts: [TA]
     mitigations:
-    - - Counted as recorded verifiability
-      - Mathematical proofs of correct shuffling are computed.
-  - _:
+      -
+        - Counted as recorded verifiability
+        - Mathematical proofs of correct shuffling are computed.
+  -
+    _:
       name: Corruption
-      properties: C3.2
+      properties: [C3.2]
       description: The trustee manipulates the subsystem to shuffle incorrectly.
       instance_of: Corruption
-      contexts:
-      - TR
+      contexts: [TR]
     mitigations:
-    - - Counted as recorded verifiability
-      - Mathematical proofs of correct shuffling are computed.
-  - _:
+      -
+        - Counted as recorded verifiability
+        - Mathematical proofs of correct shuffling are computed.
+  -
+    _:
       name: Compromised device
-      properties:
-      - C3.2
-      - C3.3
+      properties: [C3.2, C3.3]
       description: The trustee application server alters, adds or removes mix cryptograms.
       instance_of: Compromised device
-      contexts:
-      - TAS
+      contexts: [TAS]
     mitigations:
-    - - Counted as recorded verifiability
-      - Mathematical proofs of correct shuffling are computed.
-    - - Message signatures
-      - Trustees sign messages as part of the shuffling protocol. The {TAS} would
-        need to forge these signatures to carry out the attack while evading detection.
-  - _:
+      -
+        - Counted as recorded verifiability
+        - Mathematical proofs of correct shuffling are computed.
+      -
+        - Message signatures
+        - Trustees sign messages as part of the shuffling protocol. The {TAS} would
+          need to forge these signatures to carry out the attack while evading detection.
+  -
+    _:
       name: Network tampering
-      properties:
-      - C3.2
-      - C3.3
+      properties: [C3.2, C3.3]
       description: The network alters, adds or removes mix cryptograms.
       instance_of: Compromised network
-      contexts:
-      - AGN
+      contexts: [AGN]
     mitigations:
-    - - Counted as recorded verifiability
-      - Mathematical proofs of correct shuffling are computed.
-  - _:
+      -
+        - Counted as recorded verifiability
+        - Mathematical proofs of correct shuffling are computed.
+  -
+    _:
       name: Corruption
-      properties:
-      - C3.4
-      - C3.5
+      properties: [C3.4, C3.5]
       description: The election administrator alters, adds or removes mix cryptograms.
       instance_of: Corruption
-      contexts:
-      - EA
+      contexts: [EA]
     mitigations:
-    - - Counted as recorded verifiability
-      - Mathematical proofs of correct shuffling are computed.
-    - - Message signatures
-      - Trustees sign messages as part of the shuffling protocol. The {EA} would need
-        to forge these signatures to carry out the attack while evading detection.
-- _:
+      -
+        - Counted as recorded verifiability
+        - Mathematical proofs of correct shuffling are computed.
+      -
+        - Message signatures
+        - Trustees sign messages as part of the shuffling protocol. The {EA} would need
+          to forge these signatures to carry out the attack while evading detection.
+-
+  _:
     name: Bad decryption
   children:
-  - _:
+  -
+    _:
       name: Compromised device
-      properties: C3.4
+      properties: [C3.4]
       description: The trustee application decrypts incorrectly.
       instance_of: Compromised device
-      contexts:
-      - TA
-      - TST
+      contexts: [TA, TST]
     mitigations:
-    - - Counted as recorded verifiability
-      - Mathematical proofs of correct decryption are computed.
-  - _:
+      -
+        - Counted as recorded verifiability
+        - Mathematical proofs of correct decryption are computed.
+  -
+    _:
       name: Corruption
-      properties: C3.4
+      properties: [C3.4]
       description: The trustee manipulates the subsystem to decrypt incorrectly.
       instance_of: Corruption
-      contexts:
-      - TR
+      contexts: [TR]
     mitigations:
-    - - Counted as recorded verifiability
-      - Mathematical proofs of correct decryption are computed.
-  - _:
+      -
+        - Counted as recorded verifiability
+        - Mathematical proofs of correct decryption are computed.
+  -
+    _:
       name: Compromised device
       properties:
       - C3.4
@@ -712,169 +763,178 @@ attacks:
       description: One or more subsystems alter, add or remove decryption cryptograms
         or plaintexts.
       instance_of: Compromised device
-      contexts:
-      - TAS
-      - EST
+      contexts: [TAS, EST]
     mitigations:
-    - - Counted as recorded verifiability
-      - Mathematical proofs of correct decryption are computed.
-    - - Message signatures
-      - Trustees sign messages as part of the shuffling protocol. The {TAS}/{EST}
-        would need to forge these signatures to carry out the attack while evading
-        detection.
-  - _:
+      -
+        - Counted as recorded verifiability
+        - Mathematical proofs of correct decryption are computed.
+      -
+        - Message signatures
+        - Trustees sign messages as part of the shuffling protocol. The {TAS}/{EST}
+          would need to forge these signatures to carry out the attack while evading
+          detection.
+  -
+    _:
       name: Network tampering
-      properties:
-      - C3.4
-      - C3.5
+      properties: [C3.4, C3.5]
       description: The network alters, adds or removes decryption cryptograms or plaintexts.
       instance_of: Compromised network.Network tampering
-      contexts:
-      - AGN
+      contexts: [AGN]
     mitigations:
-    - - Counted as recorded verifiability
-      - Mathematical proofs of correct decryption are computed.
-  - _:
+      -
+        - Counted as recorded verifiability
+        - Mathematical proofs of correct decryption are computed.
+  -
+    _:
       name: Corruption
-      properties:
-      - C3.4
-      - C3.5
+      properties: [C3.4, C3.5]
       description: The election administrator alters, adds or removes decryption cryptograms
         or plaintexts.
       instance_of: Corruption
-      contexts:
-      - EA
+      contexts: [EA]
     mitigations:
-    - - Counted as recorded verifiability
-      - Proofs of shuffle and decryption bind the input ciphertexts to the output
-        plaintexts.
-    - - Message signatures
-      - Trustees sign messages as part of the shuffling protocol. The {EA} would need
-        to forge these signatures to carry out the attack while evading detection.
-- _:
+      -
+        - Counted as recorded verifiability
+        - Proofs of shuffle and decryption bind the input ciphertexts to the output
+          plaintexts.
+      -
+        - Message signatures
+        - Trustees sign messages as part of the shuffling protocol. The {EA} would need
+          to forge these signatures to carry out the attack while evading detection.
+-
+  _:
     name: Bad tabulation
   children:
-  - _:
+  -
+    _:
       name: Network tampering
-      properties:
-      - C3.4
-      - C3.5
+      properties: [C3.4, C3.5]
       description: The network alters, adds or removes plaintexts.
       instance_of: Compromised network
-      contexts:
-      - EAN
+      contexts: [EAN]
     mitigations:
-    - - Counted as recorded verifiability
-      - Proofs of shuffle and decryption bind the input ciphertexts to the output
-        plaintexts.
-  - _:
+      -
+        - Counted as recorded verifiability
+        - Proofs of shuffle and decryption bind the input ciphertexts to the output
+          plaintexts.
+  -
+    _:
       name: Compromised device
-      properties: C3.5.2
+      properties: [C3.5.2]
       description: The election administration server applies the tabulation algorithm
         incorrectly.
       instance_of: Compromised device
-      contexts:
-      - EAS
+      contexts: [EAS]
     mitigations:
-    - - Counted as recorded verifiability
-      - Counted as recorded verifiability can be extended to include tabulation such
-        that tabulation is independently computed by verifiers.
-  - _:
+      -
+        - Counted as recorded verifiability
+        - Counted as recorded verifiability can be extended to include tabulation such
+          that tabulation is independently computed by verifiers.
+  -
+    _:
       name: Corruption
-      properties: C3.5.2
+      properties: [C3.5.2]
       description: The election administrator manipulates the subsystem to tabulate
         incorrectly.
       instance_of: Corruption
-      contexts:
-      - EA
+      contexts: [EA]
     mitigations:
-    - - Counted as recorded verifiability
-      - Counted as recorded verifiability can be extended to include tabulation such
-        that tabulation is independently computed by verifiers.
+      -
+        - Counted as recorded verifiability
+        - Counted as recorded verifiability can be extended to include tabulation such
+          that tabulation is independently computed by verifiers.
 - _:
     name: Bad printing
   children:
-  - _:
+  -
+    _:
       name: Compromised device
-      properties: C3.6
+      properties: [C3.6]
       description: The trustee administration server sends plaintexts to the ballot
         printer incorrectly.
       instance_of: Compromised device
-      contexts:
-      - TAS
+      contexts: [TAS]
     mitigations:
-    - - Counted as recorded verifiability
-      - Proofs of shuffle and decryption bind the input ciphertexts to the output
-        plaintexts.
-    - - Message signatures
-      - Trustees sign messages as part of the shuffling protocol. The {TAS} would
-        need to forge these signatures to carry out the attack while evading detection.
-  - _:
+      -
+        - Counted as recorded verifiability
+        - Proofs of shuffle and decryption bind the input ciphertexts to the output
+          plaintexts.
+      -
+        - Message signatures
+        - Trustees sign messages as part of the shuffling protocol. The {TAS} would
+          need to forge these signatures to carry out the attack while evading detection.
+  -
+    _:
       name: Compromised device
-      properties: C3.6
+      properties: [C3.6]
       description: The ballot printer prints ballots from plaintexts incorrectly.
       instance_of: Compromised device
-      contexts:
-      - BP
+      contexts: [BP]
     mitigations:
-    - - Counted as recorded verifiability
-      - Proofs of shuffle and decryption bind the input ciphertexts to the output
-        plaintexts.
-  - _:
+      -
+        - Counted as recorded verifiability
+        - Proofs of shuffle and decryption bind the input ciphertexts to the output
+          plaintexts.
+  -
+    _:
       name: Network tampering
-      properties: C3.6
+      properties: [C3.6]
       description: The network alters, adds, or removes plaintexts sent to the ballot
         printer.
       instance_of: Compromised network
-      contexts:
-      - AGN
+      contexts: [AGN]
     mitigations:
-    - - Counted as recorded verifiability
-      - Proofs of shuffle and decryption bind the input ciphertexts to the output
-        plaintexts.
-  - _:
+      -
+        - Counted as recorded verifiability
+        - Proofs of shuffle and decryption bind the input ciphertexts to the output
+          plaintexts.
+  -
+    _:
       name: Corruption
-      properties: C3.6
+      properties: [C3.6]
       description: The election administrator manipulates the set of plaintexts sent
         to the ballot printer, or manipulates the ballot printer itself, to print
         an incorrect set of ballots.
       instance_of: Corruption
-      contexts:
-      - EA
+      contexts: [EA]
     mitigations:
-    - - Message signatures
-      - Trustees sign messages as part of the shuffling protocol. The {EA} would need
-        to forge these signatures to carry out the attack while evading detection.
-- _:
+      -
+        - Message signatures
+        - Trustees sign messages as part of the shuffling protocol. The {EA} would need
+          to forge these signatures to carry out the attack while evading detection.
+-
+  _:
     name: Premature tabulation
   children:
-  - _:
+  -
+    _:
       name: Corruption
-      properties: C3.7
+      properties: [C3.7]
       description: Several actors cooperate to produce a premature tally.
       instance_of: Corruption
-      contexts:
-      - EA
-      - TR
+      contexts: [EA, TR]
 
 ### Attacks on Verifiability ###
 
-- _:
+-
+  _:
     name: Malicious verification application
   children:
-  - _:
+  -
+    _:
       name: Cheating ballot checking application
-      properties: V1
+      properties: [V1]
       description: The checking application does not provide correct information about
         audited cryptograms.
       instance_of: Compromised user device
-      contexts:
-      - BCA
+      contexts: [BCA]
     mitigations:
-    - - Out of scope
-      - If the (ideally secondary) device used to execute cryptogram audits is compromised,
-        cast-as-intended verifiability is broken.
-  - _:
+      -
+        - Out of scope
+        - If the (ideally secondary) device used to execute cryptogram audits is compromised,
+          cast-as-intended verifiability is broken.
+  -
+    _:
       name: Cheating auditing application
       properties:
       - V2
@@ -883,718 +943,756 @@ attacks:
         operations correctly. See also {[further-remarks-checking-application][further
         remarks on the checking application]}.
       instance_of: Compromised user device
-      contexts:
-      - VER
+      contexts: [VER]
     mitigations:
-    - - Out of scope
-      - If the device used to perform ballot tracking code checks is compromised,
-        recorded-as-cast and counted-as-recorded verifiability are broken for the
-        user of that device. However, election audits ({V3}) can be carried out by
-        anyone and are general verifications that do not depend on specific ballot
-        tracking codes. Note that the compromise of arbitrary devices used to perform
-        election verification by arbitrary users is also out of scope.
-- _:
+      -
+        - Out of scope
+        - If the device used to perform ballot tracking code checks is compromised,
+          recorded-as-cast and counted-as-recorded verifiability are broken for the
+          user of that device. However, election audits ({V3}) can be carried out by
+          anyone and are general verifications that do not depend on specific ballot
+          tracking codes. Note that the compromise of arbitrary devices used to perform
+          election verification by arbitrary users is also out of scope.
+-
+  _:
     name: Malicious bulletin board
   children:
-  - _:
+  -
+    _:
       name: Cheating BB---cryptogram check
-      properties: V2
+      properties: [V2]
       description: The bulletin board does not provide correct information about cryptograms
         in the ballot box.
       instance_of: Compromised device
-      contexts:
-      - BB
-  - _:
+      contexts: [BB]
+  -
+    _:
       name: Cheating BB---election audit
-      properties:
-      - V2
-      - V3
+      properties: [V2, V3]
       description: The bulletin board does not provide correct election auditing information.
       instance_of: Compromised device
-      contexts:
-      - BB
-  - _:
+      contexts: [BB]
+  -
+    _:
       name: Cheating EA---cryptogram check
-      properties: V2
+      properties: [V2]
       description: The election administrator manipulates the bulletin board such
         that it does not not provide correct information about cryptograms in the
         ballot box.
       instance_of: Corruption
-      contexts:
-      - EA
-  - _:
+      contexts: [EA]
+  -
+    _:
       name: Cheating EA---election audit
-      properties:
-      - V2
-      - V3
+      properties: [V2, V3]
       description: The election administrator manipulates the bulletin board such
         that it does not not provide correct election auditing information.
       instance_of: Corruption
-      contexts:
-      - EA
-  - _:
+      contexts: [EA]
+  -
+    _:
       name: Clash attack
-      properties: V2
+      properties: [V2]
       description: The voting application encrypts identical votes with identical
         randomness. The election administrator manipulates the bulletin board such
         that many voters will perform checks against the same cryptogram.~{[[KustersEtAlClashAttacks2012]]}
       instance_of: Corruption
-      contexts:
-      - EA
+      contexts: [EA]
     mitigations:
-    - - Ballot uniqueness audit
-      - Cast as intended verifiability is augmented with ballot uniqueness checks.
-  - _:
+      -
+        - Ballot uniqueness audit
+        - Cast as intended verifiability is augmented with ballot uniqueness checks.
+  -
+    _:
       name: Time of Check to Time of Use---Compromised device
-      properties:
-      - V2
-      - V3
+      properties: [V2, V3]
       description: The bulletin board removes cryptograms between user checks and
         tallying.
       instance_of: Compromised device
-      contexts:
-      - BB
+      contexts: [BB]
     mitigations:
-    - - Tamper evident bulletin board
-      - If multiple observers perform verifications with overlapping intervals their
-        results become coupled. An adversary will need to account for this to remain
-        undetected, making undetected manipulations more difficult.
-  - _:
+      -
+        - Tamper evident bulletin board
+        - If multiple observers perform verifications with overlapping intervals their
+          results become coupled. An adversary will need to account for this to remain
+          undetected, making undetected manipulations more difficult.
+  -
+    _:
       name: Time of Check to Time of Use---Corruption
-      properties:
-      - V2
-      - V3
+      properties: [V2, V3]
       description: The election administrator manipulates the bulletin board such
         that cryptograms are removed between user checks and tallying.
       instance_of: Corruption
-      contexts:
-      - EA
+      contexts: [EA]
     mitigations:
-    - - Tamper evident bulletin board
-      - If multiple observers perform verifications with overlapping intervals their
-        results become coupled. An adversary will need to account for this to remain
-        undetected, making undetected manipulations more difficult.
-- _:
+      -
+        - Tamper evident bulletin board
+        - If multiple observers perform verifications with overlapping intervals their
+          results become coupled. An adversary will need to account for this to remain
+          undetected, making undetected manipulations more difficult.
+-
+  _:
     name: Broken shuffle proofs
   children:
-  - _:
+  -
+    _:
       name: Broken cryptography
-      properties: V3
+      properties: [V3]
       description: Shuffle proofs do not prove shuffle correctness.
       instance_of: Broken cryptography
-      contexts:
-      - TA
-- _:
+      contexts: [TA]
+-
+  _:
     name: Broken decryption proofs
   children:
-  - _:
+  -
+    _:
       name: Broken cryptography
-      properties: V3
+      properties: [V3]
       description: Decryption proofs do not prove decryption correctness.
       instance_of: Broken cryptography
-      contexts:
-      - TA
-- _:
+      contexts: [TA]
+-
+  _:
     name: Broken signatures
   children:
-  - _:
+  -
+    _:
       name: Broken cryptography
-      properties: V4
+      properties: [V4]
       description: Ballot signatures do not prove eligibility.
       instance_of: Broken cryptography
-      contexts:
-      - VA
-      - EAS
-      - BCA
-- _:
+      contexts: [VA, EAS, BCA]
+-
+  _:
     name: Compromised signature keys
   children:
-  - _:
+  -
+    _:
       name: Phishing
-      properties: V4
+      properties: [V4]
       description: The voter is deceived into revealing their ballot signing secret
         key material.
       instance_of: Phishing
-      contexts:
-      - VSIG
+      contexts: [VSIG]
     mitigations:
-    - - Out of scope
-      - VSIG
-      - If a voter can be social engineered into giving somebody else full access
-        to all required authentication credentials including private signing keys,
-        the new possessor of those credentials will be able to vote on their behalf,
-        and will be able to sign ballots in a way that will pass eligibility verification.
-- _:
+      -
+        - Out of scope
+        - VSIG
+        - If a voter can be social engineered into giving somebody else full access
+          to all required authentication credentials including private signing keys,
+          the new possessor of those credentials will be able to vote on their behalf,
+          and will be able to sign ballots in a way that will pass eligibility verification.
+-
+  _:
     name: Eligibility stuffing
   children:
-  - _:
+  -
+    _:
       name: Corruption
-      properties: V4
+      properties: [V4]
       description: The election administrator falsely identifies arbitrary signing
         public keys as eligible.
       instance_of: Corruption
-      contexts:
-      - EA
+      contexts: [EA]
     mitigations:
-    - - Auditable pseudonyms
-      - If pseudonym audits are performed the EA will be caught if it falsely identifies
-        signing public keys as eligible.
+      -
+        - Auditable pseudonyms
+        - If pseudonym audits are performed the EA will be caught if it falsely identifies
+          signing public keys as eligible.
 
 # Attacks on Dispute-freeness
 
-- _:
+-
+  _:
     name: Forged signatures
   children:
-  - _:
+  -
+    _:
       name: Forged system signature
-      properties: D1
+      properties: [D1]
       description: The voter forges a system signature on a ballot that was not cast.
       instance_of: Broken cryptography
-      contexts:
-      - SIG
-  - _:
+      contexts: [SIG]
+  -
+    _:
       name: Forged voter signature
-      properties: D2
+      properties: [D2]
       description: The election authority forges a voter signature on a ballot that
         was not cast.
       instance_of: Broken cryptography
-      contexts:
-      - SIG
-- _:
+      contexts: [SIG]
+-
+  _:
     name: Malicious reporting
   children:
-  - _:
+  -
+    _:
       name: Malicious reporting of VD
-      properties:
-      - A1
-      - D3
+      properties: [A1, D3]
       description: A sufficient number of voters falsely claim that their voting device
         is producing invalid cryptograms, so the election is invalidated. This attack
-        is possible if 1) the system does not satisfy D*-Dispute-freeness and 2) a
-        procedure is in place whereby an election outcome is invalidated if a sufficient
-        number of voters make reports.
+        is possible if 1) the system does not satisfy {D3} and 2) a procedure is in place
+        whereby an election outcome is invalidated if a sufficient number of voters
+        make reports.
     mitigations:
-    - - Out of scope
-      - Since the system does not satisfy D*-dispute-freeness, it may not be possible
-        to avoid this attack except by removing election invalidation altogether.
-        However, this undermines mitigation {M1} (Cast as intended verifiability)
-        against {Mismatched encryption} when few voters perform the ballot check.
-  - _:
+      -
+        - Out of scope
+        - Since the system does not satisfy D*-dispute-freeness, it may not be possible
+          to avoid this attack except by removing election invalidation altogether.
+          However, this undermines mitigation {M1} (Cast as intended verifiability) and
+          {M2} (Recorded as cast verifiability) against {Mismatched encryption}.
+  -
+    _:
       name: Vote receipt replay
-      properties:
-      - D1
+      properties: [D1]
       description: A voter presents a receipt for a previous election as a receipt
         for the current election, claiming that their cryptogram should be present
         in the bulletin board but is not
     mitigations:
-    - - Domain separation
-      - Receipts are unique to each election, and cannot be reused in future elections.
+      -
+        - Domain separation
+        - Receipts are unique to each election, and cannot be reused in future elections.
 
 # Attacks on Confidentiality
 
-- _:
+-
+  _:
     name: Physical observation
   children:
-  - _:
+  -
+    _:
       name: Shoulder surfing
-      properties: P1
+      properties: [P1]
       description: The voter is physically observed while using the voting application.
     mitigations:
-    - - Out of scope
-      - Preventing this attack is outside the system scope. If a voter allows, or
-        is coerced into allowing, an observer to watch their entire voting session,
-        that observer will learn how they voted. This can be mitigated in the coercion
-        case to some extent by allowing a voter to vote multiple times (across multiple
-        sessions) and keep only the last one (or only a specific one, though this
-        may not be possible without the use of out-of-band voting codes), in the hope
-        that they can complete a non-coerced session before the voting period ends.
+      -
+        - Out of scope
+        - Preventing this attack is outside the system scope. If a voter allows, or
+          is coerced into allowing, an observer to watch their entire voting session,
+          that observer will learn how they voted. This can be mitigated in the coercion
+          case to some extent by allowing a voter to vote multiple times (across multiple
+          sessions) and keep only the last one (or only a specific one, though this
+          may not be possible without the use of out-of-band voting codes), in the hope
+          that they can complete a non-coerced session before the voting period ends.
 
-- _:
+-
+  _:
     name: Leaked choices
   children:
-  - _:
+  -
+    _:
       name: Compromised voting device
-      properties: P1.1
+      properties: [P1.1]
       description: The voter's choices are recorded and leaked by the device running
         the voting application.
     mitigations:
-    - - Out of scope
-      - Achieving control over voter's devices necessary to prevent this attack is
-        outside the system scope.
-  - _:
+      -
+        - Out of scope
+        - Achieving control over voter's devices necessary to prevent this attack is
+          outside the system scope.
+  -
+    _:
       name: Side channel
-      properties: P1.1
+      properties: [P1.1]
       description: A side channel leaks voter's choices.
       instance_of: Side channel
-      contexts:
-      - VD
+      contexts: [VD]
     mitigations:
-    - - Out of scope
-      - VD
-      - It is impossible to prevent adversaries from observing voter devices in the
-        uncontrolled and practically unlimited range of environments in which a user
-        may interact with the {VA}.
+      -
+        - Out of scope
+        - VD
+        - It is impossible to prevent adversaries from observing voter devices in the
+          uncontrolled and practically unlimited range of environments in which a user
+          may interact with the {VA}.
 
-- _:
+-
+  _:
     name: Compromised key fragments
   children:
-  - _:
+  -
+    _:
       name: Compromised device
-      properties: P1.2
+      properties: [P1.2]
       description: Key fragments are leaked by the trustee application.
       instance_of: Compromised device
-      contexts:
-      - TA
+      contexts: [TA]
     mitigations:
-    - - Trust distribution
-      - If there are sufficient honest trustee applications, leaked key
-        fragments will not compromise the election key.
-  - _:
+      -
+        - Trust distribution
+        - If there are sufficient honest trustee applications, leaked key
+          fragments will not compromise the election key.
+  -
+    _:
       name: Corruption
-      properties: P1.2
+      properties: [P1.2]
       description: Key fragments are leaked by trustees.
       instance_of: Corruption
-      contexts:
-      - TR
-  - _:
+      contexts: [TR]
+  -
+    _:
       name: Side channel
-      properties: P1.2
+      properties: [P1.2]
       description: A side channel leaks key fragments.
       instance_of: Side channel
-      contexts:
-      - TA
+      contexts: [TA]
     mitigations:
-    - - Controlled environment
-      - Physical proximity necessary to observe indirect signals emerging from the
-        {TA} and related systems will be restricted. Adversaries will not be able
-        to exploit a side channel to extract key fragments. However, corrupt
-        trustees could potentially exploit such side channels to extract other
-        trustees' keys.
+      -
+        - Controlled environment
+        - Physical proximity necessary to observe indirect signals emerging from the
+          {TA} and related systems will be restricted. Adversaries will not be able
+          to exploit a side channel to extract key fragments. However, corrupt
+          trustees could potentially exploit such side channels to extract other
+          trustees' keys.
 
-- _:
+-
+  _:
     name: Compromised shuffle data
   children:
-  - _:
+  -
+    _:
       name: Compromised device
-      properties: P1.3
+      properties: [P1.3]
       description: Shuffle permutations or random factors are leaked by the trustee
         application.
       instance_of: Compromised device
-      contexts:
-      - TA
+      contexts: [TA]
     mitigations:
-    - - Trust distribution
-      - If at least one trustee application is honest, leaked shuffle permutations
-        or random factors will not affect the security of the shuffle.
-  - _:
+      -
+        - Trust distribution
+        - If at least one trustee application is honest, leaked shuffle permutations
+          or random factors will not affect the security of the shuffle.
+  -
+    _:
       name: Corruption
-      properties: P1.3
+      properties: [P1.3]
       description: Shuffle permutations or random factors are leaked by trustees.
       instance_of: Corruption
-      contexts:
-      - TR
-  - _:
+      contexts: [TR]
+  -
+    _:
       name: Side channel
-      properties: P1.3
+      properties: [P1.3]
       description: A side channel leaks permutations or random factors.
       instance_of: Side channel
-      contexts:
-      - TA
+      contexts: [TA]
     mitigations:
-    - - Controlled environment
-      - Physical proximity necessary to observe indirect signals emerging from the
-        {TA} and related systems will be restricted. Adversaries will not be able
-        to exploit a side channel to extract permutations or random factors.
+      -
+        - Controlled environment
+        - Physical proximity necessary to observe indirect signals emerging from the
+          {TA} and related systems will be restricted. Adversaries will not be able
+          to exploit a side channel to extract permutations or random factors.
 
-- _:
+-
+  _:
     name: Tally inference attack
   children:
-  - _:
+  -
+    _:
       name: Reduced anonymity set
-      properties: P1
+      properties: [P1]
       description: The number of participating voters is small enough that adversaries
         can infer significant information about the choices of individual voters.
     mitigations:
-    - - Out of scope
-      - The system cannot ensure that the anonymity set is large enough; the number
-        of participating voters could be small.
-  - _:
+      -
+        - Out of scope
+        - The system cannot ensure that the anonymity set is large enough; the number
+          of participating voters could be small.
+  -
+    _:
       name: Double tally attack---EA
-      properties: P1
+      properties: [P1]
       description: The election administrator rewinds the protocol and then submits
         a second, marginally different set of ciphertexts for tallying, revealing
         the choices of individual voters by comparing the result of each tally.
       instance_of: Corruption
-      contexts:
-      - EA
+      contexts: [EA]
     mitigations:
-    - - Append-only trustee board
-      - The trustee's local view of the protocol board is append-only, any attempt
-        to submit a second set of ciphertexts will be rejected.
-  - _:
+      -
+        - Append-only trustee board
+        - The trustee's local view of the protocol board is append-only, any attempt
+          to submit a second set of ciphertexts will be rejected.
+  -
+    _:
       name: Double tally attack---TAS
-      properties: P1
+      properties: [P1]
       description: The trustee application server rewinds the protocol and then submits
         a second, marginally different set of ciphertexts for tallying, revealing
         the choices of individual voters by comparing the result of each tally.
       instance_of: Compromised device
-      contexts:
-      - TAS
+      contexts: [TAS]
     mitigations:
-    - - Append-only trustee board
-      - The trustee's local view of the protocol board is append-only, any attempt
-        to submit a second set of ciphertexts will be rejected.
+      -
+        - Append-only trustee board
+        - The trustee's local view of the protocol board is append-only, any attempt
+          to submit a second set of ciphertexts will be rejected.
 
-- _:
+-
+  _:
     name: Broken encryption
   children:
-  - _:
+  -
+    _:
       name: Broken cryptography
-      properties: P1.2
+      properties: [P1.2]
       description: The cipher used to encrypt ballots is broken.
       instance_of: Broken cryptography
-      contexts:
-      - PKE
+      contexts: [PKE]
     mitigations:
-    - - Security proof
-      - A (preferably formal) security proof provides some level of assurance that
-        a cryptographic primitive is not broken.
+      -
+        - Security proof
+        - A (preferably formal) security proof provides some level of assurance that
+          a cryptographic primitive is not broken.
 
-- _:
+-
+  _:
     name: Unmixed decryption
   children:
-  - _:
+  -
+    _:
       name: Compromised device
-      properties: P1.4
+      properties: [P1.4]
       description: Unmixed ciphertexts are decrypted and leaked by the trustee application.
       instance_of: Compromised device
-      contexts:
-      - TA
+      contexts: [TA]
     mitigations:
-    - - Trust distribution
-      - A single trustee application should not be able to decrypt unmixed ciphertexts
-        on its own, assuming that the trustee threshold for decryption is chosen
-        appropriately and there are enough honest trustees.
-  - _:
+      -
+        - Trust distribution
+        - A single trustee application should not be able to decrypt unmixed ciphertexts
+          on its own, assuming that the trustee threshold for decryption is chosen
+          appropriately and there are enough honest trustees.
+  -
+    _:
       name: Corruption
-      properties: P1.4
+      properties: [P1.4]
       description: Unmixed ciphertexts are decrypted and leaked by trustees.
       instance_of: Corruption
-      contexts:
-      - TR
+      contexts: [TR]
 
-- _:
+-
+  _:
     name: Broken ballot independence
   children:
-  - _:
+  -
+    _:
       name: Malleability attack
-      properties: P1
+      properties: [P1]
       description: An adversary uses encryption malleability to construct a ballot
         related to a target ballot to reveal it [BPW16].
     mitigations:
-    - - Non-malleable cryptosystem
-      - The adversary cannot cast a related ballot.
-    - - Proof of plaintext knowledge
-      - Adversaries casting related ballots will not be able to produce proofs of
-        plaintext knowledge. Their ballots will be rejected at submission or mixing
-        time.
-  - _:
+      -
+        - Non-malleable cryptosystem
+        - The adversary cannot cast a related ballot.
+      -
+        - Proof of plaintext knowledge
+        - Adversaries casting related ballots will not be able to produce proofs of
+          plaintext knowledge. Their ballots will be rejected at submission or mixing
+          time.
+  -
+    _:
       name: Ballot copying
-      properties: P1
+      properties: [P1]
       description: An adversary copies a target ballot to reveal it, including its
         proof of plaintext knowledge.
     mitigations:
-    - - Ballot weeding
-      - Because duplicate ballots are discarded they will not feature in the output
-        plaintexts, and cannot be used to reveal their source ballot.
+      -
+        - Ballot weeding
+        - Because duplicate ballots are discarded they will not feature in the output
+          plaintexts, and cannot be used to reveal their source ballot.
 
-- _:
+-
+  _:
     name: Wrong public key
   children:
-  - _:
+  -
+    _:
       name: Compromised device
-      properties: P1.2
+      properties: [P1.2]
       description: One or more subsystems replace the election public key.
       instance_of: Compromised device
-      contexts:
-      - TAS
-      - EAS
-      - EST
+      contexts: [TAS, EAS, EST]
     mitigations:
-    - - Message signatures
-      - Trustees sign messages as part of the key generation protocol. Assuming that
-        the {VA} validates the signatures on received public keys, the compromised
-        devices would need to forge these signatures to carry out the attack.
-  - _:
+      -
+        - Message signatures
+        - Trustees sign messages as part of the key generation protocol. Assuming that
+          the {VA} validates the signatures on received public keys, the compromised
+          devices would need to forge these signatures to carry out the attack.
+  -
+    _:
       name: Compromised network
-      properties: P1.2
+      properties: [P1.2]
       description: One or more networks replace the election public key.
       instance_of: Compromised network
-      contexts:
-      - EAN
-      - IN
+      contexts: [EAN, IN]
     mitigations:
-    - - Message signatures
-      - Trustees sign messages as part of the key generation protocol. Assuming that
-        the {VA} validates the signatures on received public keys, the compromised
-        networks would need to forge these signatures to carry out the attack.
-  - _:
+      -
+        - Message signatures
+        - Trustees sign messages as part of the key generation protocol. Assuming that
+          the {VA} validates the signatures on received public keys, the compromised
+          networks would need to forge these signatures to carry out the attack.
+  -
+    _:
       name: Corruption
-      properties: P1.2
+      properties: [P1.2]
       description: The election administrator replaces the election public key.
       instance_of: Corruption
-      contexts:
-      - EA
+      contexts: [EA]
     mitigations:
-    - - Message signatures
-      - Trustees sign messages as part of the key generation protocol. Assuming that
-        the {VA} validates the signatures on received public keys, the EA would need
-        to forge these signatures to carry out the attack.
+      -
+        - Message signatures
+        - Trustees sign messages as part of the key generation protocol. Assuming that
+          the {VA} validates the signatures on received public keys, the EA would need
+          to forge these signatures to carry out the attack.
 
-- _:
+-
+  _:
     name: Malicious public key
   children:
-  - _:
+  -
+    _:
       name: Corruption
-      properties: P1.2
+      properties: [P1.2]
       description: Trustees compute the public key maliciously.
       instance_of: Corruption
-      contexts:
-      - TR
+      contexts: [TR]
     mitigations:
-    - - Out of scope
-      - If a sufficient number of corrupt trustees collude to generate a malicious
-        public key, there is no way for the system to stop them from doing so.
+      -
+        - Out of scope
+        - If a sufficient number of corrupt trustees collude to generate a malicious
+          public key, there is no way for the system to stop them from doing so.
 - _:
     name: Future decryption
   children:
-  - _:
+  -
+    _:
       name: Unbounded computation
-      properties: P2
+      properties: [P2]
       description: A future computationally unbounded adversary breaks ballot encryption.
         The adversary can then decrypt ballots that were published for the purposes
         of achieving verifiability properties.
     mitigations:
-    - - Voter pseudonyms
-      - Even if ciphertexts are decrypted in the future they cannot be linked with
-        real identities using public information.
+      -
+        - Voter pseudonyms
+        - Even if ciphertexts are decrypted in the future they cannot be linked with
+          real identities using public information.
 
-- _:
+-
+  _:
     name: Proof of choices
   children:
-  - _:
+  -
+    _:
       name: Randomness extraction
-      properties: P3.1
+      properties: [P3.1]
       description: The randomness used in encryption is extracted from the voting
         application.
     mitigations:
-    - - Out of scope
-      - If a voter is sufficiently motivated and has sufficient knowledge/skill to
-        extract the randomness used in encryption of their own vote (by any means,
-        ranging from low-level debugging on-device to replacing the application with
-        a counterfeit that reveals the randomness), the system cannot stop them from
-        doing so. However, in the absence of such a motivated and skilled voter, this
-        attack can be mitigated using the same techniques that mitigate against counterfeit
-        voter applications generally, as the real voting application will never reveal
-        the randomness used in encryption of a cast ballot.
-  - _:
+      -
+        - Out of scope
+        - If a voter is sufficiently motivated and has sufficient knowledge/skill to
+          extract the randomness used in encryption of their own vote (by any means,
+          ranging from low-level debugging on-device to replacing the application with
+          a counterfeit that reveals the randomness), the system cannot stop them from
+          doing so. However, in the absence of such a motivated and skilled voter, this
+          attack can be mitigated using the same techniques that mitigate against counterfeit
+          voter applications generally, as the real voting application will never reveal
+          the randomness used in encryption of a cast ballot.
+  -
+    _:
       name: Italian attack
-      properties: P3.1
+      properties: [P3.1]
       description: The voter emulates a signature by encoding a unique choice in a
         large plaintext space.
     mitigations:
-    - - Out of scope
-      - The system has no way to restrict the sets of choices that voters can make
-        (other than any restrictions imposed by the rules of the election). However,
-        there is research on tally hiding voting systems such as
-        Küsters et al.~{[[KustersEtAlOrdinosVerifiable2020]]}
-  - _:
+      -
+        - Out of scope
+        - The system has no way to restrict the sets of choices that voters can make
+          (other than any restrictions imposed by the rules of the election). However,
+          there is research on tally hiding voting systems such as
+          Küsters et al.~{[[KustersEtAlOrdinosVerifiable2020]]}
+  -
+    _:
       name: Recording malware
-      properties: P1
+      properties: [P1]
       description: The voting device records and exfiltrates the entire voting session,
         including authentication and final submission, without the voter's knowledge.
+      instance_of: Compromised device.Malware
     mitigations:
-    - - Out of scope
-      - While there are mitigations that can be applied to prevent malicious software
-        from infecting the voting device, these can only be applied by voters of their
-        own accord and are therefore out of scope.
-  - _:
+      -
+        - Out of scope
+        - While there are mitigations that can be applied to prevent malicious software
+          from infecting the voting device, these can only be applied by voters of their
+          own accord and are therefore out of scope.
+  -
+    _:
       name: Manual recording
-      properties: P3.2
+      properties: [P3.2]
       description: The voter records their own entire voting session, including authentication
         and final submission, using device screen recording capabilities or an external
         camera.
     mitigations:
-    - - Out of scope
-      - While it is possible on some platforms to mitigate this attack with respect
-        to on-device screen recording capabilities (by either disabling/restricting
-        screen recording, or corrupting/obstructing screen recordings when they are
-        detected), it is not possible for the system to prevent a voter from using
-        a completely separate video recording device to record their own voting session
-        in its entirety. This is, essentially, the digital analogue to
-        {Physical observation.Shoulder surfing} (Shoulder surfing).
+      -
+        - Out of scope
+        - While it is possible on some platforms to mitigate this attack with respect
+          to on-device screen recording capabilities (by either disabling/restricting
+          screen recording, or corrupting/obstructing screen recordings when they are
+          detected), it is not possible for the system to prevent a voter from using
+          a completely separate video recording device to record their own voting session
+          in its entirety. This is, essentially, the digital analogue to
+          {Physical observation.Shoulder surfing} (Shoulder surfing).
 
 # Attacks on Availability
 
-- _:
+-
+  _:
     name: Denial of service
   children:
-  - _:
+  -
+    _:
       name: Targeted DoS (Infrastructure)
-      properties:
-      - A1
-      - A2
+      properties: [A1, A2]
       description: One or more components of the system infrastructure are targeted
         by a denial of service attack preventing timely access to the voting system
         (e.g., an attack on the authentication service preventing authentication of
         voters).
     mitigations:
-    - - Denial of service protection
-      - This attack can be mitigated by standard denial of service mitigation techniques
-        typically used for Internet services. These include the deployment of protective
-        services such as Akamai and Cloudflare (especially for large/high stakes elections),
-        proper configuration of firewall rules on election administration networks
-        and cloud-based services, and per-client rate limiting of requests to prevent
-        application-level denial of service (e.g., submission of many bad protocol
-        messages by corrupted clients delaying the processing of legitimate protocol
-        messages).
-  - _:
+      -
+        - Denial of service protection
+        - This attack can be mitigated by standard denial of service mitigation techniques
+          typically used for Internet services. These include the deployment of protective
+          services such as Akamai and Cloudflare (especially for large/high stakes elections),
+          proper configuration of firewall rules on election administration networks
+          and cloud-based services, and per-client rate limiting of requests to prevent
+          application-level denial of service (e.g., submission of many bad protocol
+          messages by corrupted clients delaying the processing of legitimate protocol
+          messages).
+  -
+    _:
       name: Indiscriminate DoS
-      properties:
-      - A1
-      - A2
+      properties: [A1, A2]
       description: Internet infrastructure as a whole in one or more regions running
         an election is degraded to the point of unusability by a denial of service
         attack.
     mitigations:
-    - - Out of scope
-      - Preventing this attack is outside the system scope, as the system cannot control
-        Internet infrastructure. However, it can be mitigated by geographic diversity
-        of servers for elections where such diversity can be achieved (e.g., parts
-        of the infrastructure in the cloud can be replicated across multiple cloud
-        regions so that regional disruptions don't take down the entire system).
-  - _:
+      -
+        - Out of scope
+        - Preventing this attack is outside the system scope, as the system cannot control
+          Internet infrastructure. However, it can be mitigated by geographic diversity
+          of servers for elections where such diversity can be achieved (e.g., parts
+          of the infrastructure in the cloud can be replicated across multiple cloud
+          regions so that regional disruptions don't take down the entire system).
+  -
+    _:
       name: Targeted DoS (Voters)
-      properties:
-      - A1
-      - A2
+      properties: [A1, A2]
       description: A specific voter or group of voters is targeted by a denial of
         service attack preventing timely access to the voting system.
     mitigations:
-    - - Out of scope
-      - Preventing this attack is outside the system scope, as the system cannot control
-        the Internet access capabilities of the voters. One way to mitigate this attack
-        is to provide voters with Internet access at locations like public libraries,
-        election offices, coffee shops, etc., that would allow them to cast their
-        ballots outside their ``home'' network (which is presumably what is being
-        targeted in this scenario). Another is for the voting period to be long enough
-        that such a targeted DoS does not prevent the voter from accessing the voting
-        system at some convenient time during the voting period.
-  - _:
+      -
+        - Out of scope
+        - Preventing this attack is outside the system scope, as the system cannot control
+          the Internet access capabilities of the voters. One way to mitigate this attack
+          is to provide voters with Internet access at locations like public libraries,
+          election offices, coffee shops, etc., that would allow them to cast their
+          ballots outside their ``home'' network (which is presumably what is being
+          targeted in this scenario). Another is for the voting period to be long enough
+          that such a targeted DoS does not prevent the voter from accessing the voting
+          system at some convenient time during the voting period.
+  -
+    _:
       name: Spoofing
-      properties:
-      - C1.1
-      - P1
-      - A1
-      - A2
+      properties: [C1.1, P1, A1, A2]
       description: The voter is deceived into voting through a counterfeit application.
       instance_of: Spoofing
-      contexts:
-      - VA
+      contexts: [VA]
       parents: [Mismatched encryption, Leaked choices]
     mitigations:
-    - - Out of scope
-      - If a sufficiently capable counterfeit application exists, and a voter is deceived
-        into voting with it, it can effectively carry out any other attack on this
-        list that involves a compromised voter application, though all mitigations
-        against those attacks also serve as mitigations against this one. There are
-        also several ways to mitigate this attack by reducing both the likelihood
-        of such a counterfeit application existing and and the likelihood of such
-        an application successfully deceiving voters. These include the use of trusted
-        mobile application stores, high-profile announcements to voters to only trust
-        applications from specific sources, and other techniques commonly used to
-        validate software distributions.
+      -
+        - Out of scope
+        - If a sufficiently capable counterfeit application exists, and a voter is deceived
+          into voting with it, it can effectively carry out any other attack on this
+          list that involves a compromised voter application, though all mitigations
+          against those attacks also serve as mitigations against this one. There are
+          also several ways to mitigate this attack by reducing both the likelihood
+          of such a counterfeit application existing and and the likelihood of such
+          an application successfully deceiving voters. These include the use of trusted
+          mobile application stores, high-profile announcements to voters to only trust
+          applications from specific sources, and other techniques commonly used to
+          validate software distributions.
 
-- _:
+-
+  _:
     name: Internal sabotage
   children:
-  - _:
+  -
+    _:
       name: Subsystem sabotage
-      properties:
-      - A1
-      - A2
-      - A3
-      - A4
+      properties: [A1, A2, A3, A4]
       description: One or more subsystems fail to operate in a timely fashion.
       instance_of: Compromised device
-      contexts:
-      - SUB
+      contexts: [SUB]
     mitigations:
-    - - Operational redundancy
-      - A subsystem employing redundancy allows it to continue operating even if an
-        instance of it fails. Note this mitigation is distinct from (and at a layer
-        ``above'') mitigations aimed at preventing such an instance from being compromised
-        to begin with.
-  - _:
+      -
+        - Operational redundancy
+        - A subsystem employing redundancy allows it to continue operating even if an
+          instance of it fails. Note this mitigation is distinct from (and at a layer
+          ``above'') mitigations aimed at preventing such an instance from being compromised
+          to begin with.
+  -
+    _:
       name: Network sabotage
-      properties:
-      - A1
-      - A2
-      - A3
-      - A4
+      properties: [A1, A2, A3, A4]
       description: One or more networks fail to operate in a timely fashion.
       instance_of: Compromised network.Network sabotage
-      contexts:
-      - AGN
-      - EAN
-      - EON
+      contexts: [AGN, EAN, EON]
     mitigations:
-    - - Operational redundancy
-      - Redundant networks provide multiple paths for traffic allowing data to be
-        transferred in the event of failures.
-  - _:
+      -
+        - Operational redundancy
+        - Redundant networks provide multiple paths for traffic allowing data to be
+          transferred in the event of failures.
+  -
+    _:
       name: Tally sabotage---Overwhelming corruption
-      properties: A3
+      properties: [A3]
       description: A number of trustees sufficient to prevent decryption choose not
         to participate, or are prevented from participating, in the decryption/mixing/tallying
         process.
     mitigations:
-    - - Out of scope
-      - The use of multiple trustees in a threshold configuration is already a redundancy
-        mechanism against tally disruption. If this mechanism fails there is no recourse.
-        The number of trustees, the required threshold, and the trustees themselves
-        should be chosen accordingly.
-  - _:
+      -
+        - Out of scope
+        - The use of multiple trustees in a threshold configuration is already a redundancy
+          mechanism against tally disruption. If this mechanism fails there is no recourse.
+          The number of trustees, the required threshold, and the trustees themselves
+          should be chosen accordingly.
+  -
+    _:
       name: Keygen sabotage---Corruption
-      properties: A4
+      properties: [A4]
       description: One or more trustees choose not to participate, or are prevented
         from participating, in the key generation process.
       instance_of: Corruption
-      contexts:
-      - TR
+      contexts: [TR]
     mitigations:
-    - - Out of scope
-      - The selection of trustees is assumed to be done in a way such that the
-        likelihood of them choosing not to participate is mimimal. In the event that
-        not enough trustees are able to participate in key generation, new trustees
-        must be chosen.
-  - _:
+      -
+        - Out of scope
+        - The selection of trustees is assumed to be done in a way such that the
+          likelihood of them choosing not to participate is mimimal. In the event that
+          not enough trustees are able to participate in key generation, new trustees
+          must be chosen.
+  -
+    _:
       name: Election sabotage---Corruption
-      properties:
-      - A1
-      - A2
-      - A3
-      - A4
+      properties: [A1, A2, A3, A4]
       description: The election authority disrupts the election.
       instance_of: Corruption
-      contexts:
-      - EA
+      contexts: [EA]
     mitigations:
-    - - Out of scope
-      - The election authority has the ability to disrupt the election in myriad
-        ways, ranging from simply never initiating the counting process to
-        intentionally disabling/destroying some or all of the subsystems. The
-        system cannot mitigate against these.
+      -
+        - Out of scope
+        - The election authority has the ability to disrupt the election in myriad
+          ways, ranging from simply never initiating the counting process to
+          intentionally disabling/destroying some or all of the subsystems. The
+          system cannot mitigate against these.
 
 # ===========================================================================
 # Mitigations aim to prevent an attack, or lessen its impact. Each mitigation
@@ -1604,165 +1702,165 @@ attacks:
 #
 # Json Schema:
 #
-# See parse.py::json_schema().
+# See file `threat-model-schema.json`.
 mitigations:
   M1:
-  - Cast as intended verifiability
-  - A voter can verify that their ballot was cast as they intended.
-  - partially-core
+    - Cast as intended verifiability
+    - A voter can verify that their ballot was cast as they intended.
+    - partially-core
   M2:
-  - Recorded as cast verifiability
-  - A voter can verify that their recorded ballot is identical to the one they cast.
-  - partially-core
+    - Recorded as cast verifiability
+    - A voter can verify that their recorded ballot is identical to the one they cast.
+    - partially-core
   M3:
-  - Counted as recorded verifiability
-  - A voter can verify that their ballot was counted.
-  - partially-core
+    - Counted as recorded verifiability
+    - A voter can verify that their ballot was counted.
+    - partially-core
   M4:
-  - Eligibility verifiability
-  - An independent verifier can verify that no ineligible ballots were counted.
-  - partially-core
+    - Eligibility verifiability
+    - An independent verifier can verify that no ineligible ballots were counted.
+    - partially-core
   M5:
-  - Message signatures
-  - Messages on the network are digitally signed.
-  - core
+    - Message signatures
+    - Messages on the network are digitally signed.
+    - core
   M6:
-  - TLS
-  - Messages on the network use transport level security.
-  - non-core
+    - TLS
+    - Messages on the network use transport level security.
+    - non-core
   M7:
-  - Cybersecurity---Malware
-  - The system deployment incorporates general cybersecurity practices aimed to protect
-    against malware.
-  - non-core
+    - Cybersecurity---Malware
+    - The system deployment incorporates general cybersecurity practices aimed to protect
+      against malware.
+    - non-core
   M8:
-  - Cybersecurity---Intrusion
-  - The system deployment incorporates general cybersecurity practices aimed to protect
-    against intrusion.
-  - non-core
+    - Cybersecurity---Intrusion
+    - The system deployment incorporates general cybersecurity practices aimed to protect
+      against intrusion.
+    - non-core
   M9:
-  - Cybersecurity---Escalation
-  - The system deployment incorporates general cybersecurity practices aimed to protect
-    against privilege escalation.
-  - non-core
+    - Cybersecurity---Escalation
+    - The system deployment incorporates general cybersecurity practices aimed to protect
+      against privilege escalation.
+    - non-core
   M10:
-  - Cybersecurity---Virtualization
-  - The system deployment incorporates general cybersecurity practices aimed to protect
-    against virtualization-related attack vectors.
-  - non-core
+    - Cybersecurity---Virtualization
+    - The system deployment incorporates general cybersecurity practices aimed to protect
+      against virtualization-related attack vectors.
+    - non-core
   M11:
-  - Dependency minimization
-  - External software dependencies are minimized to those that are essential to system
-    operation.
-  - partially-core
+    - Dependency minimization
+    - External software dependencies are minimized to those that are essential to system
+      operation.
+    - partially-core
   M12:
-  - Security proof
-  - A security proof of the protocol provides evidence that the selected primitives
-    are secure with respect to precise assumptions and choices of security parameters.
-  - core
+    - Security proof
+    - A security proof of the protocol provides evidence that the selected primitives
+      are secure with respect to precise assumptions and choices of security parameters.
+    - core
   M13:
-  - Formal verification
-  - Formal verification techniques are used to formally prove implementation correctness
-    for internal code.
-  - partially-core
+    - Formal verification
+    - Formal verification techniques are used to formally prove implementation correctness
+      for internal code.
+    - partially-core
   M14:
-  - External audits
-  - External performers are engaged to conduct source code audits of internal code.
-  - non-core
+    - External audits
+    - External performers are engaged to conduct source code audits of internal code.
+    - non-core
   M15:
-  - Formally verified dependencies
-  - External software dependencies are selected prioritizing those that have been
-    subject to previous verification.
-  - partially-core
+    - Formally verified dependencies
+    - External software dependencies are selected prioritizing those that have been
+      subject to previous verification.
+    - partially-core
   M16:
-  - Audited platforms
-  - OS/Hardware dependencies are selected prioritizing those that have been subject
-    to audits.
-  - non-core
+    - Audited platforms
+    - OS/Hardware dependencies are selected prioritizing those that have been subject
+      to audits.
+    - non-core
   M17:
-  - Trust distribution
-  - The actor's role is distributed such that the cooperation of several parties is
-    required to perform its operations. An adversary must control or convince a sufficient
-    number of parties to carry out the attack. The use of a threshold cryptographic
-    system is an example of Trust distribution, but also of {M25} (Operational redundancy).
-  - partially-core
+    - Trust distribution
+    - The actor's role is distributed such that the cooperation of several parties is
+      required to perform its operations. An adversary must control or convince a sufficient
+      number of parties to carry out the attack. The use of a threshold cryptographic
+      system is an example of Trust distribution, but also of {M25} (Operational redundancy).
+    - partially-core
   M18:
-  - Ballot uniqueness audit
-  - 'From Küsters et al.~{[[KustersEtAlClashAttacks2012]]}: In addition to checking
-    whether the audited ballot is in fact computed with the voter''s choice and the
-    random coins provided by the browser for that ballot, a voter also ensures that
-    all ballots (including the submitted ballot) constructed by the browser are different.
-    For this purpose, a voter would typically record the ballots in some way, e.g.,
-    by having them emailed to her, and then compare these ballots.'
-  - partially-core
+    - Ballot uniqueness audit
+    - 'From Küsters et al.~{[[KustersEtAlClashAttacks2012]]}: In addition to checking
+      whether the audited ballot is in fact computed with the voter''s choice and the
+      random coins provided by the browser for that ballot, a voter also ensures that
+      all ballots (including the submitted ballot) constructed by the browser are different.
+      For this purpose, a voter would typically record the ballots in some way, e.g.,
+      by having them emailed to her, and then compare these ballots.'
+    - partially-core
   M19:
-  - Tamper evident bulletin board
-  - A hash chain is used to implement the bulletin board.
-  - partially-core
+    - Tamper evident bulletin board
+    - A hash chain is used to implement the bulletin board.
+    - partially-core
   M20:
-  - Controlled environment
-  - The physical location housing the {AGN} as well as the hardware on which the {TA}
-    and {TAS} run is a controlled environment with restricted access.
-  - non-core
+    - Controlled environment
+    - The physical location housing the {AGN} as well as the hardware on which the {TA}
+      and {TAS} run is a controlled environment with restricted access.
+    - non-core
   M21:
-  - Non-malleable cryptosystem
-  - A CCA2-secure cryptosystem (e.g., Naor-Yung) is used to make ciphertexts non-malleable.
-  - core
+    - Non-malleable cryptosystem
+    - A CCA2-secure cryptosystem (e.g., Naor-Yung) is used to make ciphertexts non-malleable.
+    - core
   M22:
-  - Proof of plaintext knowledge
-  - Zero-knowledge proofs of plaintext knowledge attached to cast ballots are required
-    when casting. Adversaries casting related ballots will not be able to produce
-    such proofs. See Bernhard et al.~{[[BernhardEtAlHowNot2012a]]}
-  - core
+    - Proof of plaintext knowledge
+    - Zero-knowledge proofs of plaintext knowledge attached to cast ballots are required
+      when casting. Adversaries casting related ballots will not be able to produce
+      such proofs. See Bernhard et al.~{[[BernhardEtAlHowNot2012a]]}
+    - core
   M23:
-  - Ballot weeding
-  - Duplicates are removed from the set of ballots submitted to the mixnet; see Bernhard
-    et al.~{[[BernhardEtAlAdaptingHelios2011]]} Typically a duplicate ballot is defined
-    as a ballot that is identical to one cast previously. It is important to carefully
-    consider when the duplicate weeding takes place, either at cast time or during
-    mixnet submission. For example, detection at cast time can lead to performance
-    problems, whereas postponing this to mixnet submission time can lead to disputes.
-  - partially-core
+    - Ballot weeding
+    - Duplicates are removed from the set of ballots submitted to the mixnet; see Bernhard
+      et al.~{[[BernhardEtAlAdaptingHelios2011]]} Typically a duplicate ballot is defined
+      as a ballot that is identical to one cast previously. It is important to carefully
+      consider when the duplicate weeding takes place, either at cast time or during
+      mixnet submission. For example, detection at cast time can lead to performance
+      problems, whereas postponing this to mixnet submission time can lead to disputes.
+    - partially-core
   M24:
-  - Voter pseudonyms
-  - Data published to achieve {M4} (Eligibility verifiability) only reveals pseudonyms.
-    Even if ballot encryption is compromised, its content cannot be linked to real
-    identities using public information. See Haines et al.~{[[HainesEtAlSoKSecure2023]]}
-    for other approaches to everlasting privacy.
-  - core
+    - Voter pseudonyms
+    - Data published to achieve {M4} (Eligibility verifiability) only reveals pseudonyms.
+      Even if ballot encryption is compromised, its content cannot be linked to real
+      identities using public information. See Haines et al.~{[[HainesEtAlSoKSecure2023]]}
+      for other approaches to everlasting privacy.
+    - core
   M25:
-  - Operational redundancy
-  - The use of redundant subsystems or actors allows individual elements to fail without
-    compromising the overall operation of the system. The use of a threshold cryptographic
-    system is an example of Operational redundancy, but also of {M17} (Trust distribution).
-  - partially-core
+    - Operational redundancy
+    - The use of redundant subsystems or actors allows individual elements to fail without
+      compromising the overall operation of the system. The use of a threshold cryptographic
+      system is an example of Operational redundancy, but also of {M17} (Trust distribution).
+    - partially-core
   M26:
-  - Denial of service protection
-  - Standard denial of service protection techniques, typically offered by cloud vendors,
-    are employed.
-  - non-core
+    - Denial of service protection
+    - Standard denial of service protection techniques, typically offered by cloud vendors,
+      are employed.
+    - non-core
   M27:
-  - Cybersecurity---Supply chains
-  - The system deployment incorporates general cybersecurity practices aimed to protect
-    against supply chain attacks, for example attestation.
-  - non-core
+    - Cybersecurity---Supply chains
+    - The system deployment incorporates general cybersecurity practices aimed to protect
+      against supply chain attacks, for example attestation.
+    - non-core
   M28:
-  - Domain separation
-  - Cryptographic primitives are used in a way that ensures that they are not used
-    in multiple contexts.
-  - partially-core
+    - Domain separation
+    - Cryptographic primitives are used in a way that ensures that they are not used
+      in multiple contexts.
+    - partially-core
   M29:
-  - Append-only trustee board
-  - Each trustee maintains a local, append-only view of the protocol board.
-  - partially-core
+    - Append-only trustee board
+    - Each trustee maintains a local, append-only view of the protocol board.
+    - partially-core
   M30:
-  - Auditable pseudonyms
-  - Pseudonyms can be constructed from auditable, but private, information using
-    a one way function. This allows external auditors to privately verify that the
-    identities certified by the EA are in fact eligible, without revealing those
-    identities to the public (note that even if these identities were revealed,
-    ballots are still protected by encryption).
-  - non-core
+    - Auditable pseudonyms
+    - Pseudonyms can be constructed from auditable, but private, information using
+      a one way function. This allows external auditors to privately verify that the
+      identities certified by the EA are in fact eligible, without revealing those
+      identities to the public (note that even if these identities were revealed,
+      ballots are still protected by encryption).
+    - non-core
 
 
 # Contexts are used when instantiating abstract attacks. They represent the loose
@@ -1776,7 +1874,7 @@ mitigations:
 #
 # Json Schema:
 #
-# See parse.py::json_schema().
+# See file `threat-model-schema.json`.
 contexts:
   AS: [Authentication Service, Subsystem]
   AGN: [Air-Gapped Network, Network]
@@ -1812,63 +1910,63 @@ contexts:
 #
 # Json Schema:
 #
-# See parse.py::json_schema().
+# See file `threat-model-schema.json`.
 stride:
   STR_SPOOFING:
-  - Spoofing
-  - [CORRECTNESS]
+    - Spoofing
+    - [CORRECTNESS]
   STR_TAMPERING:
-  - Tampering
-  - [CORRECTNESS, VERIFIABILITY]
+    - Tampering
+    - [CORRECTNESS, VERIFIABILITY]
   STR_REPUDIATION:
-  - Repudiation
-  - [DISPUTE_FREENESS, VERIFIABILITY]
+    - Repudiation
+    - [DISPUTE_FREENESS, VERIFIABILITY]
   STR_INFORMATION_DISCLOSURE:
-  - Information Disclosure
-  - [CONFIDENTIALITY]
+    - Information Disclosure
+    - [CONFIDENTIALITY]
   STR_DENIAL_OF_SERVICE:
-  - Denial of Service
-  - [AVAILABILITY]
+    - Denial of Service
+    - [AVAILABILITY]
   STR_ELEVATION_OF_PRIVILEGE:
-  - Elevation of Privilege
-  - [CORRECTNESS, CONFIDENTIALITY]
+    - Elevation of Privilege
+    - [CORRECTNESS, CONFIDENTIALITY]
 
 # E-voting properties and their relationship with Properties
 #
 # Json Schema:
 #
-# See parse.py::json_schema().
+# See file `threat-model-schema.json`.
 e-voting:
   EV_ACCURACY:
-  - Accuracy
-  - [CORRECTNESS]
+    - Accuracy
+    - [CORRECTNESS]
   EV_ELIGIBILITY:
-  - Eligibility
-  - [CORRECTNESS]
+    - Eligibility
+    - [CORRECTNESS]
   EV_FAIRNESS:
-  - Fairness
-  - [CORRECTNESS]
-  EV_DISPUTE_FRENESS:
-  - EV-Dispute-freeness
-  - [DISPUTE_FREENESS]
+    - Fairness
+    - [CORRECTNESS]
+  EV_DISPUTE_FREENESS:
+    - EV-Dispute-freeness
+    - [DISPUTE_FREENESS]
   EV_VERIFIABILITY:
-  - EV-Verifiability
-  - [VERIFIABILITY]
+    - EV-Verifiability
+    - [VERIFIABILITY]
   EV_PRIVACY:
-  - Privacy
-  - [CONFIDENTIALITY]
+    - Privacy
+    - [CONFIDENTIALITY]
   EV_EVERLASTING_PRIVACY:
-  - Everlasting privacy
-  - [CONFIDENTIALITY]
+    - Everlasting privacy
+    - [CONFIDENTIALITY]
   EV_RECEIPT_FREENESS:
-  - Receipt-freeness
-  - [CONFIDENTIALITY]
+    - Receipt-freeness
+    - [CONFIDENTIALITY]
   EV_COERCION_RESISTANCE:
-  - Coercion-resistance
-  - [CONFIDENTIALITY]
+    - Coercion-resistance
+    - [CONFIDENTIALITY]
   EV_ROBUSTNESS:
-  - Robustness
-  - [AVAILABILITY]
+    - Robustness
+    - [AVAILABILITY]
   EV_SCALABILITY:
-  - Scalability
-  - [AVAILABILITY]
+    - Scalability
+    - [AVAILABILITY]
