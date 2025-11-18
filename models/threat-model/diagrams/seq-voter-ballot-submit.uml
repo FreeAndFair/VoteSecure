@@ -1,0 +1,17 @@
+@startuml
+
+skinparam sequenceMessageAlign direction
+skinparam responseMessageBelowArrow true
+autonumber
+
+actor Voter
+entity VotingApplication as "Voting Application"
+entity DigitalBallotBox as "Digital Ballot Box"
+database PublicBulletinBoard as "Public Bulletin Board"
+
+VotingApplication -> DigitalBallotBox: Ballot submission bulletin with ballot\nencrypted with fresh randomizers
+DigitalBallotBox -> PublicBulletinBoard: Publish ballot submission bulletin
+VotingApplication <-- DigitalBallotBox: Ballot submission bulletin tracker
+Voter <-- VotingApplication: Present tracker hash for input\nto ballot check application,\nask whether to check or cast
+
+@enduml

@@ -20,7 +20,6 @@ all: help
 # Display a brief help page listing possible targets.
 help:
 	@echo "Valid targets are:"
-	@echo "make [all]    - build all threat model diagrams"
 	@echo "make seqpng   - build all PNG sequence diagrams"
 	@echo "make seqpdf   - build all PDF sequence diagrams"
 	@echo "                (requires Inkscape)"

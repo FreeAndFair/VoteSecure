@@ -12,14 +12,14 @@ sequenceDiagram
 
     Voter ->> VA: Initiate Cast Ballot (Selects submitted ballot)
     activate VA
-    Note over VA: Prepare cast request for specific BallotID
+    Note over VA: Prepare cast request for specific BallotTracker
 
-    VA ->> +DBB: CastRequest(BallotID) # Send request to DBB
+    VA ->> +DBB: CastRequest(BallotTracker) # Send request to DBB
 
     Note right of DBB: Receive cast request
-    DBB->>DBB: Verify BallotID exists & status is 'submitted' (not 'checked' or 'cast')
-    DBB->>DBB: Update BallotID status to 'cast' internally
-    DBB->>DBB: Prepare PBB Cast Record data (e.g., BallotID, Timestamp)
+    DBB->>DBB: Verify BallotTracker exists & status is 'submitted' (not 'checked' or 'cast')
+    DBB->>DBB: Update BallotTracker status to 'cast' internally
+    DBB->>DBB: Prepare PBB Cast Record data (e.g., BallotTracker, Timestamp)
     DBB ->> +PBB: Write Cast Record data # Post evidence to PBB
 
     Note right of PBB: Receive record for posting
@@ -28,9 +28,9 @@ sequenceDiagram
     PBB -->> -DBB: MessageLocator # Return locator confirming PBB post
 
     Note right of DBB: Receive PBB locator
-    DBB -->> -VA: (BallotID, MessageLocator) # Confirm cast to VA, include locator
+    DBB -->> -VA: (BallotTracker, MessageLocator) # Confirm cast to VA, include locator
 
     Note over VA: Receive confirmation and PBB locator
-    VA -->> Voter: Display Cast Confirmation Text, PBB MessageLocator, and BallotID
+    VA -->> Voter: Display Cast Confirmation Text, PBB MessageLocator, and BallotTracker
     deactivate VA
 ```

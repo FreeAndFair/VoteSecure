@@ -12,6 +12,8 @@ sequenceDiagram
 
     Note over Voter, BCA: Voter enters Ballot Tracker ID (I) into BCA.
     activate BCA
+    BCA->>PBB: Request BallotSubBulletin (ID I)
+    PBB->>BCA: Send BallotSubBulletin (ID I)
     BCA->>BCA: Generate Key Pair (BCA_PubKey, BCA_PrivKey)
     BCA->>Voter: Display generated Public Key (BCA_PubKey)
     BCA->>+DBB: Send Check Request (ID I, BCA_PubKey, Signature)
@@ -19,8 +21,6 @@ sequenceDiagram
 
     activate DBB
     DBB->>DBB: Verify Request Signature using BCA_PubKey
-    DBB->>+PBB: Post Check Request to PBB (ID I, BCA_PubKey, Sig) - Status: Pending
-    PBB-->>-DBB: Return Message Locator
     DBB->>+VA: Forward Check Request (ID I, BCA_PubKey)
     deactivate DBB
 
@@ -34,19 +34,21 @@ sequenceDiagram
     deactivate VA
 
     activate DBB
-    DBB->>+PBB: Post Check Approval to PBB (ID I, EncryptedRandomizers_Ref) - Status: Checked
-    PBB-->>-DBB: Return Message Locator
-    DBB->>DBB: Mark Ballot I as "Checked" internally
-    DBB->>DBB: Retrieve Cryptogram for Ballot I
-    DBB-->>BCA: Forward Encrypted Randomizers and Ballot Cryptogram
+    DBB-->>BCA: Forward Encrypted Randomizers
     deactivate DBB
 
     activate BCA
-    BCA->>BCA: Receive Encrypted Randomizers and Cryptogram
+    BCA->>BCA: Receive Encrypted Randomizers
     BCA->>BCA: Decrypt Randomizers using BCA_PrivKey to recover R
-    BCA->>BCA: Reconstruct Ballot Choices using R, received Cryptogram, ElectionPublicKey
-    BCA->>Voter: Display Reconstructed Ballot Choices
+    BCA->>BCA: Decrypt Ballot Choices using R, received BallotSubBulletin, ElectionPublicKey
+    BCA->>Voter: Display Decrypted Ballot Choices
+
+   Note over Voter, BCA: Voter manually reviews the displayed choices<br/>and compares them with the choices they remember<br/> making in the Voting Application.
+
+    Voter->>BCA: (only if ballot is cast) Check for Cast Ballot on Bulletin Board
+    BCA->>Voter: Display Cast Ballot Data from Bulletin Board
+
     deactivate BCA
 
-    Note over Voter, BCA: Voter manually reviews the displayed choices and compares them with the choices they remember making in the Voting Application.
+
 ```

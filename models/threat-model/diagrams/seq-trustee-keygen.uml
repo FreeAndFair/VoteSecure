@@ -14,16 +14,15 @@ database TrusteeStorage as "Trustee Storage"
 
 ElectionAdministrator -> ElectionAdministrationServer: Write election manifest to storage device
 ElectionAdministrationServer -> ElectionAdministratorStorage: Write election manifest
-ElectionAdministrator -> TrusteeAdministrationServer: Attach storage and start\nkey generation ceremony
+ElectionAdministrator -> TrusteeAdministrationServer: Attach storage and start key generation ceremony
 TrusteeAdministrationServer <-- ElectionAdministratorStorage: Read election manifest
-Trustee -> TrusteeApplication: Attach storage and sign in\n(one storage and trustee application per trustee)
-TrusteeApplication -> TrusteeAdministrationServer: Register trustee\n(one per trustee)
-TrusteeApplication <-- TrusteeAdministrationServer: All trustees registered,\nquorum size is k\n(one per trustee)
-TrusteeApplication -> TrusteeAdministrationServer: Commitment to private key\ngeneration data\n(one per trustee)
-TrusteeApplication <-- TrusteeAdministrationServer: Data from other trustees\nto generate private key share\n(one per trustee)
-TrusteeAdministrationServer -> ElectionAdministratorStorage: Write election public key\nand updated manifest
-TrusteeApplication -> TrusteeStorage: Write private key share\nfor later use\n(one per trustee)
-TrusteeApplication -> TrusteeAdministrationServer: Confirm private key share\nhas been written to\npersistent storage\n(one per trustee)
-ElectionAdministrator <--TrusteeAdministrationServer: Key generation ceremony complete
-
+Trustee -> TrusteeApplication: Attach storage and sign in (one storage\nand trustee application per trustee)
+TrusteeStorage --> TrusteeApplication: Trustee private signing and encryption keys
+TrusteeApplication -> TrusteeAdministrationServer: Generated encrypted key\nshares and public\nverification values
+TrusteeAdministrationServer -> TrusteeApplication: Encrypted key shares and\npublic verification\nvalues from all trustees
+TrusteeApplication -> TrusteeAdministrationServer: Generated election public\nkey (one per trustee,\nmust all match)
+TrusteeAdministrationServer -> ElectionAdministratorStorage: Write election public key\nand all trustee messages
+TrusteeApplication -> TrusteeStorage: Write all trustee messages
+ElectionAdministrator <-- TrusteeAdministrationServer: Key generation ceremony complete
+Trustee <-- TrusteeApplication: Key generation ceremony complete
 @enduml

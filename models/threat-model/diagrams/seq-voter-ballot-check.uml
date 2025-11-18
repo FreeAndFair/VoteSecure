@@ -10,32 +10,20 @@ entity BallotCheckApplication as "Ballot Check Application"
 entity DigitalBallotBox as "Digital Ballot Box"
 database PublicBulletinBoard as "Public Bulletin Board"
 
-VotingApplication -> DigitalBallotBox: Newly-generated randomness and\nvoter encryption commitment
-DigitalBallotBox -> PublicBulletinBoard: Publish voter encryption commitment,\nDBB encryption commitment, and\nassociated empty cryptogram
-VotingApplication <-- DigitalBallotBox: Published encryption commitments\nand empty cryptogram
-VotingApplication -> DigitalBallotBox: Finalized ballot cryptogram\nwith voter choices
-DigitalBallotBox -> PublicBulletinBoard: Publish finalized ballot cryptogram\nand verification track start item
-VotingApplication <-- DigitalBallotBox: Published verification track\nstart item
-Voter <-- VotingApplication: Present hash for input to\nballot check application, ask\nwhether to check or cast
-Voter -> VotingApplication: Select to check
-VotingApplication -> DigitalBallotBox: Spoil request for ballot
-DigitalBallotBox -> PublicBulletinBoard: Publish spoil request for ballot\non verification track
-Voter -> BallotCheckApplication: Enter verification track start hash
-BallotCheckApplication -> DigitalBallotBox: Ballot check request with\nverification track start hash
-BallotCheckApplication <-- DigitalBallotBox: Published ballot cryptogram,\ncommitments, and spoil request
-BallotCheckApplication -> DigitalBallotBox: Verifier item with verifier\npublic key and reference\nto spoil request
-DigitalBallotBox -> PublicBulletinBoard: Publish verifier item\non verification track
-BallotCheckApplication <-- DigitalBallotBox: Published verifier item
-Voter <- BallotCheckApplication: Display published verifier item hash
-VotingApplication <-- DigitalBallotBox: Notificaion that verifier\nitem has been published
-Voter <- VotingApplication: Request confirmation of\npublished verifier item hash
-Voter -> VotingApplication: Confirm published verifier item hash
-VotingApplication -> DigitalBallotBox: Voter commitment opening,\nencrypted with public key of\nballot check application that\ncreated verifier item
-DigitalBallotBox -> PublicBulletinBoard: Publish voter commitment opening\nand bulletin board commitment\nopening on verification track
-VotingApplication <-- DigitalBallotBox: Published commitment openings
-BallotCheckApplication <-- DigitalBallotBox: Published commitment openings
-Voter <-- BallotCheckApplication: Display decrypted choices
-Voter <-- VotingApplication: Ask whether decrypted choices\nmatched ballot choices
-Voter -> VotingApplication: Report a problem (if decrypted\nchoices didn't match or process\nfailed), or cast/check again
-
+Voter <-- VotingApplication: Present submission hash for\ninput to ballot check\napplication, ask whether\nto check or cast
+Voter -> BallotCheckApplication: Enter submission hash to\ninitiate check
+BallotCheckApplication -> PublicBulletinBoard: Retrieve submitted ballot with hash
+PublicBulletinBoard --> BallotCheckApplication: Submitted ballot bulletin board entry
+BallotCheckApplication -> DigitalBallotBox: Ballot check request with\nnewly-generated BCA public key,\nsubmission hash
+BallotCheckApplication -> Voter: Present generated BCA public key for matching
+DigitalBallotBox -> VotingApplication: Ballot check request with BCA public key, submission hash
+VotingApplication -> Voter: Present check request with\ngenerated BCA public key\nfor matching
+Voter --> VotingApplication: Presented BCA public keys\nmatch, approve check request
+VotingApplication -> DigitalBallotBox: Encrypted randomizers (using BCA public key)
+DigitalBallotBox -> BallotCheckApplication: Forward encrypted randomizers
+BallotCheckApplication --> Voter: Display decrypted choices,\nprompt for post-cast bulletin\nboard check
+VotingApplication -> Voter: Ask whether decrypted choices\nmatched ballot choices
+Voter -> VotingApplication: Report a problem (if decrypted\nchoices didn't match or process\nfailed), or submit again,\nor cast/check again
+Voter -> BallotCheckApplication: (if ballot is cast)\nInitiate follow-up bulletin board check
+BallotCheckApplication -> Voter: Display results of follow-up\nbulletin board check
 @enduml

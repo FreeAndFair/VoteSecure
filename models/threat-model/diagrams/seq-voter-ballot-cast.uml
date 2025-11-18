@@ -8,16 +8,16 @@ actor Voter
 entity VotingApplication as "Voting Application"
 entity DigitalBallotBox as "Digital Ballot Box"
 database PublicBulletinBoard as "Public Bulletin Board"
-entity ElectionAdministrationServer as "Election Administration Server"
 
-VotingApplication -> DigitalBallotBox: Newly-generated randomness and\nvoter encryption commitment
-DigitalBallotBox -> PublicBulletinBoard: Publish voter encryption commitment,\nDBB encryption commitment, and\nassociated empty cryptogram
-VotingApplication <-- DigitalBallotBox: Published encryption commitments\nand empty cryptogram
-VotingApplication -> DigitalBallotBox: Finalized ballot cryptogram\nwith voter choices
-DigitalBallotBox -> PublicBulletinBoard: Publish finalized ballot cryptogram\nand verification track start item
-VotingApplication <-- DigitalBallotBox: Published verification track\nstart item
-Voter <-- VotingApplication: Present hash for input to\nballot check application, ask\nwhether to check or cast
-Voter -> VotingApplication: Select to cast
-VotingApplication -> ElectionAdministrationServer: Record that voter has voted
+Voter -> VotingApplication: Cast the most recently\nsubmitted ballot\n(with tracker S)
+VotingApplication -> DigitalBallotBox: Cast request for\nsubmission tracker S
+DigitalBallotBox -> PublicBulletinBoard: Request submission for S
+PublicBulletinBoard --> DigitalBallotBox: Submission for S
+DigitalBallotBox -> PublicBulletinBoard: Publish voter authorization
+PublicBulletinBoard --> DigitalBallotBox: Tracker (VA) for published\nvoter authorization
+DigitalBallotBox -> PublicBulletinBoard: Publish cast request for S
+PublicBulletinBoard --> DigitalBallotBox: Tracker (C) for published\ncast request for S
+DigitalBallotBox --> VotingApplication: Trackers C and S
+Voter <-- VotingApplication: Present confirmation that casting is complete
 
 @enduml

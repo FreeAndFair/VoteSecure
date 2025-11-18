@@ -21,13 +21,16 @@ ElectionAdministrationServer -> ElectionAdministratorStorage: Write election dat
 ElectionAdministrator -> TrusteeAdministrationServer: Attach storage and start ballot\ndecryption and printing process
 TrusteeAdministrationServer <-- ElectionAdministratorStorage: Read election data
 Trustee -> TrusteeApplication: Attach storage and sign in\n(one storage and trustee application per trustee)
-TrusteeApplication <-- TrusteeStorage: Read private key share
+TrusteeApplication <-- TrusteeStorage: Read private signing and encryption keys
 TrusteeApplication -> TrusteeAdministrationServer: Sign in trustee\n(one per trustee)
 TrusteeApplication <-- TrusteeAdministrationServer: Enough trustees signed in,\nstart decryption process
 TrusteeApplication <- TrusteeAdministrationServer: Shuffle and partially decrypt\nthis sequence of ballots\n(one per trustee, sequentially)
 TrusteeApplication --> TrusteeAdministrationServer: Shuffled and partially decrypted\nsequence of ballots\n(one per trustee, sequentially)
+TrusteeAdministrationServer -> ElectionAdministratorStorage: Write all trustee messages
+TrusteeApplication -> TrusteeStorage: Write all trustee messages
 TrusteeAdministrationServer -> BallotPrinter: Shuffled and fully decrypted\nsequence of ballots
 ElectionAdministrator <-- BallotPrinter: Stack of printed ballots
 ElectionAdministrator <-- TrusteeAdministrationServer: Ballot decryption and printing complete
+
 
 @enduml

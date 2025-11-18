@@ -2,7 +2,7 @@
 
 % Free Democracy Foundation Mobile Voting Threat Model Top-Level Document
 % Copyright (C) 2024-25 Free & Fair
-% Last Revision: 2025-03-19 Daniel M. Zimmerman
+% Last Revision: 2025-11-18 Daniel M. Zimmerman
 
 \documentclass[10pt,letterpaper]{article}
 
@@ -71,7 +71,7 @@
 \vspace{-6pt}
 
 % note: until we finalize the details of the protocol, we aren't going to call this threat model "1.0"
-\notbool{draft}{\textit{Version 0.9}}{\textit{DRAFT---NOT FOR EXTERNAL DISTRIBUTION}} \hspace{\fill} \textit{April 2025}
+\notbool{draft}{\textit{Version 1.0}}{\textit{DRAFT---NOT FOR EXTERNAL DISTRIBUTION}} \hspace{\fill} \textit{November 2025}
 
 \vspace{-12pt}
 
@@ -119,7 +119,7 @@ Moreover, identifying, implementing, and assuring mitigations requires design ch
 \pagebreak
 \section{Subsystems}
 
-The E2E-VIV system is comprised of the following subsystems:\footnote{We are still in the process of formally specifying the cryptographic protocol; as a result of that specification this list may change, at which point the remainder of the threat model will be updated accordingly.}
+The E2E-VIV system is comprised of the following subsystems:
 
 \begin{itemize}
 
@@ -135,7 +135,7 @@ The E2E-VIV system is comprised of the following subsystems:\footnote{We are sti
 
     \item \textbf{Trustee Application}: the client-side application with which trustees interact in order to generate their private key shares and open/close the election, and perform partial ballot decryption in a mix-net configuration; this application runs on a dedicated device, one of which exists for each trustee, and must not be directly connected to the Internet at any point during the system's lifetime
 
-    \item \textbf{Trustee Administration Server}: the system that orchestrates the generation of cryptographic keys (and associated threshold secret sharing) related to the election before the election begins, and ballot decryption or homomorphic tallying once the election is complete; must not be connected to the Internet at any point during the system's lifetime
+    \item \textbf{Trustee Administration Server}: the system that orchestrates the generation of the election public key before the election begins, and ballot mixing and decryption once the election is complete; must not be connected to the Internet at any point during the system's lifetime
 
     \item \textbf{Election Administration Server}: the system(s) used by election officials to handle election definition and administration functions, including voter authorization (based on registration records), ballot definitions, election start/end times, etc.;~note that we treat this as a single abstract subsystem in sequence diagrams for simplicity, though in a concrete implementation the election administrator interacts with it using the \textbf{Election Administrator Application}
 
@@ -172,7 +172,7 @@ The E2E-VIV system has the following assets:
 
     \item \textbf{Election Administrator Credentials}: used to perform election administration functions
 
-    \item \textbf{Trustee Private Key Shares}: shares of the election's private key held by individual \textbf{Trustees}; used to partially decrypt or homomorphically tally \textbf{Digital Ballot Cryptograms} exported from the \textbf{Digital Ballot Box}
+    \item \textbf{Trustee Private Key Shares}: shares of the election's private key held by individual \textbf{Trustees}; used to partially decrypt \textbf{Digital Ballot Cryptograms} exported from the \textbf{Digital Ballot Box}
 
     \item \textbf{Election Public Key}: the public key corresponding to the complete set of \textbf{Trustee Private Key Shares}; used in the creation of \textbf{Digital Ballot Cryptograms}
 
@@ -250,7 +250,7 @@ Note that some individuals, notably \textbf{Election Administrators}, have multi
 
 In this section, we present data flow diagrams that illustrate, at a high level, the flow of data among principals and trust zones within the system. We first show an overall diagram of the entire system, then specific protocol data flows related to voter interactions (authentication, voting, checking and casting ballots) and trustee interactions (generating the election's keys before the election begins, handling cast ballots after the election is concluded).
 
-These diagrams are \emph{not} a specification of the (distributed, cryptographic) algorithm that sits underneath our protocol. The precise, formal specification of that algorithm is underway now, using the Tamarin and ProVerif protocol specification and verification tools~\cite{ChevalSAPICprotocolverifiers2022,MeierTAMARINProverSymbolic2013,BlanchetModelingVerifyingSecurity2016}.\footnote{As with the list of subsystems, these diagrams will evolve as we complete our precise specification of the cryptographic protocol.}
+These diagrams are \emph{not} a specification of the (distributed, cryptographic) algorithm that sits underneath our protocol. The precise, formal specification of that algorithm is underway now, using the Tamarin protocol specification and verification tool~\cite{MeierTAMARINProverSymbolic2013,BlanchetModelingVerifyingSecurity2016}.
 
 \subsection{Overall Data Flow and Trust Zones}
 
@@ -266,6 +266,14 @@ Note that the \textbf{Voter} interacts with the \textbf{Voting Application}, \te
 This is the first part of a \textbf{Voter}'s interaction with the system, encompassing authentication and making ballot choices. Once the \textbf{Voter} makes their choices (assuming they authenticate successfully and have an election to participate in), they move on to perform the \hyperlink{voter-ballot-check-sequence}{Voter Ballot Check Sequence} zero or more times before performing the \hyperlink{voter-ballot-cast-sequence}{Voter Ballot Cast Sequence} to conclude their interaction with the system.
 
 \includegraphics[width=\textwidth]{diagrams/seq-voter-auth-choice.pdf}
+
+\pagebreak
+\subsection{Voter Ballot Submission Sequence}
+\hypertarget{voter-ballot-submission-sequence}{}
+
+This part of a \textbf{Voter}'s interactionl with the system covers the ballot submission functionality.
+
+\includegraphics[width=0.95\textwidth]{diagrams/seq-voter-ballot-submit.pdf}
 
 \pagebreak
 \subsection{Voter Ballot Check Sequence}
@@ -286,23 +294,18 @@ This part of a \textbf{Voter}'s interaction with the system covers the ballot ca
 \pagebreak
 \subsection{Trustee Key Generation Sequence}
 
-This part of a \textbf{Trustee}'s interaction with the system covers key generation. There is a separate \textbf{Trustee Application} (running on its own separate machine) and \textbf{Trustee Storage} device for each \textbf{Trustee}. The \textbf{Election Administrator} starts the process by loading data from the \textbf{Election Administration Server} (either directly or via the \textbf{Election Administrator Application}, which is not depicted in the sequence diagram) into the \textbf{Trustee Administration Server} via the \textbf{Election Administrator Storage} device, and the process concludes when the resulting \textbf{Election Public Key} has been written to the \textbf{Election Administrator Storage} device and all \textbf{Trustee Private Key Shares} have been written to their corresponding \textbf{Trustee Storage} devices.
+This part of a \textbf{Trustee}'s interaction with the system covers key generation. There is a separate \textbf{Trustee Application} (running on its own separate machine) and \textbf{Trustee Storage} device for each \textbf{Trustee}. The \textbf{Election Administrator} starts the process by loading data from the \textbf{Election Administration Server} (either directly or via the \textbf{Election Administrator Application}, which is not depicted in the sequence diagram) into the \textbf{Trustee Administration Server} via the \textbf{Election Administrator Storage} device, and the process concludes when the resulting \textbf{Election Public Key} has been written to the \textbf{Election Administration Storage} device. All messages generated by the trustees are written to both the \textbf{Election Administrator Storage} device and each trustee's \textbf{Trustee Storage} device, for later public verification.
+
+It is assumed that the election manifest loaded at the beginning of this process contains the public signing and encryption keys for all trustees, and that the \textbf{Trustee Storage} devices contain the correspnding private keys; these must be generated in an earlier election setup process, the only requirements for which are (1) that each trustee's private encryption and signing keys remain private to that trustee and their \textbf{Trustee Application}, and (2) that the trustees all agree on the contents of the election manifest (including the trustee public keys).
 
 \includegraphics[width=\textwidth]{diagrams/seq-trustee-keygen.pdf}
 
 \pagebreak
 \subsection{Mix-Net Ballot Decryption/Printing Sequence}
 
-This part of the \textbf{Election Administrator} and \textbf{Trustee} interaction with the system covers ballot decryption and printing. The \textbf{Election Administrator} starts the process by loading data from the \textbf{Digital Ballot Box} (either directly using the \textbf{Election Administration Server} or via the \textbf{Election Administrator Application}, which is not depicted in the sequence diagram) into the \textbf{Trustee Administration Server} via the \textbf{Election Administrator Storage} device. Once a sufficient quorum of \textbf{Trustees} sign in to their respective \textbf{Trustee Applications}, providing their private key shares from their \textbf{Trustee Storage} devices, the mixing and decryption is carried out by each trustee in sequence (that is, steps 11 and 12 are carried out by one trustee at a time, in some sequence, with each available trustee participating exactly once). Once all trustees have performed their mixes and partial decryptions, the ballots are printed for later tallying.
+This part of the \textbf{Election Administrator} and \textbf{Trustee} interaction with the system covers ballot decryption and printing. The \textbf{Election Administrator} starts the process by loading data from the \textbf{Digital Ballot Box} (either directly using the \textbf{Election Administration Server} or via the \textbf{Election Administrator Application}, which is not depicted in the sequence diagram) into the \textbf{Trustee Administration Server} via the \textbf{Election Administrator Storage} device. Once a sufficient quorum of \textbf{Trustees} sign in to their respective \textbf{Trustee Applications}, providing their private key shares from their \textbf{Trustee Storage} devices, the mixing and decryption is carried out by each trustee in sequence (that is, steps 11 and 12 are carried out by one trustee at a time, in some sequence, with each available trustee participating exactly once). Once all trustees have performed their mixes and partial decryptions, the ballots are printed for later tallying. All messages generated by the trustees (including all mixing and decryption proofs) are written to both the \textbf{Election Administrator Storage} device and each trustee's \textbf{Trustee Storage} device for later public verification.
 
 \includegraphics[width=\textwidth]{diagrams/seq-mix-net-decryption.pdf}
-
-\pagebreak
-\subsection{Homomorphic Ballot Tally Sequence}
-
-This part of the \textbf{Election Administrator} and \textbf{Trustee} interaction with the system covers homomorphic tally of ballots. The \textbf{Election Administrator} starts the process by loading data (either directly using the \textbf{Election Administration Server} or via the \textbf{Election Administrator Application}, which is not depicted in the sequence diagram) from the \textbf{Digital Ballot Box} into the \textbf{Trustee Administration Server} via the \textbf{Election Administrator Storage} device. Once a sufficient quorum of \textbf{Trustees} sign into their respective \textbf{Trustee Applications}, providing their private key shares from their \textbf{Trustee Storage} devices, the homomorphic tally is computed, partially decrypted by each trustee in sequence (that is, steps 11 and 12 are carried out by one trustee at a time, in some sequence, with each available trustee participating exactly once), and written to the \textbf{Election Administrator Storage}.
-
-\includegraphics[width=\textwidth]{diagrams/seq-homomorphic-tally.pdf}
 
 Having provided informal overviews of all the protocol interactions within the system, we will next describe threats to the system and, where applicable, our mitigations of those threats. More details about the protocol are available in our systems architecture specification, which includes precise descriptions of the system's principals, events, channels, messages, and use cases, and in our formal protocol specification, which includes precise descriptions of the entire protocol and its correctness and security properties.
 
