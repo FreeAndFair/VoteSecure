@@ -32,7 +32,7 @@ use crate::messages::{AuthVoterMsg, AuthVoterMsgData};
 use crate::messages::{ConfirmAuthorizationMsg, ConfirmAuthorizationMsgData};
 use crate::messages::{HandTokenMsg, HandTokenMsgData};
 
-use super::super::top_level_actor::AuthReqId;
+use crate::participants::election_admin_server::top_level_actor::AuthReqId;
 
 use cryptography::utils::serialization::VSerializable;
 

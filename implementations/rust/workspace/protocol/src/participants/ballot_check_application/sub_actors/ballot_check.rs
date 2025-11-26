@@ -15,8 +15,6 @@
 // @todo Consider boxing structs in large enum variants to improve performance.
 #![allow(clippy::large_enum_variant)]
 
-// use super::super::top_level_actor::check_signed_ballot;
-
 use crate::cryptography::ballot_check_context;
 use crate::cryptography::decrypt_ballot;
 use crate::cryptography::decrypt_randomizers;

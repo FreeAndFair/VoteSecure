@@ -18,7 +18,7 @@
 /// Defines implementation choices for key cryptographic functionalities.
 pub mod context;
 pub mod cryptosystem;
-#[crate::warning("Asserts are present in this module. Not optimized.")]
+#[crate::warning("This module is not optimized.")]
 pub mod dkgd;
 pub mod groups;
 /// Abstractions for curve arithmetic, groups, elements and scalars.

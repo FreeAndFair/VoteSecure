@@ -162,6 +162,8 @@ cargo fuzz run <target>
 
 to run a fuzz target.
 
+If running cargo fuzz on windows you may need to change the crate type to `crate-type = ["rlib"]` in Cargo.toml, if not already set to that value.
+
 ### Custom warnings
 
 To display custom warnings when running `cargo check/build/test/run`,

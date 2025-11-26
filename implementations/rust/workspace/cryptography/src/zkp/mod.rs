@@ -49,6 +49,5 @@ pub mod pleq;
 /// Schnorr knowledge of discrete logarithm proofs.
 pub mod schnorr;
 
-#[crate::warning("Asserts are present in this module")]
 /// Terelius-Wikstrom proof of shuffle.
 pub mod shuffle;

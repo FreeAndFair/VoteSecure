@@ -48,9 +48,13 @@ impl Message {
     // Every message has a unique "slot". This function checks to ensure
     // that no two messages collide.
     pub(crate) fn collides(&self, other: &Message) -> bool {
+        // For the purposes of ascent logic, two messages instances for
+        // which equality holds are considered to be the same message, and
+        // do not collide.
         if self == other {
             return false;
         }
+        // If the variants differ, they cannot collide.
         if std::mem::discriminant(self) != std::mem::discriminant(other) {
             return false;
         }

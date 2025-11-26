@@ -103,6 +103,10 @@ pub struct Dealer<C: Context, const T: usize, const P: usize> {
 
 impl<C: Context, const T: usize, const P: usize> Dealer<C, T, P> {
     /// compile-time checks for dealer const parameters
+    #[crate::warning(
+        "Ensure choice of threshold parameter is secure or augment DKG with a Schnorr
+        proof of knowledge. See https://eprint.iacr.org/2024/915.pdf section 2.4"
+    )]
     const CHECK: () = {
         assert!(P < 100);
         assert!(P > 0);
@@ -244,13 +248,17 @@ impl<C: Context, const T: usize, const P: usize> DealerShares<C, T, P> {
     ///
     /// This method will select the shares assigned to the required recipient from the set
     /// of all shares computed by the [`Dealer`].
+    ///
+    /// # Panics
+    ///
+    /// Infallible: panics if position < 1 or position > `usize::MAX`.
     #[allow(clippy::missing_panics_doc)]
     pub fn for_recipient(&self, recipient: &ParticipantPosition<P>) -> VerifiableShare<C, T> {
-        // ParticipantPosition value is guaranteed to be in the range 1..=P
-        #[allow(clippy::arithmetic_side_effects)]
-        let index: usize = (recipient.0 - 1)
+        let index: usize = (recipient.0.checked_sub(1))
+            .expect("ParticipantPosition is guaranteed to be in the range 1..=P")
             .try_into()
-            .expect("ParticipantPosition(u32) < usize::MAX");
+            .expect("ParticipantPosition(u32), u32 < usize::MAX");
+
         VerifiableShare::new(self.shares[index].clone(), self.checking_values.clone())
     }
 }

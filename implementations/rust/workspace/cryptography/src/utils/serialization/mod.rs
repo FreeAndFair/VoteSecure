@@ -122,7 +122,6 @@
 pub use fixed::{FDeserializable, FSer, FSerializable};
 pub use variable::{LargeVector, TFTuple, VDeserializable, VSer, VSerializable};
 
-#[deny(clippy::indexing_slicing)]
 #[crate::warning(
     "arithmetic side effects lints is disabled in this module (though this has been addressed for deserialization functions, pending fuzzing)."
 )]
@@ -132,7 +131,7 @@ pub mod fixed;
 /// Serde implementations built on `V/FSerializable` traits
 #[crate::warning("Missing ristretto serialization tests and some structs.")]
 pub mod serde;
-#[deny(clippy::indexing_slicing)]
+
 #[crate::warning(
     "arithmetic side effects lints is disabled in this module (though this has been addressed for deserialization functions, pending fuzzing)."
 )]

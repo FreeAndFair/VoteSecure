@@ -688,7 +688,6 @@ pub trait VSer: VSerializable + VDeserializable {}
 impl<T: VSerializable + VDeserializable> VSer for T {}
 
 /// Implements [`VSerializable`] for String
-#[crate::warning("Only used in test structs")]
 impl VSerializable for String {
     fn ser(&self) -> Vec<u8> {
         let bytes = self.as_bytes();
@@ -701,7 +700,6 @@ impl VSerializable for String {
 }
 
 /// Implements [`VDeserializable`] for String
-#[crate::warning("Only used in test structs")]
 impl VDeserializable for String {
     fn deser(buffer: &[u8]) -> Result<Self, Error> {
         let len_bytes: [u8; LENGTH_BYTES] = get_slice(buffer, 0..LENGTH_BYTES)?.try_into()?;

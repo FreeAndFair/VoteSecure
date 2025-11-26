@@ -13,6 +13,7 @@ pub mod hash;
 /// Random number generation utilities and [context][`crate::context::Context`] dependency.
 pub mod rng;
 
+#[deny(clippy::indexing_slicing)]
 pub mod serialization;
 
 pub mod signatures;

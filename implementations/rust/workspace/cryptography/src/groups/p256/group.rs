@@ -35,10 +35,10 @@ impl CryptographicGroup for P256Group {
         P256Element::new(ProjectivePoint::GENERATOR * scalar.0)
     }
 
-    #[crate::warning("Panics on empty input")]
     /// # Errors
     ///
     /// - `HashToScalarError` if `NistP256::hash_to_scalar` returns error
+    #[crate::warning("Panics on empty input")]
     fn hash_to_scalar(input_slices: &[&[u8]], ds_tags: &[&[u8]]) -> Result<Self::Scalar, Error> {
         let ret = NistP256::hash_to_scalar::<ExpandMsgXmd<Self::Hasher>>(input_slices, ds_tags);
 
@@ -46,10 +46,10 @@ impl CryptographicGroup for P256Group {
         Ok(P256Scalar(ret?))
     }
 
-    #[crate::warning("Panics on empty input")]
     /// # Errors
     ///
     /// - `HashToElementError` if `NistP256::hash_from_bytes` returns error
+    #[crate::warning("Panics on empty input")]
     fn hash_to_element(input_slices: &[&[u8]], ds_tags: &[&[u8]]) -> Result<Self::Element, Error> {
         let ret = NistP256::hash_from_bytes::<ExpandMsgXmd<Self::Hasher>>(input_slices, ds_tags);
         let ret: Result<ProjectivePoint, Error> =

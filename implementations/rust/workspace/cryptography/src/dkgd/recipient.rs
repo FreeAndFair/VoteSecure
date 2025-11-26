@@ -114,6 +114,9 @@ pub struct Recipient<C: Context, const T: usize, const P: usize> {
 
 impl<C: Context, const T: usize, const P: usize> Recipient<C, T, P> {
     /// compile-time checks for recipient const parameters
+    #[crate::warning(
+        "Ensure choice of threshold parameter is secure. See https://eprint.iacr.org/2024/915.pdf section 2.4"
+    )]
     const CHECK: () = {
         assert!(P < 100);
         assert!(P > 0);
@@ -560,7 +563,7 @@ impl<const P: usize> ParticipantPosition<P> {
     /// Panics if the position is not in the range [1, P].
     #[must_use]
     pub fn new(position: u32) -> Self {
-        #[crate::warning("Panics")]
+        #[crate::warning("Possibly avoidable panics")]
         assert!(position > 0);
         assert!(position as usize <= P);
 
@@ -579,8 +582,13 @@ impl<const P: usize> ParticipantPosition<P> {
     /// Panics if the position is not in the range [1, P].
     #[must_use]
     pub fn from_usize(position: usize) -> Self {
-        #[allow(clippy::cast_possible_truncation)]
-        Self::new(position as u32)
+        #[crate::warning("Possibly avoidable panics")]
+        assert!(position > 0);
+        assert!(position <= P);
+
+        let p_u32: u32 = position.try_into().expect("position <= P < 100 < u32::MAX");
+
+        Self::new(p_u32)
     }
 }
 

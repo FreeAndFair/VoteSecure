@@ -106,13 +106,12 @@ mod stateright {
             }
         }
         pub(crate) fn get_bb() -> BulletinBoard<C, W, T, P> {
-            BulletinBoard::new(ascent_logic::dkg::DUMMY_CFG.into())
+            BulletinBoard::new(ascent_logic::dkg::stateright::DUMMY_CFG.into())
         }
         pub(crate) fn compute_share(
             trustee: usize,
             bb: &mut BulletinBoard<C, W, T, P>,
         ) -> TrusteeSharesHash {
-            // println!("compute_share: computing shares for trustee {}", trustee);
             let dealer: Dealer<C, T, P> = Dealer::generate();
             let shares = dealer.get_verifiable_shares();
             let ret = hash_serializable(&shares);
@@ -124,7 +123,6 @@ mod stateright {
             trustee: usize,
             bb: &mut BulletinBoard<C, W, T, P>,
         ) -> PublicKeyHash {
-            // println!("compute_pk: Computing pk trustee {}", trustee);
             let position = ParticipantPosition::new(trustee as u32);
 
             let verifiable_shares: [VerifiableShare<C, T>; P] = bb
@@ -143,7 +141,6 @@ mod stateright {
             bb: &mut BulletinBoard<C, W, T, P>,
         ) -> (CiphertextsHash, Vec<TrusteeIndex>) {
             let pk = bb.pks[0].clone().unwrap();
-            // println!("compute_ballots: Computing ballots");
             let messages = vec![
                 <[C::Element; W]>::random(&mut C::get_rng()),
                 <[C::Element; W]>::random(&mut C::get_rng()),
@@ -195,7 +192,6 @@ mod stateright {
             }
             assert!(!bs.is_empty());
 
-            // println!("compute_mix: Computing mix for trustee {} with ciphertexts {}", trustee, ciphertexts);
             let generators = C::G::ind_generators(bs.len(), &[]).unwrap();
             let shuffler = Shuffler::new(generators, pk.clone());
             let (mixed, proof) = shuffler.shuffle(&bs, &[]).unwrap();
@@ -232,7 +228,6 @@ mod stateright {
             assert!(!input_cs.is_empty());
             assert!(mix.is_some());
 
-            // println!("verify_mix: verifying mix for trustee {} with {} ballots", trustee, input_cs.len());
             let mix = mix.unwrap();
             let generators = C::G::ind_generators(input_cs.len(), &[]).unwrap();
             let shuffler = Shuffler::new(generators, pk.clone());
@@ -246,7 +241,6 @@ mod stateright {
             bb: &mut BulletinBoard<C, W, T, P>,
             trustee: TrusteeIndex,
         ) -> PartialDecryptionsHash {
-            // println!("compute_partial_decryptions: computing partial decryptions for trustee {}", trustee);
             let last_mix = bb.mixes.last().unwrap();
             let last_mix = last_mix.as_ref().unwrap();
 
@@ -276,7 +270,6 @@ mod stateright {
             bb: &mut BulletinBoard<C, W, T, P>,
             trustee: TrusteeIndex,
         ) -> PlaintextsHash {
-            // println!("compute_plaintexts: computing plaintexts for trustee {}", trustee);
             let last_mix = bb.mixes.last().unwrap();
             let last_mix = last_mix.as_ref().unwrap();
             let trustees = bb.ballots.as_ref().unwrap().participants;
@@ -316,7 +309,6 @@ mod stateright {
         }
 
         fn actions(&self, state: &Self::State, actions: &mut Vec<Self::Action>) {
-            // println!("* actions called with state {:?}", state);
             let mut prog = composed_ascent_logic_testing::program();
 
             let messages: Vec<(Message,)> = state.messages.iter().map(|m| (m.clone(),)).collect();
@@ -326,7 +318,6 @@ mod stateright {
 
             if !prog.error.is_empty() {
                 println!("* actions: found errors: {:?}", prog.error);
-                println!("{:?}", state);
                 panic!();
             }
 
@@ -344,10 +335,8 @@ mod stateright {
             last_state: &Self::State,
             action: Self::Action,
         ) -> Option<Self::State> {
-            // println!("* next_state action {:?}", action);
             let bb = &mut last_state.clone();
             let action = [(action.clone(),)];
-            // let action = action.clone().iter().map(|a| (a.clone(),)).collect::<Vec<(Action,)>>();
             let active: Vec<(usize,)> = (1..=P).map(|i| (i,)).collect();
 
             let message = ascent::ascent_run! {
@@ -398,7 +387,6 @@ mod stateright {
             let mut messages_: Vec<Message> = message.into_iter().map(|m| m.0).collect();
 
             let ret = if !messages_.is_empty() {
-                // println!("* appending messages: {:?}", messages_);
                 bb.messages.append(&mut messages_);
 
                 Some(bb)
@@ -552,9 +540,6 @@ mod stateright {
     {
         fn hash<H: hash::Hasher>(&self, state: &mut H) {
             self.messages.hash(state);
-            /*let mut s = self.messages.clone();
-            s.sort();
-            s.hash(state);*/
         }
     }
     impl<C: Context, const W: usize, const T: usize, const P: usize> PartialEq
@@ -562,11 +547,6 @@ mod stateright {
     {
         fn eq(&self, other: &Self) -> bool {
             self.messages == other.messages
-            /* let mut s = self.messages.clone();
-            s.sort();
-            let mut other = other.messages.clone();
-            other.sort();
-            s == other*/
         }
     }
     impl<C: Context, const W: usize, const T: usize, const P: usize> Eq for BulletinBoard<C, W, T, P> {}

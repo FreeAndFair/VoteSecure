@@ -33,7 +33,7 @@ hex = "0.4.3"
 custom_warning_macro = { path = "../macros/custom_warning_macro" }
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
 path = "src/lib.rs"
 test = true
 name = "cryptography"

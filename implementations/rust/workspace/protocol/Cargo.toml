@@ -16,3 +16,7 @@ sha3 = "0.10"
 hex = "0.4"
 # generic-array version needs to be pinned, newer versions break SW supply chain checks
 generic-array = "=0.14.7"
+
+
+[features]
+custom-warnings = ["cryptography/custom-warnings"]

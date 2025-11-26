@@ -7,10 +7,11 @@
 #![no_main]
 
 use cryptography::groups::ristretto255::group::Ristretto255Group;
+use cryptography::traits::groups::CryptographicGroup;
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: [u8; 32]| {
-    let encoded = Ristretto255Group::encode_32_bytes(&data);
-    let decoded = Ristretto255Group::decode_32_bytes(&encoded.unwrap()).unwrap();
+    let encoded = Ristretto255Group::encode_bytes::<32, 2>(&data);
+    let decoded = Ristretto255Group::decode_bytes::<2, 32>(&encoded.unwrap()).unwrap();
     assert_eq!(data, decoded);
 });

@@ -4,6 +4,8 @@ version = "0.0.0"
 publish = false
 edition = "2024"
 
+[workspace]
+
 [package.metadata]
 cargo-fuzz = true
 
@@ -14,14 +16,15 @@ libfuzzer-sys = "0.4"
 path = ".."
 
 [[bin]]
-name = "deser_u32"
-path = "fuzz_targets/deser_u32.rs"
+name = "encode_bytes_ristretto_2"
+path = "fuzz_targets/encode_bytes_ristretto_2.rs"
 test = false
 doc = false
 bench = false
+
 [[bin]]
-name = "deser_u64"
-path = "fuzz_targets/deser_u64.rs"
+name = "encode_bytes_ristretto_3"
+path = "fuzz_targets/encode_bytes_ristretto_3.rs"
 test = false
 doc = false
 bench = false
@@ -32,6 +35,7 @@ path = "fuzz_targets/deser_eg_ciphertext_ristretto.rs"
 test = false
 doc = false
 bench = false
+
 [[bin]]
 name = "encode_bytes_ristretto"
 path = "fuzz_targets/encode_bytes_ristretto.rs"
