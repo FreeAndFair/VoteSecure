@@ -17,7 +17,7 @@ sequenceDiagram
     VA ->> +DBB: CastRequest(BallotTracker) # Send request to DBB
 
     Note right of DBB: Receive cast request
-    DBB->>DBB: Verify BallotTracker exists & status is 'submitted' (not 'checked' or 'cast')
+    DBB->>DBB: Verify BallotTracker exists & status is 'submitted' (not 'cast')
     DBB->>DBB: Update BallotTracker status to 'cast' internally
     DBB->>DBB: Prepare PBB Cast Record data (e.g., BallotTracker, Timestamp)
     DBB ->> +PBB: Write Cast Record data # Post evidence to PBB

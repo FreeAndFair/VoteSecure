@@ -211,19 +211,18 @@ The BCA uses its private key to decrypt the ciphertext containing the randomizer
     stateDiagram-v2
       fwd_request : Receive **Forwarded Ballot Check Request Message**
       random : Send **Encrypted Randomizer Message**
-
-      complete : **Success** Ballot Check Application has Decrypted Ballot
       error : **Failure** Protocol Aborted with Error Message
+      complete : **Success** Ballot Check Application Can Decrypt Ballot
       denied : **Success** Voting Application Denies a Request Unwanted by the Voter
 
 
       [*] --> fwd_request
 
       fwd_request --> random
-      fwd_request --> denied : Voter Denies Ballot Check Request
       fwd_request --> error : Timeout Exceeded Error
       fwd_request --> error : Incorrect Election Error
       fwd_request --> error : Invalid Ballot Cryptogram Reference Error
+      fwd_request --> denied : Voter Denies Ballot Check Request
 
       random --> complete
       random --> error : Ballot Check Application Public Key Invalid Error
