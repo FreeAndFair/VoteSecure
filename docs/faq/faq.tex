@@ -78,7 +78,7 @@ The concept of mobile voting naturally raises many questions, both about the ide
 
     \item \emph{Q:} Will white hat hackers be given legal protection and a reasonable lead time prior to the system being used in any election?  If so, will there be any publication, NDA, or other constraints on what the hackers may say/write?
 
-    \emph{A:} We are only developing the core cryptographic library, and we cannot speak for system implementations; however, we welcome security analysis of both the cryptographic protocol and (when available) its implementation. The project repository contains \href{https://github.com/FreeAndFair/MobileVotingCoreCryptography/blob/main/SECURITY.md}{instructions for reporting security issues} that follow standard \href{https://en.wikipedia.org/wiki/Coordinated_vulnerability_disclosure}{coordinated vulnerability disclosure (CVD)} guidelines. Other than requesting that they follow CVD guidelines, we will not place any restrictions on what anybody can write or say.
+    \emph{A:} We are only developing the core cryptographic library, and we cannot speak for system implementations; however, we welcome security analysis of both the cryptographic protocol and (when available) its implementation. The project repository contains \href{https://github.com/FreeAndFair/VoteSecure/blob/main/SECURITY.md}{instructions for reporting security issues} that follow standard \href{https://en.wikipedia.org/wiki/Coordinated_vulnerability_disclosure}{coordinated vulnerability disclosure (CVD)} guidelines. Other than requesting that they follow CVD guidelines, we will not place any restrictions on what anybody can write or say.
 
 \end{itemize}
 
@@ -129,7 +129,7 @@ The concept of mobile voting naturally raises many questions, both about the ide
 
     \item \emph{Q:} How can underfunded and under-resourced local election officials protect their systems from attacks, both external and from insiders? What about ransomware?
 
-    \emph{A:} As \href{https://github.com/FreeAndFair/MobileVotingCoreCryptography/releases/download/latest/threat-model.pdf}{our threat model} states, we are explicitly not addressing these sorts of system security issues as part of this project; these will need to be addressed by system implementers. However, we have designed the cryptographic protocol such that (1) voter privacy cannot be compromised without using private key material belonging to a sufficiently large number of election trustees, and (2) ballots cannot be changed in undetectable ways after being submitted by voters.
+    \emph{A:} As \href{https://github.com/FreeAndFair/VoteSecure/releases/download/latest/threat-model.pdf}{our threat model} states, we are explicitly not addressing these sorts of system security issues as part of this project; these will need to be addressed by system implementers. However, we have designed the cryptographic protocol such that (1) voter privacy cannot be compromised without using private key material belonging to a sufficiently large number of election trustees, and (2) ballots cannot be changed in undetectable ways after being submitted by voters.
 
 \end{itemize}
 

@@ -8,7 +8,7 @@ This project implements a cryptographic library that is meant to serve as the co
 
 It is, of course, possible that some aspects of the library's design may unintentionally expose systems that use the library correctly to such attacks, or that the library's safeguards against incorrect usage may be insufficient to prevent straightforward usage mistakes from causing such exposure. We therefore do not categorically rule out any class of Internet security vulnerability for reporting, though we reserve the right to determine that any specific such vulnerability reported is indeed out of the library's scope.
 
-The project's [threat model](./models/threat-model) (the most recent static version of which is available in the [latest release](https://github.com/FreeAndFair/MobileVotingCoreCryptography/releases/tag/latest)) describes in detail the security threats we have identified and those that we have already deemed out of scope. Ideally, any vulnerability report you write should refer directly to the threat model (including the specific revision of the repository containing the threat model being referenced), either by indicating the threats in the model to which the report relates, or by pointing out some aspect of the threat model that is incomplete.
+The project's [threat model](./models/threat-model) (the most recent static version of which is available in the [latest release](https://github.com/FreeAndFair/VoteSecure/releases/tag/latest)) describes in detail the security threats we have identified and those that we have already deemed out of scope. Ideally, any vulnerability report you write should refer directly to the threat model (including the specific revision of the repository containing the threat model being referenced), either by indicating the threats in the model to which the report relates, or by pointing out some aspect of the threat model that is incomplete.
 
 For the safety of the project, the Internet at large, and you as a security researcher, and to ensure that security reports are actually related to security, the following are explicitly out of scope:
 
@@ -20,7 +20,7 @@ For the safety of the project, the Internet at large, and you as a security rese
 
 ## Reporting
 
-If you believe you have found an in-scope security vulnerability related to the artifacts in this repository, please **do not file a public GitHub issue**. Instead, file a security report using the GitHub Security Advisory ["Report a Vulnerability"](https://github.com/FreeAndFair/MobileVotingCoreCryptography/security/advisories/new) tab.
+If you believe you have found an in-scope security vulnerability related to the artifacts in this repository, please **do not file a public GitHub issue**. Instead, file a security report using the GitHub Security Advisory ["Report a Vulnerability"](https://github.com/FreeAndFair/VoteSecure/security/advisories/new) tab.
 
 The project team will send a response within 72 hours indicating the next steps in handling your report. After this initial response, the team will keep you informed of the progress toward a fix and full announcement, and may ask for additional information or guidance.
 

@@ -10,7 +10,7 @@ rustup default nightly
 
 ## Setting up pre-commit hooks
 
-To install [pre-commit hooks](https://github.com/FreeAndFair/MobileVotingCoreCryptography/blob/main/docs/team.md#pre-commit-hooks) (requires python):
+To install [pre-commit hooks](https://github.com/FreeAndFair/VoteSecure/blob/main/docs/team.md#pre-commit-hooks) (requires python):
 
 ```bash
 pip install pre-commit
