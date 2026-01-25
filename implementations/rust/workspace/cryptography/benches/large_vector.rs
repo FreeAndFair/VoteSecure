@@ -9,7 +9,7 @@
 //!
 //! 1) This library's custom serialization
 //!
-//! 2) [Serde](https://docs.rs/serde/latest/serde/) serialization paired with [bincode](https://docs.rs/bincode/latest/bincode/)
+//! 2) [Serde](https://docs.rs/serde/latest/serde/) serialization paired with [ciborium](https://docs.rs/ciborium/latest/ciborium/)
 //!
 //! The benchmark will print timings for serialization functions. There are
 //! also manual printouts of serialized byte sizes, for comparison.
@@ -22,9 +22,6 @@
 extern crate test;
 use test::Bencher;
 
-use bincode;
-use bincode::config;
-use bincode::serde::encode_to_vec;
 use cryptography::context::Context;
 use cryptography::context::RistrettoCtx as RCtx;
 use cryptography::cryptosystem::elgamal::Ciphertext;
@@ -56,10 +53,10 @@ struct Element(RistrettoPoint);
 #[derive(Serialize)]
 struct SerdeVector(Vec<EG>);
 
-/// Serialize the vector using serde + bincode.
+/// Serialize the vector using serde + ciborium.
 fn lvserde(lv: &SerdeVector) {
-    let config = config::standard();
-    let _bytes = encode_to_vec(&lv, config).unwrap();
+    let mut bytes = Vec::new();
+    ciborium::into_writer(&lv, &mut bytes).unwrap();
 }
 
 /// Serialize the [`LargeVector`] using our custom serialization.
@@ -92,11 +89,11 @@ fn bench_large_vector(b: &mut Bencher) {
     b.iter(|| lvser::<RCtx>(&lv));
 }
 
-/// Serde + bincode serialization benchmark.
+/// Serde + ciborium serialization benchmark.
 ///
 /// Includes printout of resulting byte vector size.
 #[bench]
-fn bench_large_vector_serde_bincode(b: &mut Bencher) {
+fn bench_large_vector_serde_ciborium(b: &mut Bencher) {
     let mut lv = SerdeVector(vec![]);
     let count = 1000;
 
@@ -110,9 +107,9 @@ fn bench_large_vector_serde_bincode(b: &mut Bencher) {
         lv.0.push(ciphertext);
     }
 
-    let config = config::standard();
-    let bytes = encode_to_vec(&lv, config).unwrap();
-    println!("large_vector_serde_bincode size = {} bytes", bytes.len());
+    let mut bytes = Vec::new();
+    ciborium::into_writer(&lv, &mut bytes).unwrap();
+    println!("large_vector_serde_ciborium size = {} bytes", bytes.len());
 
     b.iter(|| lvserde(&lv));
 }

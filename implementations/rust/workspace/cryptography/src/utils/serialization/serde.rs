@@ -160,7 +160,7 @@ mod tests {
 
     use crate::context::{Context, P256Ctx, RistrettoCtx as RCtx};
     use crate::cryptosystem::{elgamal, naoryung};
-    use crate::dkgd::{DkgCiphertext, DkgPublicKey};
+    use crate::dkgd::recipient::{DkgCiphertext, DkgPublicKey};
     use crate::traits::groups::CryptographicGroup;
     use crate::traits::groups::DistGroupOps;
     use crate::traits::groups::GroupElement;
@@ -169,27 +169,30 @@ mod tests {
     #[test]
     fn test_serde_elgamal_public_key() {
         let pk = elgamal::KeyPair::generate().pkey;
-        let serialized = bincode::serde::encode_to_vec(&pk, bincode::config::standard()).unwrap();
-        let (deserialized, _): (elgamal::PublicKey<P256Ctx>, _) =
-            bincode::serde::decode_from_slice(&serialized, bincode::config::standard()).unwrap();
+        let mut serialized = Vec::new();
+        ciborium::into_writer(&pk, &mut serialized).unwrap();
+        let deserialized: elgamal::PublicKey<P256Ctx> =
+            ciborium::from_reader(&serialized[..]).unwrap();
         assert_eq!(pk, deserialized);
     }
 
     #[test]
     fn test_serde_naoryung_public_key() {
         let pk = elgamal::KeyPair::generate().pkey;
-        let serialized = bincode::serde::encode_to_vec(&pk, bincode::config::standard()).unwrap();
-        let (deserialized, _): (elgamal::PublicKey<P256Ctx>, _) =
-            bincode::serde::decode_from_slice(&serialized, bincode::config::standard()).unwrap();
+        let mut serialized = Vec::new();
+        ciborium::into_writer(&pk, &mut serialized).unwrap();
+        let deserialized: elgamal::PublicKey<P256Ctx> =
+            ciborium::from_reader(&serialized[..]).unwrap();
         assert_eq!(pk, deserialized);
     }
 
     #[test]
     fn test_serde_elgamal_key_pair() {
         let kp = elgamal::KeyPair::<P256Ctx>::generate();
-        let serialized = bincode::serde::encode_to_vec(&kp, bincode::config::standard()).unwrap();
-        let (deserialized, _): (elgamal::KeyPair<P256Ctx>, _) =
-            bincode::serde::decode_from_slice(&serialized, bincode::config::standard()).unwrap();
+        let mut serialized = Vec::new();
+        ciborium::into_writer(&kp, &mut serialized).unwrap();
+        let deserialized: elgamal::KeyPair<P256Ctx> =
+            ciborium::from_reader(&serialized[..]).unwrap();
         assert_eq!(kp, deserialized);
     }
 
@@ -199,9 +202,10 @@ mod tests {
         let m = [P256Ctx::random_element(), P256Ctx::random_element()];
         let ct = kp.encrypt(&m);
 
-        let serialized = bincode::serde::encode_to_vec(&ct, bincode::config::standard()).unwrap();
-        let (deserialized, _): (elgamal::Ciphertext<P256Ctx, 2>, _) =
-            bincode::serde::decode_from_slice(&serialized, bincode::config::standard()).unwrap();
+        let mut serialized = Vec::new();
+        ciborium::into_writer(&ct, &mut serialized).unwrap();
+        let deserialized: elgamal::Ciphertext<P256Ctx, 2> =
+            ciborium::from_reader(&serialized[..]).unwrap();
         assert_eq!(ct, deserialized);
     }
 
@@ -209,9 +213,10 @@ mod tests {
     fn test_serde_naoryung_key_pair() {
         let eg_kp = elgamal::KeyPair::<P256Ctx>::generate();
         let kp = naoryung::KeyPair::new(&eg_kp, P256Ctx::random_element());
-        let serialized = bincode::serde::encode_to_vec(&kp, bincode::config::standard()).unwrap();
-        let (deserialized, _): (naoryung::KeyPair<P256Ctx>, _) =
-            bincode::serde::decode_from_slice(&serialized, bincode::config::standard()).unwrap();
+        let mut serialized = Vec::new();
+        ciborium::into_writer(&kp, &mut serialized).unwrap();
+        let deserialized: naoryung::KeyPair<P256Ctx> =
+            ciborium::from_reader(&serialized[..]).unwrap();
         assert_eq!(kp, deserialized);
     }
 
@@ -220,11 +225,12 @@ mod tests {
         let eg_kp = elgamal::KeyPair::<P256Ctx>::generate();
         let kp = naoryung::KeyPair::new(&eg_kp, P256Ctx::random_element());
         let m = [P256Ctx::random_element(), P256Ctx::random_element()];
-        let ct = kp.encrypt(&m, &vec![]);
+        let ct = kp.encrypt(&m, &vec![]).unwrap();
 
-        let serialized = bincode::serde::encode_to_vec(&ct, bincode::config::standard()).unwrap();
-        let (deserialized, _): (naoryung::Ciphertext<P256Ctx, 2>, _) =
-            bincode::serde::decode_from_slice(&serialized, bincode::config::standard()).unwrap();
+        let mut serialized = Vec::new();
+        ciborium::into_writer(&ct, &mut serialized).unwrap();
+        let deserialized: naoryung::Ciphertext<P256Ctx, 2> =
+            ciborium::from_reader(&serialized[..]).unwrap();
         assert_eq!(ct, deserialized);
     }
 
@@ -238,11 +244,12 @@ mod tests {
         let public_yn = gn.dist_exp(&secret_x);
 
         let proof: dlogeq::DlogEqProof<P256Ctx, 2> =
-            dlogeq::DlogEqProof::prove(&secret_x, &g1, &public_y1, &gn, &public_yn, &vec![]);
-        let serialized =
-            bincode::serde::encode_to_vec(&proof, bincode::config::standard()).unwrap();
-        let (deserialized, _): (dlogeq::DlogEqProof<P256Ctx, 2>, _) =
-            bincode::serde::decode_from_slice(&serialized, bincode::config::standard()).unwrap();
+            dlogeq::DlogEqProof::prove(&secret_x, &g1, &public_y1, &gn, &public_yn, &vec![])
+                .unwrap();
+        let mut serialized = Vec::new();
+        ciborium::into_writer(&proof, &mut serialized).unwrap();
+        let deserialized: dlogeq::DlogEqProof<P256Ctx, 2> =
+            ciborium::from_reader(&serialized[..]).unwrap();
         assert_eq!(proof, deserialized);
     }
 
@@ -252,7 +259,7 @@ mod tests {
         let ny_kp = naoryung::KeyPair::new(&eg_kp, RCtx::random_element());
         let m = [RCtx::random_element(), RCtx::random_element()];
         let r = [RCtx::random_scalar(), RCtx::random_scalar()];
-        let ct = ny_kp.encrypt_with_r(&m, &r, &vec![]);
+        let ct = ny_kp.encrypt_with_r(&m, &r, &vec![]).unwrap();
 
         let proof: pleq::PlEqProof<RCtx, 2> = pleq::PlEqProof::prove(
             &ny_kp.pkey.pk_b,
@@ -262,11 +269,12 @@ mod tests {
             &ct.u_a,
             &r,
             &vec![],
-        );
-        let serialized =
-            bincode::serde::encode_to_vec(&proof, bincode::config::standard()).unwrap();
-        let (deserialized, _): (pleq::PlEqProof<RCtx, 2>, _) =
-            bincode::serde::decode_from_slice(&serialized, bincode::config::standard()).unwrap();
+        )
+        .unwrap();
+        let mut serialized = Vec::new();
+        ciborium::into_writer(&proof, &mut serialized).unwrap();
+        let deserialized: pleq::PlEqProof<RCtx, 2> =
+            ciborium::from_reader(&serialized[..]).unwrap();
         assert_eq!(proof, deserialized);
     }
 
@@ -276,11 +284,12 @@ mod tests {
         let secret_x = P256Ctx::random_scalar();
         let public_y = g.exp(&secret_x);
 
-        let proof = schnorr::SchnorrProof::<P256Ctx>::prove(&g, &public_y, &secret_x);
-        let serialized =
-            bincode::serde::encode_to_vec(&proof, bincode::config::standard()).unwrap();
-        let (deserialized, _): (schnorr::SchnorrProof<P256Ctx>, _) =
-            bincode::serde::decode_from_slice(&serialized, bincode::config::standard()).unwrap();
+        let proof =
+            schnorr::SchnorrProof::<P256Ctx>::prove(&g, &public_y, &secret_x, &vec![]).unwrap();
+        let mut serialized = Vec::new();
+        ciborium::into_writer(&proof, &mut serialized).unwrap();
+        let deserialized: schnorr::SchnorrProof<P256Ctx> =
+            ciborium::from_reader(&serialized[..]).unwrap();
         assert_eq!(proof, deserialized);
     }
 
@@ -297,14 +306,14 @@ mod tests {
         let ciphertexts: Vec<elgamal::Ciphertext<P256Ctx, W>> =
             messages.iter().map(|m| keypair.encrypt(m)).collect();
 
-        let generators = <P256Ctx as Context>::G::ind_generators(count, &vec![]);
+        let generators = <P256Ctx as Context>::G::ind_generators(count, &vec![]).unwrap();
         let shuffler = shuffle::Shuffler::<P256Ctx, W>::new(generators, keypair.pkey);
 
-        let (_, proof) = shuffler.shuffle(&ciphertexts, &vec![]);
-        let serialized =
-            bincode::serde::encode_to_vec(&proof, bincode::config::standard()).unwrap();
-        let (deserialized, _): (shuffle::ShuffleProof<P256Ctx, W>, _) =
-            bincode::serde::decode_from_slice(&serialized, bincode::config::standard()).unwrap();
+        let (_, proof) = shuffler.shuffle(&ciphertexts, &vec![]).unwrap();
+        let mut serialized = Vec::new();
+        ciborium::into_writer(&proof, &mut serialized).unwrap();
+        let deserialized: shuffle::ShuffleProof<P256Ctx, W> =
+            ciborium::from_reader(&serialized[..]).unwrap();
         assert_eq!(proof, deserialized);
     }
 
@@ -312,9 +321,10 @@ mod tests {
     fn test_serde_dkg_public_key() {
         let keypair = elgamal::KeyPair::<P256Ctx>::generate();
         let pk = DkgPublicKey::<P256Ctx, 2>::from_keypair(&keypair);
-        let serialized = bincode::serde::encode_to_vec(&pk, bincode::config::standard()).unwrap();
-        let (deserialized, _): (DkgPublicKey<P256Ctx, 2>, _) =
-            bincode::serde::decode_from_slice(&serialized, bincode::config::standard()).unwrap();
+        let mut serialized = Vec::new();
+        ciborium::into_writer(&pk, &mut serialized).unwrap();
+        let deserialized: DkgPublicKey<P256Ctx, 2> =
+            ciborium::from_reader(&serialized[..]).unwrap();
         assert_eq!(pk, deserialized);
     }
 
@@ -324,9 +334,10 @@ mod tests {
         let pk = DkgPublicKey::<P256Ctx, 2>::from_keypair(&keypair);
         let m = [P256Ctx::random_element(), P256Ctx::random_element()];
         let ct: DkgCiphertext<P256Ctx, 2, 2> = pk.encrypt(&m);
-        let serialized = bincode::serde::encode_to_vec(&ct, bincode::config::standard()).unwrap();
-        let (deserialized, _): (DkgCiphertext<P256Ctx, 2, 2>, _) =
-            bincode::serde::decode_from_slice(&serialized, bincode::config::standard()).unwrap();
+        let mut serialized = Vec::new();
+        ciborium::into_writer(&ct, &mut serialized).unwrap();
+        let deserialized: DkgCiphertext<P256Ctx, 2, 2> =
+            ciborium::from_reader(&serialized[..]).unwrap();
         assert_eq!(ct, deserialized);
     }
 }
