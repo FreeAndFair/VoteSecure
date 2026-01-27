@@ -153,7 +153,7 @@ channel properties
 
 ## Phase 2 Third-Party Authentication
 
-The VA and the AS directly send message back and forth according to the AS protocol. The end result of which is the AS will store the authentication data of the voter using the VA and notify the VA when the authentication process is complete.
+The VA and the AS directly send messages back and forth according to the AS protocol. At the end of the process, the AS stores the authentication data of the voter who is using the VA and notifies the VA when the authentication process is complete.
 
 ## Phase 3 Validation of Authentication
 
@@ -580,7 +580,7 @@ channel properties
       result --> error : Incorrect Public Key Error
 
 
-      complete --> [*]
+      complete --> [*] : Display Pseudonym to Voter
       denied --> [*]
       error --> [*]
 ```

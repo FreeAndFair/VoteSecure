@@ -27,7 +27,7 @@ pub trait DBBStorage: Clone + std::fmt::Debug {
 
     /// Store a voter authorization message.
     ///
-    /// This overwrites any previous authorization for the same pseudonym,
+    /// This overrides any previous authorization for the same pseudonym,
     /// which is intentional per the protocol - multiple authorizations
     /// can occur but only the most recent is valid.
     fn store_voter_authorization(
@@ -57,7 +57,8 @@ pub trait DBBStorage: Clone + std::fmt::Debug {
 
     /// Get all submitted ballots for a voter pseudonym.
     ///
-    /// Returns a vector of (tracker, ballot) pairs.
+    /// Returns a vector of (tracker, ballot) pairs, in the order
+    /// they apepar on the bulletin board.
     fn get_submitted_ballots(
         &self,
         pseudonym: &VoterPseudonym,
@@ -309,6 +310,7 @@ mod tests {
             ballot,
             &election_keypair.pkey,
             &string_to_election_hash("test_election"),
+            &"test_pseudonym".to_string(),
         )
         .unwrap();
 

@@ -15,6 +15,7 @@
 // currently ignored for code simplicity until performance data is analyzed
 #![allow(clippy::large_enum_variant)]
 
+use crate::bulletins::{Bulletin, Bulletin::BallotSubmission};
 use crate::cryptography::{SigningKey, verify_signature};
 use crate::elections::{BallotTracker, ElectionHash};
 use crate::messages::{
@@ -241,9 +242,22 @@ impl CheckingActor {
             .get_bulletin(tracker)?
             .ok_or("Tracker does not correspond to a valid ballot submission")?;
 
-        // Verify it's a ballot submission bulletin
-        if !matches!(bulletin, crate::bulletins::Bulletin::BallotSubmission(_)) {
-            return Err("Tracker does not refer to a ballot submission".to_string());
+        // Verify it's a ballot submission bulletin, and that the voter has not
+        // previously cast it or another ballot. This is stricter than the protocol's
+        // required check of "has the voter cast the ballot they want to check", but
+        // more straightforward to implement.
+        match bulletin {
+            BallotSubmission(bs) => {
+                let voter_pseudonym = bs.data.ballot.data.voter_pseudonym;
+                if bulletin_board
+                    .get_bulletins_by_pseudonym(voter_pseudonym)
+                    .iter()
+                    .any(|b| matches!(b, Bulletin::BallotCast(_)))
+                {
+                    return Err("Voter has already cast a ballot".to_string());
+                }
+            }
+            _ => return Err("Tracker does not refer to a ballot submission".to_string()),
         }
 
         Ok(())
@@ -322,7 +336,7 @@ impl CheckingActor {
             .get_bulletin(&randomizer_data.message.data.tracker)?
             .ok_or("Could not find ballot submission for tracker")?;
 
-        if let crate::bulletins::Bulletin::BallotSubmission(ballot_sub) = bulletin {
+        if let BallotSubmission(ballot_sub) = bulletin {
             // Get the ballot style from the ballot
             let ballot_style = ballot_sub.data.ballot.data.ballot_style;
 
@@ -351,7 +365,7 @@ impl CheckingActor {
             .get_bulletin(&randomizer_data.message.data.tracker)?
             .ok_or("Could not find ballot submission for tracker")?;
 
-        if let crate::bulletins::Bulletin::BallotSubmission(ballot_sub) = bulletin {
+        if let BallotSubmission(ballot_sub) = bulletin {
             // Verify the public key matches
             if ballot_sub.data.ballot.data.voter_verifying_key != randomizer_data.public_key {
                 return Err("Randomizer public key does not match ballot submission".to_string());
@@ -422,15 +436,18 @@ impl CheckingActor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bulletins::{BallotSubBulletin, BallotSubBulletinData, Bulletin};
+    use crate::bulletins::{
+        BallotCastBulletin, BallotCastBulletinData, BallotSubBulletin, BallotSubBulletinData,
+        Bulletin,
+    };
     use crate::cryptography::{
         BallotCryptogram, Signature, VerifyingKey, generate_encryption_keypair,
         generate_signature_keypair,
     };
     use crate::elections::{BallotStyle, string_to_election_hash};
     use crate::messages::{
-        AuthVoterMsg, AuthVoterMsgData, CheckReqMsgData, RandomizerMsgData, SignedBallotMsg,
-        SignedBallotMsgData,
+        AuthVoterMsg, AuthVoterMsgData, CastReqMsg, CastReqMsgData, CheckReqMsgData,
+        RandomizerMsgData, SignedBallotMsg, SignedBallotMsgData,
     };
     use crate::participants::digital_ballot_box::{
         bulletin_board::InMemoryBulletinBoard, storage::InMemoryStorage,
@@ -606,6 +623,113 @@ mod tests {
             }
             _ => panic!("Expected SendMessage with FwdRandomizer"),
         }
+    }
+
+    #[test]
+    fn test_check_after_cast() {
+        let (mut actor, dbb_signing_key, _dbb_verifying_key) = create_test_actor();
+        let storage = InMemoryStorage::new();
+        let mut bulletin_board = InMemoryBulletinBoard::new();
+        let election_hash = string_to_election_hash("test_election");
+        let voter_pseudonym = "voter123".to_string();
+
+        // Create a ballot submission bulletin
+        let (voter_signing_key, voter_verifying_key) = generate_signature_keypair();
+        let ballot_data = SignedBallotMsgData {
+            election_hash,
+            voter_pseudonym: voter_pseudonym.clone(),
+            voter_verifying_key,
+            ballot_style: 1,
+            ballot_cryptogram: create_test_ballot_cryptogram(1),
+        };
+        let ballot_signature_bytes =
+            crate::cryptography::sign_data(&ballot_data.ser(), &voter_signing_key);
+        let ballot = SignedBallotMsg {
+            data: ballot_data,
+            signature: Signature::from_bytes(&ballot_signature_bytes.to_bytes()),
+        };
+
+        let ballot_sub_bulletin_data = BallotSubBulletinData {
+            election_hash,
+            timestamp: 1000,
+            ballot: ballot.clone(),
+            previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
+        };
+        let ballot_sub_signature_bytes =
+            crate::cryptography::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
+        let ballot_sub_bulletin = BallotSubBulletin {
+            data: ballot_sub_bulletin_data.clone(),
+            signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+        };
+        let tracker = bulletin_board
+            .append_bulletin(Bulletin::BallotSubmission(ballot_sub_bulletin))
+            .unwrap();
+
+        // Create a ballot cast bulletin for the ballot we just submitted
+        let cast_req_data = CastReqMsgData {
+            election_hash,
+            voter_pseudonym,
+            voter_verifying_key,
+            ballot_tracker: tracker.clone(),
+        };
+        let cast_req_signature_bytes =
+            crate::cryptography::sign_data(&cast_req_data.ser(), &voter_signing_key);
+        let cast_req_msg = CastReqMsg {
+            data: cast_req_data,
+            signature: Signature::from_bytes(&cast_req_signature_bytes.to_bytes()),
+        };
+        let ballot_cast_bulletin_data = BallotCastBulletinData {
+            election_hash,
+            timestamp: 1001,
+            ballot: ballot_sub_bulletin_data.ballot,
+            cast_intent: cast_req_msg,
+            previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
+        };
+        let ballot_cast_signature_bytes =
+            crate::cryptography::sign_data(&ballot_cast_bulletin_data.ser(), &dbb_signing_key);
+        let ballot_cast_bulletin = BallotCastBulletin {
+            data: ballot_cast_bulletin_data,
+            signature: hex::encode(ballot_cast_signature_bytes.to_bytes()),
+        };
+
+        let _cast_tracker = bulletin_board
+            .append_bulletin(Bulletin::BallotCast(ballot_cast_bulletin))
+            .unwrap();
+
+        // Create a check request from BCA
+        let (bca_signing_key, bca_verifying_key) = generate_signature_keypair();
+        let bca_enc_keypair =
+            generate_encryption_keypair(b"bca_context").expect("Failed to generate keypair");
+        let check_req_data = CheckReqMsgData {
+            election_hash,
+            tracker: tracker.clone(),
+            public_enc_key: bca_enc_keypair.pkey,
+            public_sign_key: bca_verifying_key,
+        };
+        let check_req_signature_bytes =
+            crate::cryptography::sign_data(&check_req_data.ser(), &bca_signing_key);
+        let check_req = CheckReqMsg {
+            data: check_req_data,
+            signature: Signature::from_bytes(&check_req_signature_bytes.to_bytes()),
+        };
+
+        // Process the check request
+        let result = actor.process_input(
+            CheckingInput::NetworkMessage {
+                connection_id: 1,
+                message: ProtocolMessage::CheckReq(check_req.clone()),
+            },
+            &storage,
+            &bulletin_board,
+        );
+
+        // We expect an error here.
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .contains("Voter has already cast a ballot")
+        )
     }
 
     #[test]

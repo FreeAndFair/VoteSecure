@@ -10,7 +10,8 @@
 #[cfg(test)]
 mod tests {
     use crate::cryptography::{
-        BallotCryptogram, Context, CryptographyContext, ElectionKey, SigningKey, encrypt_ballot,
+        Context, CryptographyContext, ElectionKey, PseudonymCryptogramPair, SigningKey,
+        encrypt_ballot,
     };
     use crate::elections::{Ballot, BallotStyle, ElectionHash, string_to_election_hash};
     use crate::trustee_protocols::trustee_administration_server::handlers::{
@@ -141,17 +142,22 @@ mod tests {
         election_key: &ElectionKey,
         election_hash: &ElectionHash,
         count: usize,
-    ) -> Vec<BallotCryptogram> {
+    ) -> Vec<PseudonymCryptogramPair> {
         let mut ballots = Vec::new();
 
         for i in 0..count {
             let mut ballot = Ballot::test_ballot(i as u64);
+            let voter_pseudonym = "voter".to_string() + &i.to_string();
+
             // we want a max of 3 ballot styles, so that we don't do a
             // bunch of shuffles each with a single ballot
             ballot.ballot_style = (i % 3 + 1) as BallotStyle;
-            match encrypt_ballot(ballot, election_key, election_hash) {
-                Ok((cryptogram, _randomizers)) => {
-                    ballots.push(cryptogram);
+            match encrypt_ballot(ballot, election_key, election_hash, &voter_pseudonym) {
+                Ok((ballot_cryptogram, _randomizers)) => {
+                    ballots.push(PseudonymCryptogramPair {
+                        voter_pseudonym,
+                        ballot_cryptogram,
+                    });
                 }
                 Err(e) => {
                     panic!("Failed to encrypt ballot {}: {}", i, e);
@@ -392,7 +398,7 @@ mod tests {
 
         let mixing_params = MixingParameters {
             active_trustees: active_trustee_ids.clone(),
-            cryptograms: ballots.clone(),
+            pseudonym_cryptograms: ballots.clone(),
         };
 
         let mixing_input = TASInput::from(StartMixing(mixing_params));

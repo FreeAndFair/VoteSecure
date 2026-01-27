@@ -10,7 +10,7 @@
 
 use crate::bulletins::Bulletin;
 use crate::cryptography::{Digest, Hasher256, OldHasher, VSerializable};
-use crate::elections::BallotTracker;
+use crate::elections::{BallotTracker, VoterPseudonym};
 use std::collections::HashMap;
 
 // =============================================================================
@@ -62,6 +62,16 @@ pub trait BulletinBoard: Clone + std::fmt::Debug {
     /// # Returns
     /// A vector of bulletins matching the specified type
     fn get_bulletins_by_type(&self, bulletin_type: BulletinType) -> Vec<Bulletin>;
+
+    /// Get bulletins associated with a specific voter pseudonym.
+    ///
+    /// # Arguments
+    /// * `voter_pseudonym` - The pseudonym to retrieve
+    ///
+    /// # Returns
+    /// A vector of bulletins matching the specified pseudonym, in
+    /// the order in which they appear on the bulletin board.
+    fn get_bulletins_by_pseudonym(&self, voter_pseudonym: VoterPseudonym) -> Vec<Bulletin>;
 
     /// Get the hash of the most recent bulletin.
     ///
@@ -210,6 +220,22 @@ impl BulletinBoard for InMemoryBulletinBoard {
             .collect()
     }
 
+    fn get_bulletins_by_pseudonym(&self, voter_pseudonym: VoterPseudonym) -> Vec<Bulletin> {
+        self.bulletins
+            .iter()
+            .filter(|b| match b {
+                Bulletin::BallotSubmission(bs) => {
+                    bs.data.ballot.data.voter_pseudonym == voter_pseudonym
+                }
+                Bulletin::BallotCast(bc) => bc.data.ballot.data.voter_pseudonym == voter_pseudonym,
+                Bulletin::VoterAuthorization(va) => {
+                    va.data.authorization.data.voter_pseudonym == voter_pseudonym
+                }
+            })
+            .cloned()
+            .collect()
+    }
+
     fn get_last_bulletin_hash(&self) -> Option<String> {
         self.bulletins
             .last()
@@ -268,6 +294,7 @@ mod tests {
             ballot,
             &election_keypair.pkey,
             &string_to_election_hash("test_election"),
+            &"voter123".to_string(),
         )
         .unwrap();
 

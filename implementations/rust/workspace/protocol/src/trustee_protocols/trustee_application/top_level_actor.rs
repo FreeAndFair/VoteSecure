@@ -17,7 +17,7 @@
 
 use crate::cryptography::{
     BALLOT_CIPHERTEXT_WIDTH, CryptographyContext, ElectionKey, SelectionElement, SigningKey,
-    VSerializable, decode_ballot, encryption_context, sign_data,
+    VSerializable, ballot_context, decode_ballot, election_context, sign_data,
 };
 use crate::elections::{Ballot, BallotStyle, ElectionHash, string_to_election_hash};
 use crate::trustee_protocols::trustee_application::ascent_logic::protocol::composed_ascent_logic;
@@ -766,7 +766,7 @@ impl TrusteeActor {
                 let pk_hash = self
                     .get_ascent_pk_hash()
                     .expect("pk_hash must exist at this point of the protocol");
-                let ciphertexts_hash = hash_serializable(&msg.data.cryptograms);
+                let ciphertexts_hash = hash_serializable(&msg.data.pseudonym_cryptograms);
 
                 // For active trustees in mixing, we need to renumber them starting from 1
                 // because Ascent expects mixing trustee indices to be 1-based
@@ -1355,7 +1355,7 @@ impl TrusteeActor {
                 })
                 .ok_or("No mixed ciphertexts found that match provided ciphertext hash")?;
 
-            let encryption_context = encryption_context(&previous_mix_msg.data.election_hash);
+            let election_context = election_context(&previous_mix_msg.data.election_hash);
 
             // Mix the ciphertexts separately by ballot style.
             let mut mixed_ciphertexts: BTreeMap<BallotStyle, Vec<StrippedBallotCiphertext>> =
@@ -1366,7 +1366,7 @@ impl TrusteeActor {
                 // Shuffle the ciphertexts for this ballot style
                 #[crate::warning("Challenge inputs are incomplete.")]
                 let (mixed, proof) =
-                    shuffle_ciphertexts(ciphertexts, election_pk, &encryption_context)?;
+                    shuffle_ciphertexts(ciphertexts, election_pk, &election_context)?;
                 mixed_ciphertexts.insert(*ballot_style_id, mixed);
                 proofs.insert(*ballot_style_id, proof);
             }
@@ -1401,11 +1401,11 @@ impl TrusteeActor {
 
             // Group ballots by ballot style.
             let mut ballots_by_style: BTreeMap<BallotStyle, Vec<_>> = BTreeMap::new();
-            for ballot_cryptogram in &mix_init_msg.data.cryptograms {
+            for pseudonym_cryptogram in &mix_init_msg.data.pseudonym_cryptograms {
                 ballots_by_style
-                    .entry(ballot_cryptogram.ballot_style)
+                    .entry(pseudonym_cryptogram.ballot_cryptogram.ballot_style)
                     .or_default()
-                    .push(ballot_cryptogram);
+                    .push(pseudonym_cryptogram);
             }
 
             // For each ballot style, strip NY encryption and shuffle.
@@ -1413,16 +1413,22 @@ impl TrusteeActor {
                 BTreeMap::new();
             let mut proofs: BTreeMap<BallotStyle, MixRoundProof> = BTreeMap::new();
 
-            // Get the encryption context that was used to encrypt the ballots.
-            // This must match what encrypt_ballot() uses in cryptography.rs.
-            let encryption_context = encryption_context(&mix_init_msg.data.election_hash);
+            // Get the encryption context for the shuffle.
+            let election_context = election_context(&mix_init_msg.data.election_hash);
 
-            for (ballot_style, cryptograms) in ballots_by_style {
+            for (ballot_style, pseudonym_cryptograms) in ballots_by_style {
                 // Strip NY encryption from each ballot to get EG ciphertext.
                 let mut stripped_ciphertexts: Vec<StrippedBallotCiphertext> = Vec::new();
-                for cryptogram in cryptograms {
+                for pseudonym_cryptogram in pseudonym_cryptograms {
+                    let ballot_context = ballot_context(
+                        &self.protocol_state().election_hash,
+                        &pseudonym_cryptogram.voter_pseudonym,
+                    );
                     let stripped = election_pk
-                        .strip(cryptogram.ciphertext.clone(), &encryption_context)
+                        .strip(
+                            pseudonym_cryptogram.ballot_cryptogram.ciphertext.clone(),
+                            &ballot_context,
+                        )
                         .map_err(|e| format!("Failed to strip NY encryption: {:?}", e))?;
                     stripped_ciphertexts.push(stripped);
                 }
@@ -1430,7 +1436,7 @@ impl TrusteeActor {
                 // Shuffle the ciphertexts for this ballot style.
                 #[crate::warning("Challenge inputs are incomplete.")]
                 let (mixed, proof) =
-                    shuffle_ciphertexts(&stripped_ciphertexts, election_pk, &encryption_context)?;
+                    shuffle_ciphertexts(&stripped_ciphertexts, election_pk, &election_context)?;
 
                 // Store the results.
                 mixed_ciphertexts.insert(ballot_style, mixed);
@@ -1494,17 +1500,24 @@ impl TrusteeActor {
 
             // Get the encryption context that was used to encrypt the ballots.
             // This must match what encrypt_ballot() uses in cryptography.rs.
-            let encryption_context = encryption_context(&mix_init_msg.data.election_hash);
+            let election_context = election_context(&mix_init_msg.data.election_hash);
 
             // Group ballots by ballot style and strip NY encryption.
             let mut input_by_style: BTreeMap<BallotStyle, Vec<StrippedBallotCiphertext>> =
                 BTreeMap::new();
-            for ballot_cryptogram in &mix_init_msg.data.cryptograms {
+            for pseudonym_cryptogram in &mix_init_msg.data.pseudonym_cryptograms {
+                let ballot_context = ballot_context(
+                    &mix_init_msg.data.election_hash,
+                    &pseudonym_cryptogram.voter_pseudonym,
+                );
                 let stripped = election_pk
-                    .strip(ballot_cryptogram.ciphertext.clone(), &encryption_context)
+                    .strip(
+                        pseudonym_cryptogram.ballot_cryptogram.ciphertext.clone(),
+                        &ballot_context,
+                    )
                     .map_err(|e| format!("Failed to strip NY encryption: {:?}", e))?;
                 input_by_style
-                    .entry(ballot_cryptogram.ballot_style)
+                    .entry(pseudonym_cryptogram.ballot_cryptogram.ballot_style)
                     .or_default()
                     .push(stripped);
             }
@@ -1527,7 +1540,7 @@ impl TrusteeActor {
                     output_ciphertexts,
                     proof,
                     election_pk,
-                    &encryption_context,
+                    &election_context,
                 )?;
             }
         } else {
@@ -1544,7 +1557,7 @@ impl TrusteeActor {
                 })
                 .ok_or("No previous mix message found")?;
 
-            let encryption_context = encryption_context(&previous_mix.data.election_hash);
+            let election_context = election_context(&previous_mix.data.election_hash);
 
             // Verify the shuffle for each ballot style.
             for (ballot_style, output_ciphertexts) in &mix_to_verify.data.ciphertexts {
@@ -1564,7 +1577,7 @@ impl TrusteeActor {
                     output_ciphertexts,
                     proof,
                     election_pk,
-                    &encryption_context,
+                    &election_context,
                 )?;
             }
         }

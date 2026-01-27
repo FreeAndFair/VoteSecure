@@ -27,14 +27,15 @@ use crate::cryptography::ElectionKeyPair;
 use crate::cryptography::RandomizersStruct;
 use crate::cryptography::{SigningKey, VerifyingKey};
 
-use crate::elections::ElectionHash;
-use crate::elections::{Ballot, BallotTracker};
+use crate::elections::{Ballot, BallotTracker, CastOrNot, ElectionHash};
 
 use crate::messages::ProtocolMessage;
 use crate::messages::{CheckReqMsg, CheckReqMsgData};
 use crate::messages::{FwdRandomizerMsg, FwdRandomizerMsgData};
 use crate::messages::{RandomizerMsg, RandomizerMsgData};
 use crate::messages::{SignedBallotMsg, SignedBallotMsgData};
+
+use crate::bulletins::Bulletin;
 
 use cryptography::utils::serialization::VSerializable;
 
@@ -55,6 +56,13 @@ pub enum BallotCheckInput {
      * The BCA only receives messages from the Digital Ballot Box (DBB).
      */
     NetworkMessage(ProtocolMessage),
+
+    /**
+     * The cast/not cast decision by the voter, and a list of bulletins
+     * that voter's pseudonym has posted to the bulletin board in the
+     * order in which they were posted.
+     */
+    CastDecision(CastOrNot, Vec<Bulletin>),
 }
 
 /// The set of outputs that the `AuthenticationActor` can produce.
@@ -71,6 +79,14 @@ pub enum BallotCheckOutput {
      * Plaintext ballot shown to the user for checking/verification purposes.
      */
     PlaintextBallot(Ballot),
+
+    /**
+     * The protocol has succeeded (the voter either indicated they cast
+     * and we have verified that they cast in the set of bulletins we
+     * received, or indicated they did not cast and we have verified
+     * that they did not cast in the set of bulletins we received).
+     */
+    Success(),
 
     /**
      * The protocol has failed; the [`String`] argument described the error.
@@ -94,6 +110,21 @@ enum SubState {
      * and display its content to the user for subsequent manual checking.
      */
     DecryptAndDisplayBallot,
+
+    /**
+     * We are waiting for the voter to indicate whether or not they
+     * cast the ballot that they checked, so we can evaluate the list
+     * of bulletin board entries for their pseudonym to determine if
+     * their decision is correctly reflected there.
+     *
+     * This step is optional in the sense that no further protocol
+     * communication with the DBB happens here; it is just a validation
+     * mechanism for bulletin board entries. It could be implemented by
+     * the ballot checking application outside of this actor model, or
+     * could be implemented as a separate standalone application to
+     * check the bulletin board against a cast/uncast ballot tracker.
+     */
+    CheckBallotCastOrNotStatus,
 
     /**
      * Protocol execution completed.
@@ -233,6 +264,7 @@ impl BallotCheckActor {
                     &decrypted_randomizers,
                     &self.election_public_key,
                     &self.election_hash,
+                    &self.ballot.data.voter_pseudonym,
                 );
 
                 // Check whether ballot decryption was successful.
@@ -246,10 +278,83 @@ impl BallotCheckActor {
 
                 let decrypted_ballot: Ballot = decrypted_ballot_result.unwrap();
 
-                self.state = SubState::Completed;
+                self.state = SubState::CheckBallotCastOrNotStatus;
 
                 // Return decrypted ballot for user verification.
                 BallotCheckOutput::PlaintextBallot(decrypted_ballot)
+            }
+
+            (
+                SubState::CheckBallotCastOrNotStatus,
+                BallotCheckInput::CastDecision(cast_decision, bulletins),
+            ) => {
+                // Find the cast ballot bulletin, if one exists; there should
+                // only be one in a well-formed set of bulletins.
+
+                // We always go to the completed state from here, as there is
+                // no reason to check this twice in the same ballot check.
+                self.state = SubState::Completed;
+
+                let num_casts = bulletins
+                    .iter()
+                    .filter(|b| matches!(b, Bulletin::BallotCast(_)))
+                    .count();
+
+                match (cast_decision, num_casts) {
+                    (CastOrNot::Cast, 1) => {
+                        // This could be a valid cast, let's get it and check.
+                        let cast_ballot = bulletins
+                            .iter()
+                            .find(|b| matches!(b, Bulletin::BallotCast(_)));
+
+                        // Compare the cast ballot with the one we checked.
+                        match cast_ballot {
+                            Some(Bulletin::BallotCast(bc)) => {
+                                if bc.data.ballot == self.ballot {
+                                    // The cast ballot matches the one we checked.
+                                    BallotCheckOutput::Success()
+                                } else {
+                                    // The cast ballot doesn't match the one we checked.
+                                    BallotCheckOutput::Failure(
+                                        "Cast ballot does not match checked ballot".to_string(),
+                                    )
+                                }
+                            }
+
+                            _ => {
+                                // This can't happen but we need a match case for it
+                                BallotCheckOutput::Failure("Impossible type error".to_string())
+                            }
+                        }
+                    }
+
+                    (CastOrNot::Cast, 0) => {
+                        // No ballot was cast, but the voter said one was.
+                        BallotCheckOutput::Failure(
+                            "No cast ballot found on the public bulletin board".to_string(),
+                        )
+                    }
+
+                    (CastOrNot::NotCast, 0) => {
+                        // No ballot was cast, and the voter said no ballot was cast.
+                        BallotCheckOutput::Success()
+                    }
+
+                    (CastOrNot::NotCast, 1) => {
+                        // A ballot was cast, and the voter said no ballot was cast.
+                        BallotCheckOutput::Failure(
+                            "Cast ballot found on the public bulletin board".to_string(),
+                        )
+                    }
+
+                    (_, _) => {
+                        // More than 1 ballot was cast; this is a failure regardless
+                        // of what the voter said.
+                        BallotCheckOutput::Failure(
+                            "Multiple cast ballots found on the public bulletin board".to_string(),
+                        )
+                    }
+                }
             }
 
             _ => BallotCheckOutput::Failure(

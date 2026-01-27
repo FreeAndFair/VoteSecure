@@ -12,7 +12,7 @@
 // currently ignored for code simplicity until performance data is analyzed
 #![allow(clippy::large_enum_variant)]
 
-use crate::cryptography::{BallotCryptogram, ElectionKey, SigningKey};
+use crate::cryptography::{ElectionKey, PseudonymCryptogramPair, SigningKey};
 use crate::trustee_protocols::trustee_messages::{
     CheckSignature, DecryptedBallotsMsg, EGCryptogramsMsg, ElectionPublicKeyMsg, KeySharesMsg,
     MixInitializationMsg, MixInitializationMsgData, PartialDecryptionsMsg, SetupMsg, SetupMsgData,
@@ -90,7 +90,7 @@ pub enum TASOutput {
 #[derive(Debug, Clone, PartialEq)]
 pub struct MixingParameters {
     pub active_trustees: Vec<TrusteeID>,
-    pub cryptograms: Vec<BallotCryptogram>,
+    pub pseudonym_cryptograms: Vec<PseudonymCryptogramPair>,
 }
 
 /// Contains the data resulting from a successful key generation.
@@ -690,7 +690,7 @@ impl TASActor {
             signer: self.checkpoint.trustees[0].trustee_id(),
             election_hash: self.checkpoint.election_hash,
             active_trustees: mixing_parameters.active_trustees.clone(),
-            cryptograms: mixing_parameters.cryptograms.to_owned(),
+            pseudonym_cryptograms: mixing_parameters.pseudonym_cryptograms.to_owned(),
         };
         let serialized_data = msg_data.ser();
         let mix_msg = MixInitializationMsg {

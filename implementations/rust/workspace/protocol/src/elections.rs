@@ -43,6 +43,13 @@ pub struct Ballot {
     pub rank: u128,
 }
 
+/// An enumeration for the cast/not cast decision used by the BCA.
+#[derive(Debug, Clone, PartialEq)]
+pub enum CastOrNot {
+    Cast,
+    NotCast,
+}
+
 // =============================================================================
 // Election Identifiers and Metadata
 // =============================================================================

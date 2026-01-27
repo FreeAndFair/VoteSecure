@@ -10,10 +10,9 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::cryptography::SigningKey;
     use crate::cryptography::{
-        BallotCryptogram, Context, CryptographyContext, ElectionKey, Signature, VSerializable,
-        encrypt_ballot, sign_data,
+        Context, CryptographyContext, ElectionKey, PseudonymCryptogramPair, Signature, SigningKey,
+        VSerializable, encrypt_ballot, sign_data,
     };
     use crate::elections::{Ballot, BallotStyle, ElectionHash, string_to_election_hash};
     use crate::trustee_protocols::trustee_administration_server::handlers::{
@@ -36,6 +35,9 @@ mod tests {
     use stateright::{Checker, Model, Property};
     use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
     use std::hash::{Hash, Hasher};
+
+    // for generating random voter pseudonyms
+    use rand::distributions::{Alphanumeric, DistString};
 
     const MANIFEST: &str = "test_election_manifest";
 
@@ -131,7 +133,7 @@ mod tests {
         election_key: Option<ElectionKey>,
 
         /// Encrypted ballots for mixing/decryption (generated after KeyGen).
-        encrypted_ballots: Option<Vec<BallotCryptogram>>,
+        encrypted_ballots: Option<Vec<PseudonymCryptogramPair>>,
 
         /// Count of messages dropped so far (for testing message drop scenarios),
         /// tracked per trustee to ensure we don't drop all messages to any trustee.
@@ -509,17 +511,28 @@ mod tests {
             election_hash: &ElectionHash,
             num_styles: usize,
             num_ballots_per_style: usize,
-        ) -> Vec<BallotCryptogram> {
+        ) -> Vec<PseudonymCryptogramPair> {
             let plaintext_ballots =
                 Self::generate_plaintext_ballots(num_styles, num_ballots_per_style);
             let mut encrypted_ballots = Vec::new();
 
             for (_ballot_style, ballots) in plaintext_ballots {
                 for ballot in ballots {
+                    // Generate a pseudonym for the ballot.
+                    let voter_pseudonym = Alphanumeric.sample_string(&mut rand::thread_rng(), 16);
+
                     // Encrypt the ballot.
-                    match encrypt_ballot(ballot.clone(), election_key, election_hash) {
-                        Ok((cryptogram, _randomizers)) => {
-                            encrypted_ballots.push(cryptogram);
+                    match encrypt_ballot(
+                        ballot.clone(),
+                        election_key,
+                        election_hash,
+                        &voter_pseudonym,
+                    ) {
+                        Ok((ballot_cryptogram, _randomizers)) => {
+                            encrypted_ballots.push(PseudonymCryptogramPair {
+                                voter_pseudonym,
+                                ballot_cryptogram,
+                            });
                         }
                         Err(e) => {
                             panic!("Failed to encrypt ballot: {}", e);
@@ -1091,7 +1104,7 @@ mod tests {
 
                         let mixing_params = MixingParameters {
                             active_trustees,
-                            cryptograms: ballots.clone(),
+                            pseudonym_cryptograms: ballots.clone(),
                         };
 
                         new_state
@@ -1463,8 +1476,8 @@ mod tests {
                                         TrusteeMsg::MixInitialization(mix_init_msg) => {
                                             // Reorder cryptograms to create inconsistency.
                                             let mut modified_data = mix_init_msg.data.clone();
-                                            if modified_data.cryptograms.len() >= 2 {
-                                                modified_data.cryptograms.swap(0, 1);
+                                            if modified_data.pseudonym_cryptograms.len() >= 2 {
+                                                modified_data.pseudonym_cryptograms.swap(0, 1);
 
                                                 if let Some(signing_key) =
                                                     get_signing_key(&mix_init_msg.data.signer.name)

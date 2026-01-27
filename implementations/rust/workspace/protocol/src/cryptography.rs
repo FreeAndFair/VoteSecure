@@ -12,7 +12,7 @@
 use vser_derive::VSerializable;
 
 // Import type aliases from elections module
-use crate::elections::{Ballot, BallotStyle, ElectionHash};
+use crate::elections::{Ballot, BallotStyle, ElectionHash, VoterPseudonym};
 
 // Internal imports for cryptography.rs implementation
 pub use cryptography::context::Context;
@@ -117,6 +117,15 @@ pub struct RandomizersCryptogram {
     pub ballot_style: BallotStyle,
     /// The single ciphertext containing all encrypted randomizers.
     pub ciphertext: RandomizerCiphertext,
+}
+
+/// A ballot cryptogram and its associated pseudonym.
+#[derive(Debug, Clone, PartialEq, VSerializable)]
+pub struct PseudonymCryptogramPair {
+    /// The pseudonym.
+    pub voter_pseudonym: VoterPseudonym,
+    /// The cryptogram.
+    pub ballot_cryptogram: BallotCryptogram,
 }
 
 // =============================================================================
@@ -239,9 +248,20 @@ pub fn generate_ballot_randomizers(width: usize) -> Vec<Randomizer> {
     (0..width).map(|_| Randomizer::random(&mut rng)).collect()
 }
 
-/// Return the encryption context for an election hash.
-pub fn encryption_context(election_hash: &ElectionHash) -> Vec<u8> {
+/// Return the encryption context derived from an election hash and a
+/// voter pseudonym. This context is used when encrypting/decryption ballots.
+pub fn ballot_context(election_hash: &ElectionHash, voter_pseudonym: &VoterPseudonym) -> Vec<u8> {
     let mut context = b"ballot_encryption_".to_vec();
+    context.extend_from_slice(election_hash);
+    context.extend_from_slice(voter_pseudonym.as_bytes());
+
+    context
+}
+
+/// Return the encryption context derived from an election hash.
+/// This context is used in mixing.
+pub fn election_context(election_hash: &ElectionHash) -> Vec<u8> {
+    let mut context = b"encryption_".to_vec();
     context.extend_from_slice(election_hash);
 
     context
@@ -272,6 +292,7 @@ pub fn encrypt_ballot(
     ballot: Ballot,
     election_pk: &ElectionKey,
     election_hash: &ElectionHash,
+    voter_pseudonym: &VoterPseudonym,
 ) -> Result<(BallotCryptogram, RandomizersStruct), String> {
     // Encode the ballot to elements
     let elements = encode_ballot(&ballot)?;
@@ -283,7 +304,7 @@ pub fn encrypt_ballot(
         .map_err(|_| "Failed to convert randomizers to fixed array")?;
 
     // Create encryption context
-    let encryption_context = encryption_context(election_hash);
+    let encryption_context = ballot_context(election_hash, voter_pseudonym);
 
     // Encrypt the elements using Naor-Yung
     let ciphertext = election_pk
@@ -309,9 +330,10 @@ pub fn decrypt_ballot(
     randomizers: &RandomizersStruct,
     election_public_key: &ElectionKey,
     election_hash: &ElectionHash,
+    voter_pseudonym: &VoterPseudonym,
 ) -> Result<Ballot, String> {
     // Create decryption context
-    let decryption_context = encryption_context(election_hash);
+    let decryption_context = ballot_context(election_hash, voter_pseudonym);
 
     // Strip the Naor-Yung proof to get ElGamal ciphertext
     let elgamal_ciphertext = election_public_key
@@ -337,8 +359,9 @@ pub fn verify_ciphertext_proof(
     ciphertext: &BallotCiphertext,
     election_pk: &ElectionKey,
     election_hash: &ElectionHash,
+    voter_pseudonym: &VoterPseudonym,
 ) -> Result<bool, String> {
-    let verification_context = encryption_context(election_hash);
+    let verification_context = ballot_context(election_hash, voter_pseudonym);
 
     let result = election_pk.strip(ciphertext.clone(), &verification_context);
 
@@ -472,8 +495,15 @@ pub fn encrypt_test_ballot(
     ballot: crate::elections::Ballot,
     election_keypair: &ElectionKeyPair,
     election_hash: &ElectionHash,
+    voter_pseudonym: &VoterPseudonym,
 ) -> (BallotCryptogram, RandomizersStruct) {
-    encrypt_ballot(ballot, &election_keypair.pkey, election_hash).unwrap()
+    encrypt_ballot(
+        ballot,
+        &election_keypair.pkey,
+        election_hash,
+        voter_pseudonym,
+    )
+    .unwrap()
 }
 
 // =============================================================================
@@ -559,10 +589,16 @@ mod tests {
         let ballot = Ballot::test_ballot(54321);
         let ballot_style = ballot.ballot_style;
         let election_hash = crate::elections::string_to_election_hash("test_election_hash");
+        let voter_pseudonym = "test_pseudonym".to_string();
 
         // Test encrypt_ballot function
-        let (ballot_cryptogram, randomizers) =
-            encrypt_ballot(ballot, &election_keypair.pkey, &election_hash).unwrap();
+        let (ballot_cryptogram, randomizers) = encrypt_ballot(
+            ballot,
+            &election_keypair.pkey,
+            &election_hash,
+            &voter_pseudonym,
+        )
+        .unwrap();
 
         // Verify ballot cryptogram structure
         assert_eq!(ballot_cryptogram.ballot_style, ballot_style);
@@ -579,15 +615,18 @@ mod tests {
 
         // Create test ballot
         let ballot = create_test_ballot_small();
-
         let election_hash = crate::elections::string_to_election_hash("test_election_hash");
-        let (ballot_cryptogram, _) = encrypt_test_ballot(ballot, &election_keypair, &election_hash);
+        let voter_pseudonym = "test_pseudonym".to_string();
+
+        let (ballot_cryptogram, _) =
+            encrypt_test_ballot(ballot, &election_keypair, &election_hash, &voter_pseudonym);
 
         // Test proof verification
         let verification_result = verify_ciphertext_proof(
             &ballot_cryptogram.ciphertext,
             &election_keypair.pkey,
             &election_hash,
+            &voter_pseudonym,
         );
 
         assert!(verification_result.is_ok());
@@ -603,29 +642,52 @@ mod tests {
         let ballot = create_test_ballot_small();
 
         let election_hash = crate::elections::string_to_election_hash("test_election_hash");
-        let (ballot_cryptogram, _) = encrypt_test_ballot(ballot, &election_keypair, &election_hash);
+        let voter_pseudonym: String = "test_pseudonym".to_string();
+
+        let (ballot_cryptogram, _) =
+            encrypt_test_ballot(ballot, &election_keypair, &election_hash, &voter_pseudonym);
 
         let ciphertext = &ballot_cryptogram.ciphertext;
 
         // Test 1: Valid proof should verify correctly
-        let valid_result =
-            verify_ciphertext_proof(ciphertext, &election_keypair.pkey, &election_hash);
+        let valid_result = verify_ciphertext_proof(
+            ciphertext,
+            &election_keypair.pkey,
+            &election_hash,
+            &voter_pseudonym,
+        );
         assert!(valid_result.is_ok());
         assert!(valid_result.unwrap());
 
         // Test 2: Wrong election hash should fail (different context)
         let wrong_hash = crate::elections::string_to_election_hash("wrong_election_hash");
-        let wrong_hash_result =
-            verify_ciphertext_proof(ciphertext, &election_keypair.pkey, &wrong_hash);
+        let wrong_hash_result = verify_ciphertext_proof(
+            ciphertext,
+            &election_keypair.pkey,
+            &wrong_hash,
+            &voter_pseudonym,
+        );
         assert!(wrong_hash_result.is_ok());
         assert!(!wrong_hash_result.unwrap()); // Should be false for wrong context
 
-        // Test 3: Wrong public key should fail
+        // Test 3: Wrong pseudonym should fail (different context)
+        let wrong_pseudonym = "wrong_pseudonym".to_string();
+        let wrong_pseudonym_result = verify_ciphertext_proof(
+            ciphertext,
+            &election_keypair.pkey,
+            &election_hash,
+            &wrong_pseudonym,
+        );
+        assert!(wrong_pseudonym_result.is_ok());
+        assert!(!wrong_pseudonym_result.unwrap()); // Should be false for wrong context
+
+        // Test 4: Wrong public key should fail
         let wrong_keypair = generate_encryption_keypair(b"different_context").unwrap();
         let wrong_key_result = verify_ciphertext_proof(
             ciphertext,
             &wrong_keypair.pkey, // Wrong public key
             &election_hash,
+            &voter_pseudonym,
         );
         assert!(wrong_key_result.is_ok());
         assert!(!wrong_key_result.unwrap()); // Should be false for wrong key
@@ -641,22 +703,32 @@ mod tests {
         let ballot2 = crate::elections::Ballot::test_ballot(111111);
 
         let election_hash = crate::elections::string_to_election_hash("test_election_hash");
+        let voter_pseudonym: String = "test_pseudonym".to_string();
+
         let (ballot_cryptogram1, _) =
-            encrypt_test_ballot(ballot1, &election_keypair, &election_hash);
+            encrypt_test_ballot(ballot1, &election_keypair, &election_hash, &voter_pseudonym);
         let (ballot_cryptogram2, _) =
-            encrypt_test_ballot(ballot2, &election_keypair, &election_hash);
+            encrypt_test_ballot(ballot2, &election_keypair, &election_hash, &voter_pseudonym);
 
         let ciphertext1 = &ballot_cryptogram1.ciphertext;
         let ciphertext2 = &ballot_cryptogram2.ciphertext;
 
         // Test 1: Valid ciphertexts should verify correctly (sanity check)
-        let valid_result1 =
-            verify_ciphertext_proof(ciphertext1, &election_keypair.pkey, &election_hash);
+        let valid_result1 = verify_ciphertext_proof(
+            ciphertext1,
+            &election_keypair.pkey,
+            &election_hash,
+            &voter_pseudonym,
+        );
         assert!(valid_result1.is_ok());
         assert!(valid_result1.unwrap());
 
-        let valid_result2 =
-            verify_ciphertext_proof(ciphertext2, &election_keypair.pkey, &election_hash);
+        let valid_result2 = verify_ciphertext_proof(
+            ciphertext2,
+            &election_keypair.pkey,
+            &election_hash,
+            &voter_pseudonym,
+        );
         assert!(valid_result2.is_ok());
         assert!(valid_result2.unwrap());
 
@@ -668,8 +740,12 @@ mod tests {
             proof: ciphertext2.proof.clone(), // Wrong proof!
         };
 
-        let swapped_result =
-            verify_ciphertext_proof(&swapped_ciphertext, &election_keypair.pkey, &election_hash);
+        let swapped_result = verify_ciphertext_proof(
+            &swapped_ciphertext,
+            &election_keypair.pkey,
+            &election_hash,
+            &voter_pseudonym,
+        );
         assert!(swapped_result.is_ok());
         assert!(!swapped_result.unwrap()); // Should fail - proof doesn't match components
     }
@@ -684,8 +760,14 @@ mod tests {
 
         // Encrypt the ballot
         let election_hash = crate::elections::string_to_election_hash("test_election");
-        let (ballot_cryptogram, randomizers) =
-            encrypt_test_ballot(original_ballot.clone(), &keypair, &election_hash);
+        let voter_pseudonym: String = "test_pseudonym".to_string();
+
+        let (ballot_cryptogram, randomizers) = encrypt_test_ballot(
+            original_ballot.clone(),
+            &keypair,
+            &election_hash,
+            &voter_pseudonym,
+        );
 
         // Decrypt the ballot using randomizers and public key
         let decrypted_ballot = decrypt_ballot(
@@ -693,6 +775,7 @@ mod tests {
             &randomizers,
             &keypair.pkey,
             &election_hash,
+            &voter_pseudonym,
         );
 
         assert!(decrypted_ballot.is_ok());
@@ -712,8 +795,14 @@ mod tests {
         let test_ballot = create_test_ballot_small();
         let ballot_style = test_ballot.ballot_style;
         let election_hash = crate::elections::string_to_election_hash("test_election_hash");
-        let (_, original_randomizers) =
-            encrypt_test_ballot(test_ballot, &election_keypair, &election_hash);
+        let voter_pseudonym: String = "test_pseudonym".to_string();
+
+        let (_, original_randomizers) = encrypt_test_ballot(
+            test_ballot,
+            &election_keypair,
+            &election_hash,
+            &voter_pseudonym,
+        );
 
         // Test randomizers encryption/decryption
         let encrypted_randomizers =
@@ -742,8 +831,14 @@ mod tests {
         let test_ballot = create_test_ballot_medium();
         let ballot_style = test_ballot.ballot_style;
         let election_hash = crate::elections::string_to_election_hash("test_election_hash");
-        let (_, original_randomizers) =
-            encrypt_test_ballot(test_ballot, &election_keypair, &election_hash);
+        let voter_pseudonym: String = "test_pseudonym".to_string();
+
+        let (_, original_randomizers) = encrypt_test_ballot(
+            test_ballot,
+            &election_keypair,
+            &election_hash,
+            &voter_pseudonym,
+        );
 
         // Test full randomizers struct encryption/decryption
         let encrypted_randomizers =
@@ -792,8 +887,14 @@ mod tests {
 
         // Step 2: Encrypt the ballot (generates randomizers)
         let election_hash = crate::elections::string_to_election_hash("test_election_hash");
-        let (ballot_cryptogram, randomizers) =
-            encrypt_test_ballot(original_ballot.clone(), &election_keypair, &election_hash);
+        let voter_pseudonym: String = "test_pseudonym".to_string();
+
+        let (ballot_cryptogram, randomizers) = encrypt_test_ballot(
+            original_ballot.clone(),
+            &election_keypair,
+            &election_hash,
+            &voter_pseudonym,
+        );
 
         // Verify ballot was encrypted correctly
         assert_eq!(ballot_cryptogram.ballot_style, original_ballot.ballot_style);
@@ -814,6 +915,7 @@ mod tests {
             &decrypted_randomizers,
             &election_keypair.pkey,
             &election_hash,
+            &voter_pseudonym,
         )
         .unwrap();
 
@@ -844,7 +946,14 @@ mod tests {
         let election_keypair = create_test_encryption_keypair();
         let test_ballot = create_test_ballot_small();
         let election_hash = crate::elections::string_to_election_hash("test_hash");
-        let (_, randomizers) = encrypt_test_ballot(test_ballot, &election_keypair, &election_hash);
+        let voter_pseudonym: String = "test_pseudonym".to_string();
+
+        let (_, randomizers) = encrypt_test_ballot(
+            test_ballot,
+            &election_keypair,
+            &election_hash,
+            &voter_pseudonym,
+        );
 
         // Create BCA keypair
         let bca_keypair = create_test_encryption_keypair();

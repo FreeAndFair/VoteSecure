@@ -144,6 +144,7 @@ impl SubmissionActor {
                     ballot,
                     &self.election_public_key,
                     &self.election_hash,
+                    &self.voter_pseudonym,
                 ) {
                     Ok(result) => result,
                     Err(e) => {
@@ -373,6 +374,7 @@ mod tests {
             ballot,
             &election_keypair.pkey,
             &crate::elections::string_to_election_hash("test_election_hash"),
+            &"test_pseudonym".to_string(),
         )
         .unwrap();
 
@@ -422,6 +424,7 @@ mod tests {
         // Test that VSerializable works correctly for submission message serialization
         let (_, verifying_key) = crate::cryptography::generate_signature_keypair();
         let election_hash = crate::elections::string_to_election_hash("test_election_2024");
+        let voter_pseudonym = "test_pseudonym".to_string();
         let election_keypair =
             crate::cryptography::generate_encryption_keypair(b"test_context").unwrap();
 
@@ -431,6 +434,7 @@ mod tests {
             test_ballot,
             &election_keypair.pkey,
             &election_hash,
+            &voter_pseudonym,
         )
         .unwrap();
 
@@ -469,6 +473,7 @@ mod tests {
         let election_keypair =
             crate::cryptography::generate_encryption_keypair(b"test_context").unwrap();
         let election_hash = crate::elections::string_to_election_hash("test_election_2024");
+        let voter_pseudonym = "test_pseudonym".to_string();
 
         let mut submission_actor = SubmissionActor::new(
             election_hash,
@@ -486,9 +491,13 @@ mod tests {
         // Test that we can create a SignedBallotMsg directly using encrypt_ballot
         use crate::messages::{SignedBallotMsg, SignedBallotMsgData};
 
-        let (ballot_cryptogram, _randomizers) =
-            crate::cryptography::encrypt_ballot(ballot, &election_keypair.pkey, &election_hash)
-                .unwrap();
+        let (ballot_cryptogram, _randomizers) = crate::cryptography::encrypt_ballot(
+            ballot,
+            &election_keypair.pkey,
+            &election_hash,
+            &voter_pseudonym,
+        )
+        .unwrap();
 
         let data = SignedBallotMsgData {
             election_hash,

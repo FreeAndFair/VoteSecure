@@ -314,6 +314,7 @@ mod tests {
     #[test]
     fn test_checking_actor_creation() {
         let election_hash = "test_election_hash".to_string();
+        let voter_pseudonym = "test_pseudonym".to_string();
         let (_, dbb_verifying_key) = generate_signature_keypair();
         let (session_signing_key, session_verifying_key) = generate_signature_keypair();
 
@@ -326,6 +327,7 @@ mod tests {
             test_ballot,
             &election_keypair.pkey,
             &crate::elections::string_to_election_hash(&election_hash),
+            &voter_pseudonym,
         )
         .unwrap();
 
@@ -346,6 +348,7 @@ mod tests {
     #[test]
     fn test_check_request_signature_verification() {
         let election_hash = "test_election_hash".to_string();
+        let voter_pseudonym = "test_pseudonym".to_string();
         let (_, dbb_verifying_key) = generate_signature_keypair();
         let (session_signing_key, session_verifying_key) = generate_signature_keypair();
 
@@ -357,6 +360,7 @@ mod tests {
             test_ballot,
             &election_keypair.pkey,
             &crate::elections::string_to_election_hash(&election_hash),
+            &voter_pseudonym,
         )
         .unwrap();
 
@@ -406,6 +410,7 @@ mod tests {
             test_ballot,
             &election_keypair,
             &crate::elections::string_to_election_hash("test_hash"),
+            &"test_pseudonym".to_string(),
         );
 
         // Create BCA keypair (exactly like working tests)
@@ -426,6 +431,7 @@ mod tests {
         // Test CheckingActor creation and basic validation without complex cryptography operations
 
         let election_hash = "test_election_hash".to_string();
+        let voter_pseudonym = "test_pseudonym".to_string();
         let (_, dbb_verifying_key) = generate_signature_keypair();
         let (session_signing_key, session_verifying_key) = generate_signature_keypair();
 
@@ -436,6 +442,7 @@ mod tests {
             test_ballot,
             &election_keypair,
             &crate::elections::string_to_election_hash("test_hash"),
+            &voter_pseudonym,
         );
 
         // Test CheckingActor creation
@@ -469,6 +476,7 @@ mod tests {
         // Tests the complete workflow using proven working patterns from cryptography.rs tests
 
         let election_hash = "test_election_hash".to_string();
+        let voter_pseudonym = "test_pseudonym".to_string();
         let (_, dbb_verifying_key) = generate_signature_keypair();
         let (session_signing_key, session_verifying_key) = generate_signature_keypair();
 
@@ -480,6 +488,7 @@ mod tests {
             test_ballot.clone(),
             &election_keypair,
             &crate::elections::string_to_election_hash(&election_hash),
+            &voter_pseudonym,
         );
 
         assert_eq!(
@@ -543,6 +552,7 @@ mod tests {
             &decrypted,
             &election_keypair.pkey,
             &crate::elections::string_to_election_hash(&election_hash),
+            &voter_pseudonym,
         );
         assert!(recovered_ballot.is_ok(), "Ballot decryption should work");
 
@@ -590,6 +600,7 @@ mod tests {
             test_ballot,
             &election_keypair,
             &crate::elections::string_to_election_hash("test_hash"),
+            &"test_pseudonym".to_string(),
         );
 
         // Create BCA keypair (exactly like working tests)
@@ -610,6 +621,7 @@ mod tests {
         // Test that exactly replicates the hanging create_encrypted_randomizers call
 
         let election_hash = "test_election_hash".to_string();
+        let voter_pseudonym = "test_pseudonym".to_string();
         let (_, dbb_verifying_key) = generate_signature_keypair();
         let (session_signing_key, session_verifying_key) = generate_signature_keypair();
         let (session_signing_key2, _) = generate_signature_keypair();
@@ -621,6 +633,7 @@ mod tests {
             test_ballot,
             &election_keypair,
             &crate::elections::string_to_election_hash(&election_hash),
+            &voter_pseudonym,
         );
 
         // Create CheckingActor exactly like the hanging test
@@ -694,6 +707,7 @@ mod tests {
     #[test]
     fn test_validation_checks() {
         let election_hash = "test_election_hash".to_string();
+        let voter_pseudonym = "test_pseudonym".to_string();
         let (_, dbb_verifying_key) = generate_signature_keypair();
         let (session_signing_key, session_verifying_key) = generate_signature_keypair();
 
@@ -705,6 +719,7 @@ mod tests {
             test_ballot,
             &election_keypair.pkey,
             &crate::elections::string_to_election_hash(&election_hash),
+            &voter_pseudonym,
         )
         .unwrap();
 
@@ -720,6 +735,7 @@ mod tests {
     #[test]
     fn test_message_serialization() {
         let election_hash = "test_election_hash".to_string();
+        let voter_pseudonym = "test_pseudonym".to_string();
         let (_, dbb_verifying_key) = generate_signature_keypair();
         let (session_signing_key, session_verifying_key) = generate_signature_keypair();
 
@@ -731,6 +747,7 @@ mod tests {
             test_ballot,
             &election_keypair.pkey,
             &crate::elections::string_to_election_hash(&election_hash),
+            &voter_pseudonym,
         )
         .unwrap();
 
@@ -764,6 +781,7 @@ mod tests {
         // Test that VSerializable works correctly for checking message serialization
         let (_, verifying_key) = generate_signature_keypair();
         let election_hash = "test_election_2024".to_string();
+        let voter_pseudonym = "test_pseudonym".to_string();
 
         // Test CheckReqMsgData serialization
         let bca_keypair =
@@ -802,6 +820,7 @@ mod tests {
             test_ballot,
             &bca_keypair.pkey,
             &crate::elections::string_to_election_hash("test"),
+            &voter_pseudonym,
         )
         .unwrap();
         let encrypted_randomizers = crate::cryptography::encrypt_randomizers(
@@ -827,6 +846,7 @@ mod tests {
     fn test_checking_actor_signature_compatibility() {
         // Test that the checking actor can create and verify signatures using VSerializable
         let election_hash = "test_election_2024".to_string();
+        let voter_pseudonym = "test_pseudonym".to_string();
         let (_, dbb_verifying_key) = generate_signature_keypair();
         let (session_signing_key, session_verifying_key) = generate_signature_keypair();
 
@@ -838,6 +858,7 @@ mod tests {
             test_ballot,
             &election_keypair.pkey,
             &crate::elections::string_to_election_hash(&election_hash),
+            &voter_pseudonym,
         )
         .unwrap();
 

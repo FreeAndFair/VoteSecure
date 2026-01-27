@@ -321,6 +321,7 @@ mod tests {
             ballot,
             &election_keypair.pkey,
             &crate::elections::string_to_election_hash("test_election"),
+            &"test_pseudonym".to_string(),
         )
         .unwrap();
         let serialized_ballot = ballot_cryptogram.ser();

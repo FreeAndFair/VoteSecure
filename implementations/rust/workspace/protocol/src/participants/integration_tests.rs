@@ -30,7 +30,7 @@ mod tests {
         Context, CryptographyContext, ElectionKey, SigningKey, VerifyingKey,
     };
     use crate::elections::{
-        Ballot, BallotStyle, ElectionHash, VoterPseudonym, string_to_election_hash,
+        Ballot, BallotStyle, CastOrNot, ElectionHash, VoterPseudonym, string_to_election_hash,
     };
     use crate::messages::ProtocolMessage;
     use crate::participants::ballot_check_application::sub_actors::ballot_check::{
@@ -339,6 +339,12 @@ mod tests {
 
         /// Running hash of all inputs processed by BCA (when it exists)
         bca_trace_hash: u64,
+
+        /// Whether BCA has returned PlaintextBallot and is awaiting CastDecision
+        bca_awaiting_cast_decision: bool,
+
+        /// Whether the current ballot was confirmed as NotCast (prevents casting, must resubmit)
+        current_ballot_confirmed_not_cast: bool,
     }
 
     impl VoterSessionState {
@@ -367,6 +373,8 @@ mod tests {
                 va_trace_hash: 0,
                 bca_id: None,
                 bca_trace_hash: 0,
+                bca_awaiting_cast_decision: false,
+                current_ballot_confirmed_not_cast: false,
             }
         }
 
@@ -544,6 +552,8 @@ mod tests {
                 session.check_approval_pending.hash(state);
                 session.third_party_auth_pending.hash(state);
                 session.va_subprotocol_state.hash(state);
+                session.bca_awaiting_cast_decision.hash(state);
+                session.current_ballot_confirmed_not_cast.hash(state);
                 // Hash whether VA has randomizers (via ballot_randomizers)
                 session.va.ballot_randomizers().is_some().hash(state);
                 // Note: va_id, va_trace_hash, bca_id, bca_trace_hash are intentionally NOT hashed.
@@ -674,6 +684,8 @@ mod tests {
                             && a.check_approval_pending == b.check_approval_pending
                             && a.third_party_auth_pending == b.third_party_auth_pending
                             && a.va_subprotocol_state == b.va_subprotocol_state
+                            && a.bca_awaiting_cast_decision == b.bca_awaiting_cast_decision
+                            && a.current_ballot_confirmed_not_cast == b.current_ballot_confirmed_not_cast
                             // Compare VA randomizers state
                             && a.va.ballot_randomizers().is_some() == b.va.ballot_randomizers().is_some()
                             // Note: va_id, va_trace_hash, bca_id, bca_trace_hash intentionally NOT compared.
@@ -1062,21 +1074,26 @@ mod tests {
                             .push_back(msg);
                     }
                     BallotCheckOutput::PlaintextBallot(_ballot) => {
-                        // Ballot check completed successfully
-                        // In a real application, this would display the ballot to the user
-                        // For the model, we just note that the check completed
-                        // Clear the BCA actor as checking is done
+                        // Ballot check decryption completed successfully
+                        // BCA is now waiting for CastDecision input
                         let session = &mut state.voter_sessions.get_mut(&session_id).unwrap();
-                        session.bca = None;
-                        session.bca_id = None;
+                        session.bca_awaiting_cast_decision = true;
                     }
                     BallotCheckOutput::Failure(_error) => {
                         // Ballot check failed
-                        // For the model, we just note the failure
                         // Clear the BCA actor as checking is done
                         let session = &mut state.voter_sessions.get_mut(&session_id).unwrap();
                         session.bca = None;
                         session.bca_id = None;
+                        session.bca_awaiting_cast_decision = false;
+                    }
+                    BallotCheckOutput::Success() => {
+                        // Cast/not-cast verification completed successfully
+                        // Clear the BCA actor as the full check cycle is done
+                        let session = &mut state.voter_sessions.get_mut(&session_id).unwrap();
+                        session.bca = None;
+                        session.bca_id = None;
+                        session.bca_awaiting_cast_decision = false;
                     }
                 },
             }
@@ -2272,6 +2289,10 @@ mod tests {
         UserCheckBallot(SessionId),
         /// User approves check request (provides approval to VA)
         UserApproveCheck(SessionId),
+        /// User confirms NotCast with BCA (decides not to cast current ballot, will resubmit)
+        UserConfirmNotCast(SessionId),
+        /// User confirms Cast with BCA (after casting, verifies cast was recorded)
+        UserConfirmCast(SessionId),
         /// User casts ballot
         UserCastBallot(SessionId),
         /// User abandons session
@@ -2625,10 +2646,19 @@ mod tests {
 
                 // After submission - can check or cast
                 if session.va.ballot_tracker().is_some() && !session.has_cast {
-                    // If actively checking (BCA exists or approval pending), can't cast yet
-                    let is_checking = session.bca.is_some() || session.check_approval_pending;
-
-                    if !is_checking {
+                    // If BCA is awaiting cast decision (after PlaintextBallot)
+                    if session.bca_awaiting_cast_decision {
+                        // Can confirm NotCast (then must resubmit)
+                        actions.push(Action::UserConfirmNotCast(session_id));
+                        // Can still cast (unless already confirmed NotCast)
+                        if !session.current_ballot_confirmed_not_cast {
+                            actions.push(Action::UserCastBallot(session_id));
+                        }
+                    } else if session.bca.is_some() || session.check_approval_pending {
+                        // Actively checking (BCA exists but not yet at PlaintextBallot, or approval pending)
+                        // No user actions until check progresses
+                    } else {
+                        // Not checking - can check, resubmit, or cast
                         // Can check (if within limit)
                         if state.total_checks_used < state.config.max_total_checks {
                             trace_print(format!(
@@ -2646,10 +2676,16 @@ mod tests {
                             actions.push(Action::UserSubmitBallot(session_id));
                         }
 
-                        // Can cast (not checking)
-                        actions.push(Action::UserCastBallot(session_id));
+                        // Can cast (unless ballot was confirmed as NotCast)
+                        if !session.current_ballot_confirmed_not_cast {
+                            actions.push(Action::UserCastBallot(session_id));
+                        }
                     }
-                    // If checking is in progress, no user actions until it completes or fails
+                }
+
+                // After casting - must confirm Cast if BCA is awaiting
+                if session.has_cast && session.bca_awaiting_cast_decision {
+                    actions.push(Action::UserConfirmCast(session_id));
                 }
             }
 
@@ -2691,6 +2727,13 @@ mod tests {
                             }
                             Action::UserApproveCheck(vid) => {
                                 trace_print(format!("  Action {}: UserApproveCheck({:?})", i, vid))
+                            }
+                            Action::UserConfirmNotCast(vid) => trace_print(format!(
+                                "  Action {}: UserConfirmNotCast({:?})",
+                                i, vid
+                            )),
+                            Action::UserConfirmCast(vid) => {
+                                trace_print(format!("  Action {}: UserConfirmCast({:?})", i, vid))
                             }
                             Action::UserCastBallot(vid) => {
                                 trace_print(format!("  Action {}: UserCastBallot({:?})", i, vid))
@@ -2774,6 +2817,8 @@ mod tests {
                         // Increment resubmission counters
                         session.resubmission_count += 1;
                         next.total_resubmissions_used += 1;
+                        // Reset NotCast confirmation for new ballot
+                        session.current_ballot_confirmed_not_cast = false;
                     }
 
                     // Create a test ballot with a deterministic seed based on global counter
@@ -2847,6 +2892,50 @@ mod tests {
                         VASubprotocolInput::Checking(CheckingInput::UserApproval(true)),
                     ));
                     // Note: check_approval_pending will be cleared when VA processes the approval
+                }
+
+                Action::UserConfirmNotCast(session_id) => {
+                    // Voter decides not to cast this ballot (will resubmit)
+                    let session = next.voter_sessions.get(&session_id).unwrap();
+                    let voter_pseudonym = session.va.voter_pseudonym().unwrap().clone();
+
+                    // Get bulletins for this voter from the DBB bulletin board
+                    let voter_bulletins = next
+                        .dbb
+                        .bulletin_board()
+                        .get_bulletins_by_pseudonym(voter_pseudonym);
+
+                    // Send CastDecision(NotCast) to BCA
+                    let session = next.voter_sessions.get_mut(&session_id).unwrap();
+                    session.bca_inbox.push(BCAMessage::SubprotocolInput(
+                        BCASubprotocolInput::BallotCheck(BallotCheckInput::CastDecision(
+                            CastOrNot::NotCast,
+                            voter_bulletins,
+                        )),
+                    ));
+                    // Mark that this ballot was confirmed as not cast (prevents casting)
+                    session.current_ballot_confirmed_not_cast = true;
+                }
+
+                Action::UserConfirmCast(session_id) => {
+                    // Voter confirms they cast the ballot (after casting)
+                    let session = next.voter_sessions.get(&session_id).unwrap();
+                    let voter_pseudonym = session.va.voter_pseudonym().unwrap().clone();
+
+                    // Get bulletins for this voter from the DBB bulletin board
+                    let voter_bulletins = next
+                        .dbb
+                        .bulletin_board()
+                        .get_bulletins_by_pseudonym(voter_pseudonym);
+
+                    // Send CastDecision(Cast) to BCA
+                    let session = next.voter_sessions.get_mut(&session_id).unwrap();
+                    session.bca_inbox.push(BCAMessage::SubprotocolInput(
+                        BCASubprotocolInput::BallotCheck(BallotCheckInput::CastDecision(
+                            CastOrNot::Cast,
+                            voter_bulletins,
+                        )),
+                    ));
                 }
 
                 Action::UserCastBallot(session_id) => {

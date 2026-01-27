@@ -48,6 +48,7 @@ sequenceDiagram
     activate DBB
     DBB->>DBB: Append Record to PBB: 'PublicKey P Authorized...'
     EAS->>VA: Auth Success & Eligible (Elections: [...], For PublicKey: P)
+    Note over VA: Display pseudonym to authenticated voter
     deactivate DBB
     # --- End Happy Path Steps ---
 

@@ -25,7 +25,7 @@ use crate::trustee_protocols::trustee_application::top_level_actor::{
 use crate::utils::serialization::VSerializable;
 use vser_derive::VSerializable;
 
-use crate::cryptography::{BallotCryptogram, ElectionKey, Signature, VerifyingKey};
+use crate::cryptography::{ElectionKey, PseudonymCryptogramPair, Signature, VerifyingKey};
 use crate::elections::{Ballot, BallotStyle, ElectionHash};
 use crate::trustee_protocols::trustee_cryptography::{
     CheckValue, MixRoundProof, PartialDecryptionProof, PartialDecryptionValue, ShareCiphertext,
@@ -373,7 +373,7 @@ pub struct MixInitializationMsgData {
     pub signer: TrusteeID,
     pub election_hash: ElectionHash,
     pub active_trustees: Vec<TrusteeID>,
-    pub cryptograms: Vec<BallotCryptogram>,
+    pub pseudonym_cryptograms: Vec<PseudonymCryptogramPair>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -17,9 +17,9 @@ mod tests {
     use crate::bulletins::Bulletin;
     use crate::cryptography::{Context, CryptographyContext, ElectionKey, SigningKey};
     use crate::elections::{
-        Ballot, BallotStyle, BallotTracker, ElectionHash, VoterPseudonym, string_to_election_hash,
+        Ballot, BallotStyle, BallotTracker, CastOrNot, ElectionHash, VoterPseudonym,
+        string_to_election_hash,
     };
-    use crate::messages::SignedBallotMsg;
     use crate::participants::ballot_check_application::top_level_actor::{
         ActorInput as BCAInput, TopLevelActor as BCAActor,
     };
@@ -507,7 +507,8 @@ mod tests {
             // We track all submitted ballots, but only the final one will be cast
             let mut all_trackers: Vec<BallotTracker> = Vec::new();
 
-            let mut last_signed_ballot: Option<SignedBallotMsg> = None;
+            // BCA from the final check, saved for post-cast verification
+            let mut final_check_bca: Option<BCAActor> = None;
 
             // Outer loop: submission attempts (initial + resubmissions)
             for submission_num in 0..=resubmissions {
@@ -548,9 +549,6 @@ mod tests {
                             ) = msg
                             {
                                 println!("VA -> DBB: SignedBallot");
-
-                                // Store the signed ballot for later checking
-                                last_signed_ballot = Some(signed_ballot.clone());
 
                                 // Assign connection ID for this VA if not already assigned
                                 let connection_id =
@@ -814,6 +812,36 @@ mod tests {
                                             // Verify the decrypted ballot matches the original
                                             assert_eq!(decrypted_ballot, test_ballot, "Decrypted ballot should match original ballot");
                                             println!("✓ Verified: Decrypted ballot matches original ballot");
+
+                                            // Determine if this is the last check before casting
+                                            let is_final_check = submission_num == resubmissions && check_num == checks_per_submission - 1;
+
+                                            if is_final_check {
+                                                // Save BCA for post-cast verification
+                                                println!("BCA: Saving for post-cast verification");
+                                                final_check_bca = Some(bca);
+                                            } else {
+                                                // Verify cast status - ballot has NOT been cast yet
+                                                let voter_bulletins = dbb.bulletin_board().get_bulletins_by_pseudonym(voter_pseudonym.clone());
+                                                println!("BCA: Verifying cast status (NotCast) against {} bulletins", voter_bulletins.len());
+
+                                                let cast_decision_result = bca.process_input(BCAInput::SubprotocolInput(
+                                                    crate::participants::ballot_check_application::top_level_actor::SubprotocolInput::BallotCheck(
+                                                        crate::participants::ballot_check_application::sub_actors::ballot_check::BallotCheckInput::CastDecision(
+                                                            CastOrNot::NotCast,
+                                                            voter_bulletins
+                                                        )
+                                                    )
+                                                ));
+
+                                                if let Ok(Some(crate::participants::ballot_check_application::top_level_actor::SubprotocolOutput::BallotCheck(
+                                                    BallotCheckOutput::Success()
+                                                ))) = cast_decision_result {
+                                                    println!("✓ Cast status verification successful (ballot not yet cast)");
+                                                } else {
+                                                    panic!("Expected Success from CastDecision(NotCast), got: {:?}", cast_decision_result);
+                                                }
+                                            }
                                         } else {
                                             panic!("Expected PlaintextBallot, got: {:?}", check_complete);
                                         }
@@ -928,6 +956,41 @@ mod tests {
                                     .ballot_cast_tracker
                                     .expect("cast tracker must exist if cast succeeded")
                             );
+
+                            // Phase 5: Post-cast verification using the saved BCA
+                            println!("\n--- Phase 5: Post-Cast Verification ---");
+
+                            if let Some(mut saved_bca) = final_check_bca.take() {
+                                // Get bulletins for this voter (should now include the cast ballot)
+                                let voter_bulletins = dbb
+                                    .bulletin_board()
+                                    .get_bulletins_by_pseudonym(voter_pseudonym.clone());
+                                println!(
+                                    "BCA: Verifying cast status (Cast) against {} bulletins",
+                                    voter_bulletins.len()
+                                );
+
+                                let cast_decision_result = saved_bca.process_input(BCAInput::SubprotocolInput(
+                                    crate::participants::ballot_check_application::top_level_actor::SubprotocolInput::BallotCheck(
+                                        crate::participants::ballot_check_application::sub_actors::ballot_check::BallotCheckInput::CastDecision(
+                                            CastOrNot::Cast,
+                                            voter_bulletins
+                                        )
+                                    )
+                                ));
+
+                                if let Ok(Some(crate::participants::ballot_check_application::top_level_actor::SubprotocolOutput::BallotCheck(
+                                    crate::participants::ballot_check_application::sub_actors::ballot_check::BallotCheckOutput::Success()
+                                ))) = cast_decision_result {
+                                    println!("✓ Post-cast verification successful (ballot was cast)");
+                                } else {
+                                    panic!("Expected Success from CastDecision(Cast), got: {:?}", cast_decision_result);
+                                }
+                            } else {
+                                panic!(
+                                    "Expected final_check_bca to be set for post-cast verification"
+                                );
+                            }
                         } else {
                             panic!("Expected CastReq message");
                         }
@@ -936,7 +999,10 @@ mod tests {
                 }
             }
 
-            println!("✓ Voter {} completed all phases", voter_num + 1);
+            println!(
+                "✓ Voter {} completed all phases including post-cast verification",
+                voter_num + 1
+            );
         } // End of voter loop
 
         println!("\n=== Test Complete ({} voters) ===", num_voters);

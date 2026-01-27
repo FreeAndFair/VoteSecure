@@ -1,6 +1,6 @@
 # Ballot Check Subprotocol
 
-This subprotocol covers the process where the Ballot Check Application (BCA) interacts with the Voting Application to first authenticate itself and then confidentially retrieve the randomizers used to encrypt the ballot. This allows the Ballot Check Application to decrypt the encrypted and signed ballot posted to the Public Bulletin Board presenting the decrypted plaintext to the voter for manual verification of voter intent. Note that the BCA receives the tracker for the submitted ballot on the public bulletin board out-of-band, via manual user input as part of initiating the checking process.
+This subprotocol covers the process where the Ballot Check Application (BCA) interacts with the Voting Application to first authenticate itself and then confidentially retrieve the randomizers used to encrypt the ballot. This allows the Ballot Check Application to decrypt the encrypted and signed ballot posted to the Public Bulletin Board presenting the decrypted plaintext to the voter for manual verification of voter intent. Note that the BCA receives the tracker for the submitted ballot on the public bulletin board out-of-band, via manual user input as part of initiating the checking process, and also prompts the voter to compare the pseudonym of the submitted ballot (after retrieving it from the public bulletin board) out-of-band. A properly implemented BCA will not initiate the protocol with the DBB if the voter indicates that the pseudonyms do not match, but will instead report an error.
 
 ## Phase 1: Authenticate and Request
 
@@ -171,13 +171,14 @@ struct FwdRandomizerMsg {
 
 ## Phase 3: Decryption and Comparison
 
-The BCA uses its private key to decrypt the ciphertext containing the randomizers. The BCA uses the plaintext randomizers to decrypt the plaintext ballot selections. These plaintext ballot selections are presented to the user using the display of the BCA for a manual check of voter intent. The BCA then prompts to voter to press a button (or other control) if they cast the ballot in the voting application, so it can check the bulletin board to show the voter that the correct ballot has been cast successfully (or, if not, show the voter evidence that it was not).
+The BCA uses its private key to decrypt the ciphertext containing the randomizers. The BCA uses the plaintext randomizers to decrypt the plaintext ballot selections. These plaintext ballot selections are presented to the user using the display of the BCA for a manual check of voter intent. The BCA then prompts to voter to press a button (or other control) to indicate whether they cast or do not cast the ballot in the voting application, so it can check the bulletin board to show the voter either that the correct ballot has been cast, or that no ballot has been cast.
 
 ## Ballot Check Application Process Diagram
 
 ```mermaid
     stateDiagram-v2
       retrieve : Retrieve **BallotSubBulletin** from Bulletin Board using **BallotTracker**
+      pseudonym : Voter checks **BallotSubBulletin** pseudonym against their own pseudonym
       request : Send **Ballot Check Request Message**
       fwd_random : Receive **Encrypted Randomizer Forwarding Message**
 
@@ -187,7 +188,9 @@ The BCA uses its private key to decrypt the ciphertext containing the randomizer
 
       [*] --> retrieve
 
-      retrieve --> request
+      retrieve --> pseudonym
+      pseudonym --> request : Pseudonyms Match
+      pseudonym --> error : Pseudonym Mismatch Error
       retrieve --> error : Nonexistent BallotSubBulletin Error
       request --> fwd_random
 
@@ -197,7 +200,7 @@ The BCA uses its private key to decrypt the ciphertext containing the randomizer
       fwd_random --> error : Ballot Cryptogram Decryption Failure Error
       fwd_random --> error : Invalid Ballot Cryptogram Plaintext
 
-      prompt --> complete : Voter Didn't Cast or Didn't Follow Up
+      prompt --> complete : Voter Didn't Follow Up
       prompt --> followup
 
       followup --> complete : Display Bulletin Board Information to Voter

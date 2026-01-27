@@ -158,7 +158,7 @@ impl TopLevelActor {
     /// Handles state updates and transitions based on subprotocol outputs.
     fn handle_state_updates(&mut self, output: &Option<SubprotocolOutput>) {
         match output {
-            Some(SubprotocolOutput::BallotCheck(BallotCheckOutput::PlaintextBallot(_))) => {
+            Some(SubprotocolOutput::BallotCheck(BallotCheckOutput::Success())) => {
                 self.active_subprotocol = ActiveSubprotocol::Idle;
             }
 
