@@ -70,7 +70,9 @@ jobs:
       # To use GitHub's CLI in a workflow, we need the workflow token
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     container:
-      image: ghcr.io/galoisinc/cryptol:latest
+      # We use Cryptol 3.4.0 as it is the version we used to write the spec,
+      # and later versions have a type inference issue with PFECExtensions.inc
+      image: ghcr.io/galoisinc/cryptol:3.4.0
       options: --user root
     steps:
       # First, install dependencies (GitHub CLI)
