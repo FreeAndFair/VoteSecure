@@ -1,7 +1,7 @@
 # .github/workflows/test-validity-of-cryptol-files.yml
 # Author: Daniel M. Zimmerman
 # Created: 2025-05-01
-# Modified: 2025-06-24
+# Modified: 2026-02-06
 
 # This action uses Cryptol project files and the Cryptol remote API to
 # typecheck all the Cryptol files in each project, but _not_ check

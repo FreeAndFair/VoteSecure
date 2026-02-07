@@ -1,7 +1,7 @@
 # .github/workflows/build-release.yml
 # Author: Daniel M. Zimmerman
 # Created: 2025-01-22
-# Modified: 2025-01-22
+# Modified: 2026-02-06
 
 # This workflow tests the validity of the threat model by building
 # the database and the PDF.
@@ -46,7 +46,7 @@ jobs:
       - name: Render Threat Model
         run: |
           cd models/threat-model
-          make all
+          make graph pdf
 
       - name: Save the Generated Threat Model PDF
         uses: actions/upload-artifact@v4

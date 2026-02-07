@@ -11,7 +11,7 @@
 use crate::cryptography::{
     RandomizersCryptogram, RandomizersStruct, Signature, SigningKey, VerifyingKey,
 };
-use crate::elections::{ElectionHash, VoterPseudonym};
+use crate::elections::{BallotTracker, ElectionHash};
 use crate::messages::{
     CheckReqMsg, FwdCheckReqMsg, ProtocolMessage, RandomizerMsg, RandomizerMsgData,
 };
@@ -72,9 +72,8 @@ pub struct CheckingActor {
     dbb_verifying_key: VerifyingKey,
     session_signing_key: SigningKey,
     session_verifying_key: VerifyingKey,
+    ballot_tracker: BallotTracker,
     ballot_randomizers: RandomizersStruct,
-    // --- Optional state that can be set ---
-    voter_pseudonym: Option<VoterPseudonym>,
 }
 
 impl CheckingActor {
@@ -84,6 +83,7 @@ impl CheckingActor {
         dbb_verifying_key: VerifyingKey,
         session_signing_key: SigningKey,
         session_verifying_key: VerifyingKey,
+        ballot_tracker: BallotTracker,
         ballot_randomizers: RandomizersStruct,
     ) -> Self {
         Self {
@@ -92,14 +92,9 @@ impl CheckingActor {
             dbb_verifying_key,
             session_signing_key,
             session_verifying_key,
+            ballot_tracker,
             ballot_randomizers,
-            voter_pseudonym: None,
         }
-    }
-
-    /// Sets the voter pseudonym for this checking session
-    pub fn set_voter_pseudonym(&mut self, voter_pseudonym: VoterPseudonym) {
-        self.voter_pseudonym = Some(voter_pseudonym);
     }
 
     /// Processes an input for the Ballot Checking subprotocol.
@@ -224,18 +219,12 @@ impl CheckingActor {
     /// Embedded Check #2: The tracker corresponds to our Ballot Submission Bulletin entry from this session
     /// Note: This should match the tracker we received from the DBB acknowledgment during submission
     fn check_embedded_check_req_tracker(&self, tracker: &str) -> Result<(), String> {
-        if tracker.is_empty() {
-            return Err("Embedded CheckReqMsg tracker cannot be empty".to_string());
+        if tracker != self.ballot_tracker {
+            return Err(
+                "Embedded CheckReqMsg tracker does not match submitted ballot tracker".to_string(),
+            );
         }
 
-        // Basic format validation
-        if tracker.len() < 8 {
-            return Err("Embedded CheckReqMsg tracker appears to be too short".to_string());
-        }
-
-        // TODO: The DBB would validate:
-        // - tracker corresponds to a valid Ballot Submission Bulletin entry on PBB
-        // - the ballot exists and is in a valid state for checking
         Ok(())
     }
 
@@ -322,6 +311,7 @@ mod tests {
         let election_keypair = generate_encryption_keypair(b"test_election").unwrap();
         let test_ballot = crate::elections::Ballot::test_ballot(1);
         let ballot_style = test_ballot.ballot_style;
+        let ballot_tracker = "test_tracker".to_string();
 
         let (_, randomizers) = encrypt_ballot(
             test_ballot,
@@ -336,6 +326,7 @@ mod tests {
             dbb_verifying_key,
             session_signing_key,
             session_verifying_key,
+            ballot_tracker,
             randomizers,
         );
 
@@ -355,6 +346,7 @@ mod tests {
         // Create proper randomizers by encrypting a test ballot
         let election_keypair = generate_encryption_keypair(b"test_election").unwrap();
         let test_ballot = crate::elections::Ballot::test_ballot(1);
+        let ballot_tracker = "test_tracker".to_string();
 
         let (_, randomizers) = encrypt_ballot(
             test_ballot,
@@ -369,6 +361,7 @@ mod tests {
             dbb_verifying_key,
             session_signing_key,
             session_verifying_key,
+            ballot_tracker.clone(),
             randomizers,
         );
 
@@ -380,7 +373,7 @@ mod tests {
         // Create CheckReqMsgData
         let check_req_data = CheckReqMsgData {
             election_hash: crate::elections::string_to_election_hash(&election_hash),
-            tracker: "test_tracker_123".to_string(),
+            tracker: ballot_tracker,
             public_enc_key: bca_keypair.pkey,
             public_sign_key: bca_verifying_key,
         };
@@ -438,6 +431,8 @@ mod tests {
         // Create simple test randomizers using the working pattern
         let election_keypair = crate::cryptography::create_test_encryption_keypair();
         let test_ballot = crate::cryptography::create_test_ballot_small();
+        let ballot_tracker = "test_tracker".to_string();
+
         let (_, randomizers) = crate::cryptography::encrypt_test_ballot(
             test_ballot,
             &election_keypair,
@@ -451,6 +446,7 @@ mod tests {
             dbb_verifying_key,
             session_signing_key,
             session_verifying_key,
+            ballot_tracker,
             randomizers.clone(),
         );
 
@@ -483,6 +479,8 @@ mod tests {
         // STEP 1: Test ballot encryption and randomizer generation (core crypto)
         let election_keypair = crate::cryptography::create_test_encryption_keypair();
         let test_ballot = crate::cryptography::create_test_ballot_small();
+        let ballot_tracker = "test_tracker".to_string();
+
         let ballot_style = test_ballot.ballot_style;
         let (ballot_cryptogram, randomizers) = crate::cryptography::encrypt_test_ballot(
             test_ballot.clone(),
@@ -503,6 +501,7 @@ mod tests {
             dbb_verifying_key,
             session_signing_key,
             session_verifying_key,
+            ballot_tracker.clone(),
             randomizers.clone(),
         );
 
@@ -563,7 +562,7 @@ mod tests {
         let (_, bca_verifying_key) = generate_signature_keypair();
         let check_req_data = CheckReqMsgData {
             election_hash: crate::elections::string_to_election_hash(&election_hash),
-            tracker: "test_tracker_123".to_string(),
+            tracker: ballot_tracker.clone(),
             public_enc_key: bca_keypair.pkey.clone(),
             public_sign_key: bca_verifying_key,
         };
@@ -573,7 +572,7 @@ mod tests {
             actor.election_hash,
             crate::elections::string_to_election_hash(&election_hash)
         );
-        assert_eq!(check_req_data.tracker, "test_tracker_123");
+        assert_eq!(check_req_data.tracker, ballot_tracker);
 
         // STEP 6: Test signature operations
         let (test_signing_key, test_verifying_key) = generate_signature_keypair();
@@ -629,6 +628,8 @@ mod tests {
         // Create randomizers exactly like the hanging test
         let election_keypair = crate::cryptography::create_test_encryption_keypair();
         let test_ballot = crate::cryptography::create_test_ballot_small();
+        let ballot_tracker = "test_tracker".to_string();
+
         let (_, randomizers) = crate::cryptography::encrypt_test_ballot(
             test_ballot,
             &election_keypair,
@@ -642,6 +643,7 @@ mod tests {
             dbb_verifying_key,
             session_signing_key,
             session_verifying_key,
+            ballot_tracker.clone(),
             randomizers,
         );
 
@@ -652,7 +654,7 @@ mod tests {
         // Create CheckReqMsg exactly like the hanging test
         let check_req_data = CheckReqMsgData {
             election_hash: crate::elections::string_to_election_hash(&election_hash),
-            tracker: "test_tracker_123".to_string(),
+            tracker: ballot_tracker,
             public_enc_key: bca_keypair.pkey.clone(),
             public_sign_key: bca_verifying_key,
         };
@@ -685,12 +687,14 @@ mod tests {
             ballot_style: 1,
             randomizers: vec![], // Empty for structure testing only
         };
+        let ballot_tracker = "test_tracker".to_string();
 
         let actor = CheckingActor::new(
             crate::elections::string_to_election_hash(&election_hash),
             dbb_verifying_key,
             session_signing_key,
             session_verifying_key,
+            ballot_tracker,
             empty_randomizers,
         );
 
@@ -714,6 +718,7 @@ mod tests {
         // Create proper randomizers by encrypting a test ballot
         let election_keypair = generate_encryption_keypair(b"test_election").unwrap();
         let test_ballot = crate::elections::Ballot::test_ballot(1);
+        let ballot_tracker = "test_tracker".to_string();
 
         let (_, randomizers) = encrypt_ballot(
             test_ballot,
@@ -728,6 +733,7 @@ mod tests {
             dbb_verifying_key,
             session_signing_key,
             session_verifying_key,
+            ballot_tracker,
             randomizers,
         );
     }
@@ -742,6 +748,7 @@ mod tests {
         // Create proper randomizers by encrypting a test ballot
         let election_keypair = generate_encryption_keypair(b"test_election").unwrap();
         let test_ballot = crate::elections::Ballot::test_ballot(1);
+        let ballot_tracker = "test_tracker".to_string();
 
         let (_, randomizers) = encrypt_ballot(
             test_ballot,
@@ -756,6 +763,7 @@ mod tests {
             dbb_verifying_key,
             session_signing_key,
             session_verifying_key,
+            ballot_tracker.clone(),
             randomizers,
         );
 
@@ -765,7 +773,7 @@ mod tests {
 
         let check_req_data = CheckReqMsgData {
             election_hash: crate::elections::string_to_election_hash(&election_hash),
-            tracker: "test_tracker".to_string(),
+            tracker: ballot_tracker,
             public_enc_key: bca_keypair.pkey,
             public_sign_key: bca_verifying_key,
         };
@@ -853,6 +861,7 @@ mod tests {
         // Create proper randomizers by encrypting a test ballot
         let election_keypair = generate_encryption_keypair(b"test_election").unwrap();
         let test_ballot = crate::elections::Ballot::test_ballot(1);
+        let ballot_tracker = "test_tracker".to_string();
 
         let (_, randomizers) = encrypt_ballot(
             test_ballot,
@@ -867,6 +876,7 @@ mod tests {
             dbb_verifying_key,
             session_signing_key,
             session_verifying_key,
+            ballot_tracker.clone(),
             randomizers,
         );
 
@@ -876,7 +886,7 @@ mod tests {
 
         let check_req_data = CheckReqMsgData {
             election_hash: crate::elections::string_to_election_hash(&election_hash),
-            tracker: "test_tracker_123".to_string(),
+            tracker: ballot_tracker,
             public_enc_key: bca_keypair.pkey,
             public_sign_key: bca_verifying_key,
         };

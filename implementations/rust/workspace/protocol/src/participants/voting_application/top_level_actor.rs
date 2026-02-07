@@ -228,23 +228,23 @@ impl TopLevelActor {
                     }
                 };
 
-                let mut actor = CheckingActor::new(
-                    self.election_hash,
-                    self.dbb_verifying_key,
-                    signing_key,
-                    verifying_key,
-                    randomizers,
-                );
+                if let Some(ref ballot_tracker) = self.ballot_tracker {
+                    let mut actor = CheckingActor::new(
+                        self.election_hash,
+                        self.dbb_verifying_key,
+                        signing_key,
+                        verifying_key,
+                        ballot_tracker.clone(),
+                        randomizers,
+                    );
 
-                // Set voter pseudonym if available
-                if let Some(ref pseudonym) = self.voter_pseudonym {
-                    actor.set_voter_pseudonym(pseudonym.clone());
+                    let output = actor.process_input(CheckingInput::Start);
+                    self.active_subprotocol = ActiveSubprotocol::Checking(actor);
+                    let result = SubprotocolOutput::Checking(output);
+                    Ok(result)
+                } else {
+                    Err("No ballot tracker found when starting ballot check".to_string())
                 }
-
-                let output = actor.process_input(CheckingInput::Start);
-                self.active_subprotocol = ActiveSubprotocol::Checking(actor);
-                let result = SubprotocolOutput::Checking(output);
-                Ok(result)
             }
         }
     }

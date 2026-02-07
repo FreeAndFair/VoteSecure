@@ -18,7 +18,7 @@ BallotCheckApplication -> DigitalBallotBox: Ballot check request with\nnewly-gen
 BallotCheckApplication -> Voter: Present generated BCA public key\nand pseudonym for matching
 DigitalBallotBox -> VotingApplication: Ballot check request with BCA public key, submission hash
 VotingApplication -> Voter: Present check request with\ngenerated BCA public key\nfor matching
-Voter --> VotingApplication: Presented BCA public keys\nmatch, approve check request
+Voter --> VotingApplication: Presented BCA public keys\nand pseudonyms match,\napprove check request
 VotingApplication -> DigitalBallotBox: Encrypted randomizers (using BCA public key)
 DigitalBallotBox -> BallotCheckApplication: Forward encrypted randomizers
 BallotCheckApplication --> Voter: Display decrypted choices,\nprompt for follow-up\nbulletin board check

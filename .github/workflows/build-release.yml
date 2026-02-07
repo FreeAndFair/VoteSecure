@@ -1,7 +1,7 @@
 # .github/workflows/build-release.yml
 # Author: Daniel M. Zimmerman
 # Created: 2025-01-22
-# Modified: 2025-04-07
+# Modified: 2026-02-06
 
 # This workflow creates a "Latest" release with all the release artifacts
 # from this repository
@@ -41,7 +41,7 @@ jobs:
         run: |
           cd models/threat-model
           pip install -r requirements.txt
-          make all
+          make graph pdf
 
       - name: Render Refinements Paper
         run: |
@@ -63,6 +63,7 @@ jobs:
           title: Latest
           prerelease: true
           files: |
+            CHANGELOG.md
             models/threat-model/threat-model.pdf
             models/threat-model/threat-model.html
             docs/papers/refinements_among_high_level_models/refinements_paper.pdf

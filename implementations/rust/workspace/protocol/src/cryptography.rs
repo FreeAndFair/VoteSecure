@@ -260,8 +260,16 @@ pub fn ballot_context(election_hash: &ElectionHash, voter_pseudonym: &VoterPseud
 
 /// Return the encryption context derived from an election hash.
 /// This context is used in mixing.
-pub fn election_context(election_hash: &ElectionHash) -> Vec<u8> {
+pub fn shuffle_context(election_hash: &ElectionHash) -> Vec<u8> {
     let mut context = b"encryption_".to_vec();
+    context.extend_from_slice(election_hash);
+
+    context
+}
+
+/// Return the encryption context for augmenting the election public key.
+pub fn pk_context(election_hash: &ElectionHash) -> Vec<u8> {
+    let mut context = b"pk_augment_".to_vec();
     context.extend_from_slice(election_hash);
 
     context
