@@ -54,7 +54,7 @@ package <E2E_VIV> 'End-to-End Verifiable Internet Voting Cryptographic Core' {
 }
 
 // @todo dmz figure out why this visualization doesn't work with "E2E_VIV"
-%viz "End-to-End Verifiable Internet Voting Cryptographic Core"
+// %viz "End-to-End Verifiable Internet Voting Cryptographic Core"
 
 package 'Background Concepts' {
   //*
@@ -187,7 +187,7 @@ package 'Elections' {
     ref part choices: 'Contest Choice'[1..numChoices];
     attribute writeInAllowed: Boolean;
     attribute maxChoices: Integer;
-    attribute result: ContestChoiceToTallyMap;
+    attribute resultMap: ContestChoiceToTallyMap;
 
     assert constraint reasonableMaxChoices {
       (0 < maxChoices) & (maxChoices <= numChoices)
@@ -196,9 +196,9 @@ package 'Elections' {
     // @todo dmz the following constraint generates warnings about
     // conforming types, but I don't understand why
     assert constraint reasonableResultSize {
-        (writeInAllowed & (numChoices <= size(result)))
+        (writeInAllowed & (numChoices <= size(resultMap)))
       |
-        (not writeInAllowed & (numChoices == size(result)))
+        (not writeInAllowed & (numChoices == size(resultMap)))
     }
 
     // @todo dmz determine how/if to implement "Does the vote contain valid choices for you?"
@@ -290,7 +290,7 @@ package 'Elections' {
     }
   }
 
-  attribute def VotersRegisterEntry {
+  part def VotersRegisterEntry {
     doc /*
       A single entry in the voters' registry contains information about a voter's identity, their ballot configuration, and their participation status.
     */

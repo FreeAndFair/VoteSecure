@@ -235,7 +235,7 @@ NeedhamSchroederExample: TraceableElement
 // architectural refinement and design choices as a means by which to
 // fulfill some non-behavioral requirements.
 
-// TODO Joe Kiniry
+// @todo Joe Kiniry
 
 // ========================================================================
 // The top-level System Specification, which ties all PLE models together.

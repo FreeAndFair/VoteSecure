@@ -1,0 +1,5 @@
+# Generated PLE prelude (recreate with: make bootstrap)
+ple/
+
+# Generated combined Clafer model (recreate with: make)
+needham-schroeder.cfr
