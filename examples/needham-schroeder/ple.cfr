@@ -1,0 +1,260 @@
+// ========================================================================
+// Needham-Schroeder Product Line Engineering Models
+// ========================================================================
+
+// Copyright: 2025 Free & Fair
+// Author(s): Joe Kiniry
+// Model type: Clafer
+// Model version: 1.1
+// Last modified: 2026.3.1
+
+// This set of models are specifications of several fundamental
+// product line engineering aspects of this Needham-Schroeder (NS,
+// henceforth) example.
+
+// This model depends upon the RDE prelude which defines the abstract
+// clafers (type structure) that describes various sub-domains of
+// modeling.  That abstract model is concretized for this particular
+// example.
+
+// Example of constraints and assertions used to reason about these
+// models and their inter-relationships are also provided.  The
+// natural language meaning of each proposition is adjacent to its
+// formal specification.
+
+// The product line engineering models included herein are:
+//  - [x] the semi-formal and formal correctness properties of NS
+//  - [x] the security requirements of NS
+//  - [ ] the high-level architecture of NS
+
+// ========================================================================
+// Needham-Schroeder Specifications
+// ========================================================================
+
+LandoSpec: Spec
+  [ language = LandoLang ]
+  [ referrant = "NeedhamSchroederSymmetric" ]
+  [ line_no = 8 ]
+  [ url = "NeedhamSchroeder.lando" ]
+
+CryptolSpec: Spec
+  [ language = CryptolLang ]
+  [ referrant = "NeedhamSchroeder" ]
+  [ line_no = 1 ]
+  [ url = "NeedhamSchroeder.cry" ]
+
+TamarinSpec: Spec
+  [ language = TamarinLang ]
+  [ referrant = "nss_rules_fixed" ]
+  [ line_no = 1 ]
+  [ url = "needham_schroeder_fixed_symmetric_rules.spthy" ]
+
+SysMLSpec: Spec
+  [ language = SysMLv2 ]
+  [ referrant = "SimpleCryptography" ]
+  [ line_no = 1 ]
+  [ url = "NeedhamSchroeder.sysml" ]
+
+SAPICSpec: Spec
+  [ language = SAPICStar ]
+  [ referrant = "nss_sapic_fixed" ]
+  [ line_no = 1 ]
+  [ url = "needham_schroeder_fixed_symmetric_sapic+.spthy" ]
+
+// ========================================================================
+// Needham-Schroeder Requirements and their Refinements
+// ========================================================================
+
+abstract NeedhamSchroederSecurityRequirement: FormalRequirement
+  [ specs = TamarinSpec ]
+
+SymmetricEncryptionAssumption: TraceableElement
+  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#symmetric-encryption" ]
+
+Symmetric: NeedhamSchroederSecurityRequirement
+  [ id = "Symmetric" ]
+  [ text = "The protocol must use a symmetric cipher." ]
+  [ satisfiedBy = SymmetricEncryptionAssumption ]
+
+TwoPartiesNamesTamarin: TraceableElement
+  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#A", "needham_schroeder_fixed_symmetric_rules.spthy#B" ]
+
+TwoPartiesNamesSysML: TraceableElement
+  [ url = "NeedhamSchroederFixedSymmetricProtocol.Alice", "NeedhamSchroederFixedSymmetricProtocol.Bob" ]
+
+TwoParty: NeedhamSchroederSecurityRequirement
+  [ id = "Two Party" ]
+  [ text = "The protocol must establish a session key between two parties." ]
+  [ satisfiedBy = TwoPartiesNamesTamarin, TwoPartiesNamesSysML ]
+
+ProtocolSecrecyLemma: TraceableElement
+  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#ProtocolSecrecy" ]
+
+SendASecretRule: TraceableElement
+  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#SendASecret" ]
+
+SessionKeyUse: NeedhamSchroederSecurityRequirement
+  [ id = "Session Key Use" ]
+  [ text = "The session key established by the protocol must be usable for later secure communications between the two parties who established the key." ]
+  [ satisfiedBy = ProtocolSecrecyLemma, SendASecretRule ]
+
+Restriction1: TraceableElement
+  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#SingleSharedKeyPerPrincipal" ]
+
+SingleSharedKeyPerUser: NeedhamSchroederSecurityRequirement
+  [ id = "Single Shared Key Per User" ]
+  [ text = "Any participant in the protocol only shares a single key with the trusted server." ]
+  [ satisfiedBy = Restriction1 ]
+
+Lemma1: TraceableElement
+  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#Executable" ]
+
+Executable: NeedhamSchroederSecurityRequirement
+  [ id = "Executable" ]
+  [ text = "The protocol always terminates so long as messages are not lost." ]
+  [ satisfiedBy = Lemma1 ]
+
+Lemma2: TraceableElement
+  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#SymmetricSessionStart" ]
+
+ConfirmationTwoWay: NeedhamSchroederSecurityRequirement
+  [ id = "Confirmation Two Way" ]
+  [ text = "If one participant believes that the protocol concluded successfully, both do." ]
+  [ satisfiedBy = Lemma2 ]
+
+Lemma3: TraceableElement
+  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#SessionKeySecrecy" ]
+
+SessionKeySecrecy: NeedhamSchroederSecurityRequirement
+  [ id = "Secrecy of Session Key" ]
+  [ text = "The session key is private to the protocol participants." ]
+  [ satisfiedBy = Lemma3 ]
+
+SharedKeysRestriction: TraceableElement
+  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#SharedKeysRemainSecret" ]
+
+SecrecyOfSharedKeys: NeedhamSchroederSecurityRequirement
+  [ id = "Secrecy of Shared Keys" ]
+  [ text = "The key shared between each protocol participant and the trusted server is private to them." ]
+  [ satisfiedBy = SharedKeysRestriction ]
+
+NoReplayAttackLemma: TraceableElement
+  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#NoReplayAttack" ]
+
+SingleSessionKeyPerPair: NeedhamSchroederSecurityRequirement
+  [ id = "Single Session Key Per Pair" ]
+  [ text = "Any pair of participants that mutually generate a session key using the protocol know the same session key." ]
+  [ satisfiedBy = NoReplayAttackLemma ]
+
+NeedhamSchroederWikipediaPage: Spec
+  [ url = "https://en.wikipedia.org/wiki/Needham%E2%80%93Schroeder_protocol" ]
+  [ language = ASCII ]
+
+NeedhamSchroederInformalRequirementsSpec: InformalRequirement
+  [ specs = NeedhamSchroederWikipediaPage ]
+  [ refinedBy = NeedhamSchroederSemiformalRequirementsSpec ]
+
+NeedhamSchroederSemiformalRequirementsSpec: SemiformalRequirement
+  [ specs = LandoSpec, SysMLSpec ]
+  [ refinedBy = NeedhamSchroederFormalRequirementsSpec ]
+
+NeedhamSchroederFormalRequirementsSpec: FormalRequirement
+  [ specs = TamarinSpec, CryptolSpec, SAPICSpec ]
+
+NeedhamSchroederInformalRequirements: Requirements
+  [ requirements = Symmetric, TwoParty, SessionKeyUse,
+      SingleSharedKeyPerUser, SingleSessionKeyPerPair,
+      Executable, ConfirmationTwoWay,
+      SecrecyOfSharedKeys, SessionKeySecrecy ]
+  [ informal = NeedhamSchroederInformalRequirementsSpec ]
+  [ formal = NeedhamSchroederFormalRequirementsSpec ]
+
+// ========================================================================
+// Refinements specific to this Needham-Schroeder example.
+// ========================================================================
+
+CONOPS_to_Lando: Refinement
+  Partial
+  Informal
+  [ from = NeedhamSchroederWikipediaPage ]
+  [ to = LandoSpec, SysMLSpec ]
+
+CONOPS_to_SysML: Refinement
+  Partial
+  SemiFormal
+  [ from = NeedhamSchroederWikipediaPage ]
+  [ to = SysMLSpec ]
+
+Lando_to_SysML
+  Partial
+  SemiFormal
+  [ from = LandoSpec ]
+  [ to = SysMLSpec ]
+
+SysML_to_Cryptol
+  Partial
+  Formal
+  [ from = SysMLSpec ]
+  [ to = CryptolSpec ]
+
+SysML_to_Protocol
+  Partial
+  Formal
+  [ from = SysMLSpec ]
+  [ to = TamarinSpec, SAPICSpec ]
+
+Cryptol_to_Protocol
+  Complete
+  Formal
+  [ from = CryptolSpec ]
+  [ to = TamarinSpec, SAPICSpec ]
+
+// ========================================================================
+// Classical Feature Model
+// ========================================================================
+
+// Our NS pedagogical example only has two variants: the
+// originally-published insecure protocol, and the corrected, secure
+// version of the protocol.
+
+NeedhamSchroederExample: TraceableElement
+  Insecure: TraceableElement
+    [ url = "needham_schroeder_symmetric_rules.spthy",
+            "needham_schroeder_symmetric_sapic+.spthy",
+            "needham_schroeder_symmetric_sapic+.pv" ]
+  Secure: TraceableElement
+    [ url = "needham_schroeder_fixed_symmetric_rules.spthy",
+            "needham_schroeder_fixed_symmetric_sapic+.spthy",
+            "needham_schroeder_fixed_symmetric_sapic+.pv" ]
+
+// ========================================================================
+// Architecture Metamodel
+// ========================================================================
+
+// A Clafer-based architecture specification for demonstrating
+// architectural refinement and design choices as a means by which to
+// fulfill some non-behavioral requirements.
+
+// TODO Joe Kiniry
+
+// ========================================================================
+// The top-level System Specification, which ties all PLE models together.
+// ========================================================================
+
+NeedhamSchroederDemonstrationSystem: System
+//  [ domainEngineeringSpecs = LandoSpec ]
+//  [ requirementsSpecs = ... ]
+//    [ informalRequirementsSpecs = NeedhamSchroederRequirements ]
+//  [ featurePLeSpecs = ... ]
+//  behavioralSpecs
+//    [ stateMachineSpecs = CryptolSpec, SAPICSpec ]
+//    [ networkProtocolSpecs = TamarinSpec, SysMLSpec, SAPICSpec ]
+//  nonBehavioralSpecs
+//  securitySpecs
+//    threatModelSpec
+//    [ cryptographicAlgorithmsSpecs = CryptolSpec ]
+//    [ cryptographicProtocolSpecs = TamarinSpec, SAPICSpec ]
+//  performanceSpecs
+//    latencySpecs
+//    throughputSpecs
+// architecturePLESpec

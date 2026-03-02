@@ -1,0 +1,142 @@
+(* ========================================================================
+   Needham-Schroeder Fixed Symmetric Protocol — ProVerif Model
+
+   @refine needham_schroeder_fixed_symmetric_sapic+.spthy |= ProVerif
+   @refine NeedhamSchroeder.cry |= ProVerifFixedProtocol
+   @design dmzimmerman Generated from SAPIC+ by Tamarin, then hand-modified.
+
+   This file verifies the fixed Needham-Schroeder symmetric key protocol
+   using ProVerif's automated reasoning.  It was originally generated from
+   the SAPIC+ version by Tamarin, then hand-modified to add lemmas that
+   Tamarin could not translate automatically (see NOTE markers below).
+
+   Nonce confirmation uses succ() (successor function) rather than the
+   c0/c1 constant-pairing idiom used in the Tamarin models.  Both
+   approaches are security-equivalent; the difference arises from the
+   ProVerif translation process.
+   ======================================================================== *)
+
+free att:channel.
+fun fst(bitstring):bitstring.
+fun pair(bitstring,bitstring):bitstring.
+fun sdec(bitstring,bitstring):bitstring.
+fun senc(bitstring,bitstring):bitstring.
+fun snd(bitstring):bitstring.
+fun succ(bitstring):bitstring.
+event eAliceSessionStarted(bitstring,bitstring,bitstring,bitstring).
+event eBobSessionStarted(bitstring,bitstring,bitstring,bitstring).
+event eSecretRevealed(bitstring).
+event eSessionKey(bitstring,bitstring,bitstring).
+equation forall x_1:bitstring, x_2:bitstring;   fst((x_1, x_2)) = x_1.
+equation forall x_1:bitstring, x_2:bitstring;   sdec(senc(x_1, x_2), x_2) = x_1.
+equation forall x_1:bitstring, x_2:bitstring;   snd((x_1, x_2)) = x_2.
+(*Executable*)
+(* NOTE: this lemma was translated from the SAPIC+, and it proves correctly (expected
+   value is _false_ because the lemma is checked as "not event(eBobSessionStarted)";
+   ProVerif tries to prove that the event never happens, and it fails to do
+   that, meaning there's at least one trace where it happens). *)
+query A:bitstring, B:bitstring, k:bitstring, n:bitstring, i:time;
+ event(eBobSessionStarted( B, A, k, n ))@i
+.
+(*SymmetricSessionStart*)
+(* NOTE: This lemma was also translated from the SAPIC+, and proves correctly; it
+   states that if Bob starts at time i, there's some earlier time j at which Alice
+   starts, or at which one or both of the server shared keys is revealed to the
+   attacker. It's written more compactly in ProVerif syntax as the first hand-
+   written lemma below. *)
+query A:bitstring, B:bitstring, k:bitstring, n:bitstring, i:time, j:time;
+ (event(eBobSessionStarted( B, A, k, n ))@i) ==>
+ ((((j < i) && (event(eAliceSessionStarted( A, B, k, n ))@j)) ||
+   ((j < i) && (event(eSecretRevealed( A ))@j))) ||
+  ((j < i) && (event(eSecretRevealed( B ))@j)))
+.
+(*SessionKeySecrecy*)
+(*∀ A B x #i.
+   ((SessionKey( A, B, x ) @ #i) ∧ (∃ #j. K( x ) @ #j)) ⇒
+   ((∃ #j. SecretRevealed( A ) @ #j) ∨ (∃ #j. SecretRevealed( B ) @ #j))*)
+(* NOTE: Tamarin couldn't translate this lemma from SAPIC+ to ProVerif format,
+   because (I think) of quantifier issues; however, the following translation
+   done by hand is equivalent (it says: if a session key is established and
+   the attacker knows it, that means one or both of the shared server keys
+   was revealed to the attacker). *)
+query A:bitstring, B:bitstring, x:bitstring;
+  event(eSessionKey(A, B, x)) && attacker(x) ==>
+    event(eSecretRevealed(A)) || event(eSecretRevealed(B)).
+
+query A:bitstring, B:bitstring, k:bitstring, m:bitstring, n:bitstring, i:time, j:time;
+  event(eBobSessionStarted(B, A, k, n))@i &&
+  event(eBobSessionStarted(B, A, k, m))@j ==> i = j || event(eSecretRevealed(A)) || event(eSecretRevealed(B)).
+
+query A:bitstring, B:bitstring, k:bitstring, n:bitstring;
+  event(eBobSessionStarted(B, A, k, n)) ==> inj-event(eAliceSessionStarted(A, B, k, n)) || event(eSecretRevealed(A)) || event(eSecretRevealed(B)).
+
+let Alice(A_id_2:bitstring, B_id_2:bitstring, kas_2:bitstring)=
+    out(att,A_id_2);
+    in(att,omfb_2:bitstring);
+    new na_2:bitstring;
+    out(att,(A_id_2, (B_id_2, (na_2, omfb_2))));
+    in(att,X4_2:bitstring);
+    let (=na_2, (=B_id_2, (kab_2:bitstring, omfs_2:bitstring)))=sdec(X4_2,
+                                                                     kas_2) in
+    out(att,omfs_2);
+    in(att,X6_2:bitstring);
+    let nb_2:bitstring=sdec(X6_2, kab_2) in
+    event eAliceSessionStarted( A_id_2, B_id_2, kab_2, nb_2 );
+    out(att,senc(succ(nb_2), kab_2)).
+let Bob(B_id_2:bitstring, kbs_2:bitstring)=
+    in(att,P_id_2:bitstring);
+    new npb_2:bitstring;
+    out(att,senc((P_id_2, npb_2), kbs_2));
+    in(att,X5_2:bitstring);
+    let (kab_2:bitstring, (=P_id_2, =npb_2))=sdec(X5_2, kbs_2) in
+    new nb_2:bitstring;
+    out(att,senc(nb_2, kab_2));
+    in(att,X7_2:bitstring);
+    let nb_2_2:bitstring=sdec(X7_2, kab_2) in
+    let snb_2:bitstring=succ(nb_2) in
+    if snb_2 = nb_2_2 then
+        (event eBobSessionStarted( B_id_2, P_id_2, kab_2, nb_2 )).
+let Server(A_id_2:bitstring, kas_2:bitstring, B_id_2:bitstring,
+           kbs_2:bitstring)=
+    in(att,X3_2:bitstring);
+    let (=A_id_2, (=B_id_2, (na_2:bitstring, omfb_2:bitstring)))=X3_2 in
+    let (=A_id_2, npb_2:bitstring)=sdec(omfb_2, kbs_2) in
+    new kab_2:bitstring;
+    event eSessionKey( A_id_2, B_id_2, kab_2 );
+    let omfs_2:bitstring=senc((kab_2, (A_id_2, npb_2)), kbs_2) in
+    let msg_2:bitstring=senc((na_2, (B_id_2, (kab_2, omfs_2))), kas_2) in
+    out(att,msg_2).
+let Reveal(P_2:bitstring, k_2:bitstring)=
+    ((event eSecretRevealed( P_2 );
+      out(att,k_2))
+   | (0)).
+
+
+process
+    !
+    (new A_id_2:bitstring;
+     new B_id_2:bitstring;
+     new kas_2:bitstring;
+     new kbs_2:bitstring;
+     !
+     (((Alice(A_id_2, B_id_2, kas_2))
+     | (!
+        (((Bob(B_id_2, kbs_2))
+        | (!
+           (((((Server(A_id_2, kas_2, B_id_2, kbs_2))
+             | (Reveal(A_id_2, kas_2))))
+           | (Reveal(B_id_2, kbs_2)))))))))))
+
+(* NOTE: Tamarin emitted spurious wellformedness warnings during conversion,
+   stating that lemma actions like BobSessionStarted and AliceSessionStarted
+   did not exist.  In fact, the events were properly translated as
+   eBobSessionStarted and eAliceSessionStarted.  The warnings are artifacts
+   of Tamarin's ProVerif export checking rules rather than events. *)
+
+(*
+Generated from:
+Tamarin version 1.10.0
+Maude version 2.7.1
+Git revision: UNKNOWN, branch: UNKNOWN
+Compiled at: 2024-10-30 13:42:18.081591 UTC
+*)

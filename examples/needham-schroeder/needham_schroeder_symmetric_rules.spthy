@@ -52,25 +52,26 @@ theory nss_rules begin
 */
 
 // @refine Tamarin |= Cryptol
+// @refine NeedhamSchroeder.sysml::NeedhamSchroederSymmetricProtocol |= nss_rules
 
 // @refine needhamschroedersymmetric |= NeedhamSchroeder
-// @refine enc |= encrypt
-// @refine dec |= decrypt
-// @refine prefix |=
-// @refine succ |=
-// @refine KeyGen |=
-// @refine Reveal |=
-// @refine Initiate |=
-// @refine KeySharedInit |=
-// @refine KeySharedInitConfirmed |=
-// @refine KeySharedResp |=
-// @refine KeySharedRespConfirmed |=
-// @refine CreatedKey |=
-// @refine singlesharedkeyperuser |=
-// @refine secrecy |=
+// @refine senc |= encrypt
+// @refine sdec |= decrypt
+// @refine prefix |= nonceInc (note: Tamarin uses c0/c1 constants; Cryptol uses nonceInc)
+// @refine succ |= nonceInc
+// @refine KeyGen |= keyGen
+// @refine Reveal |= (no Cryptol counterpart; adversary model is Tamarin-only)
+// @refine Initiate |= aliceRequestSessionKey
+// @refine KeySharedInit |= aliceHandleServerResponse
+// @refine KeySharedInitConfirmed |= aliceRespond
+// @refine KeySharedResp |= bobChallenge
+// @refine KeySharedRespConfirmed |= bobVerify
+// @refine CreatedKey |= serverSession
+// @refine SingleSharedKeyPerPrincipal |= (implicit in Cryptol's aliceServerKey/bobServerKey primitives)
+// @refine SessionKeySecrecy |= needhamSchroeder (correctness property)
 
 // @design kiniry This specification also refines the
-// "NeedhamSchroederSymmetric" SysML package.
+// "NeedhamSchroederSymmetricProtocol" SysML package.
 
 builtins: symmetric-encryption
 

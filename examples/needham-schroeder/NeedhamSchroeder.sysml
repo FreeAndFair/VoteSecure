@@ -5,6 +5,11 @@ package 'Needham-Schroeder Symmetric Key Protocol' {
     @author Daniel M. Zimmerman
     @copyright 2024-25 Free & Fair
     @history Created December 2024, last revised February 2025
+
+    @refine NeedhamSchroeder.lando |= NeedhamSchroederSymmetric
+    @refine NeedhamSchroeder.sysml |= NeedhamSchroeder.cry
+    Lando domain concepts refined into SysMLv2 item defs and port defs;
+    SysMLv2 message structures refined into Cryptol type definitions.
   */
 
   // @todo dmz figure out how to connect flows and events and messages properly in the protocol models
@@ -20,6 +25,10 @@ alias 'NSS' for 'Needham-Schroeder Symmetric Key Protocol';
 // @todo dmz figure out why this alias doesn't actually work in %viz, below
 
 package 'SimpleCryptography' {
+  // @refine NeedhamSchroeder.lando:19 |= "Basic Cryptography" subsystem
+  // @refine NeedhamSchroeder.lando:89 |= "Communicating Parties" subsystem
+  // @refine SimpleCryptography |= NeedhamSchroeder.cry::Identity, Key, Nonce
+
   item def Identity {
     doc /* The identity of a protocol party. */
   }
@@ -325,6 +334,10 @@ package NeedhamSchroederFixedSymmetricParty {
 }
 
 package NeedhamSchroederSymmetricProtocol {
+  // @refine NeedhamSchroeder.lando:128 |= "Original Protocol Actions"
+  // @refine NeedhamSchroederSymmetricProtocol |= NeedhamSchroeder.cry::needhamSchroeder
+  // @refine NeedhamSchroederSymmetricProtocol |= needham_schroeder_symmetric_rules.spthy
+
   private import SimpleCryptography::*;
   private import NeedhamSchroederSymmetricMessage::*;
   private import NeedhamSchroederSymmetricParty::*;
@@ -404,6 +417,10 @@ package NeedhamSchroederSymmetricProtocol {
 }
 
 package NeedhamSchroederFixedSymmetricProtocol {
+  // @refine NeedhamSchroeder.lando:164 |= "Fixed Protocol Actions"
+  // @refine NeedhamSchroederFixedSymmetricProtocol |= NeedhamSchroeder.cry::needhamSchroederFixed
+  // @refine NeedhamSchroederFixedSymmetricProtocol |= needham_schroeder_fixed_symmetric_rules.spthy
+
   private import SimpleCryptography::*;
   private import NeedhamSchroederFixedSymmetricMessage::*;
   private import NeedhamSchroederFixedSymmetricParty::*;

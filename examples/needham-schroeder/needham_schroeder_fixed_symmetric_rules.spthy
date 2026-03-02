@@ -13,6 +13,29 @@ theory nss_rules_fixed begin
 */
 
 /*
+  Refinement annotations (Tamarin |= Cryptol):
+
+  @refine nss_rules_fixed |= NeedhamSchroeder
+  @refine NeedhamSchroeder.sysml::NeedhamSchroederFixedSymmetricProtocol |= nss_rules_fixed
+  @refine senc |= encrypt
+  @refine sdec |= decrypt
+  @refine Setup |= (implicit in Cryptol's aliceServerKey/bobServerKey primitives)
+  @refine RevealSessionKey |= (no Cryptol counterpart; adversary model)
+  @refine Responder1 |= bobRespondToIdentification
+  @refine Initiator2 |= aliceRequestSessionKeyFixed
+  @refine Server |= serverSessionFixed
+  @refine Initiator4 |= aliceHandleServerResponseFixed
+  @refine Responder5 |= bobChallengeFixed
+  @refine Initiator6 |= aliceRespond
+  @refine Responder7 |= bobVerify
+  @refine SingleSharedKeyPerPrincipal |= (implicit in Cryptol's primitive key structure)
+  @refine SharedKeysRemainSecret |= (implicit in Cryptol's private primitives)
+  @refine Executable |= needhamSchroederFixed (correctness property returns True)
+  @refine SymmetricSessionStart |= needhamSchroederFixed (both Alice and Bob agree)
+  @refine SessionKeySecrecy |= needhamSchroederFixed (session key equated in both states)
+*/
+
+/*
   The Protocol
 
   A = Alice, B = Bob, S = Server, Na, Npb, Nb = nonces,
