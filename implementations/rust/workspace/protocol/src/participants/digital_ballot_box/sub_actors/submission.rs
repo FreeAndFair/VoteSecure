@@ -11,7 +11,7 @@
 // currently ignored for code simplicity until performance data is analyzed
 #![allow(clippy::large_enum_variant)]
 
-use crate::bulletins::{BallotSubBulletin, BallotSubBulletinData, Bulletin};
+use crate::bulletins::{BallotSubContents, Bulletin, BulletinData};
 use crate::cryptography::{ElectionKey, SigningKey, verify_ciphertext_proof};
 use crate::elections::{BallotStyle, ElectionHash};
 use crate::messages::{ProtocolMsg, SignedBallotMsg, TrackerMsg, TrackerMsgData};
@@ -129,7 +129,7 @@ impl SubmissionActor {
                         self.received_ballot = Some(signed_ballot.clone());
                         self.state = SubmissionState::ProcessingBallot;
 
-                        // Create and post BallotSubBulletin
+                        // Create and post a ballot submission bulletin
                         let tracker_result =
                             self.create_and_post_bulletin(&signed_ballot, storage, bulletin_board);
 
@@ -294,12 +294,16 @@ impl SubmissionActor {
         ballot: &SignedBallotMsg,
         bulletin_board: &B,
     ) -> Result<(), String> {
-        if bulletin_board.get_all_bulletins().iter().any(|b| match b {
-            Bulletin::BallotSubmission(bsb) => {
-                bsb.data.ballot.data.ballot_cryptogram.ciphertext
-                    == ballot.data.ballot_cryptogram.ciphertext
-            }
-            _ => false,
+        if bulletin_board.get_all_bulletins().iter().any(|b| {
+            b.data
+                .contents
+                .as_any()
+                .downcast_ref::<BallotSubContents>()
+                .map(|sub| {
+                    sub.ballot.data.ballot_cryptogram.ciphertext
+                        == ballot.data.ballot_cryptogram.ciphertext
+                })
+                .unwrap_or(false)
         }) {
             return Err("ciphertext already exists on bulletin board".to_string());
         }
@@ -308,7 +312,7 @@ impl SubmissionActor {
 
     // --- Bulletin Creation and Posting ---
 
-    /// Create and post a BallotSubBulletin to the bulletin board.
+    /// Create and post a ballot submission bulletin to the bulletin board.
     fn create_and_post_bulletin<S: DBBStorage, B: BulletinBoard>(
         &self,
         ballot: &SignedBallotMsg,
@@ -324,11 +328,13 @@ impl SubmissionActor {
             .map_err(|e| format!("Failed to get timestamp: {}", e))?
             .as_secs();
 
-        // Create BallotSubBulletinData
-        let bulletin_data = BallotSubBulletinData {
+        // Create the bulletin data
+        let bulletin_data = BulletinData {
             election_hash: self.election_hash,
+            contents: Box::new(BallotSubContents {
+                ballot: ballot.clone(),
+            }),
             timestamp,
-            ballot: ballot.clone(),
             previous_bb_msg_hash,
         };
 
@@ -341,10 +347,10 @@ impl SubmissionActor {
         let signature = hex::encode(signature_bytes.to_bytes());
 
         // Create the bulletin
-        let bulletin = Bulletin::BallotSubmission(BallotSubBulletin {
+        let bulletin = Bulletin {
             data: bulletin_data,
             signature,
-        });
+        };
 
         // Append to bulletin board and get tracker
         let tracker = bulletin_board.append_bulletin(bulletin)?;

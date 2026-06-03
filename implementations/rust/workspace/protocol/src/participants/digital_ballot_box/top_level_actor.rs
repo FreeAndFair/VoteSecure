@@ -20,8 +20,9 @@ use super::sub_actors::{
     submission::{SubmissionActor, SubmissionInput, SubmissionOutput, SubmissionState},
 };
 
+use crate::bulletins::{BUILTIN_BULLETINS, Bulletin, BulletinContents, BulletinData};
 use crate::cryptography::{ElectionKey, SigningKey, VerifyingKey};
-use crate::elections::{BallotTracker, ElectionHash};
+use crate::elections::{BallotTracker, BulletinTracker, ElectionHash};
 use crate::messages::{AuthVoterMsg, ProtocolMsg};
 use cryptography::utils::serialization::VSerializable;
 
@@ -93,6 +94,14 @@ pub enum Command {
         checking_session_id: u64,
         va_connection_id: u64,
     },
+
+    /// Post an externally-submitted bulletin to the bulletin board.
+    /// This is used for bulletin types that are not defined or used
+    /// inside the protocol actors, and will reject bulletins of types
+    /// that are.
+    PostBulletin {
+        bulletin_contents: Box<dyn BulletinContents>,
+    },
 }
 
 /// Input to the Digital Ballot Box actor.
@@ -128,6 +137,9 @@ pub enum ActorOutput {
 
     /// List of all active sessions (response to ListSessions command).
     SessionList(Vec<SessionInfo>),
+
+    /// The tracker for a successfully-posted bulletin.
+    BulletinPosted(BulletinTracker),
 
     /// An error occurred.
     Error(String),
@@ -345,6 +357,52 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
                         "No checking session found with ID {}",
                         checking_session_id
                     ))
+                }
+            }
+
+            Command::PostBulletin { bulletin_contents } => {
+                // Validate the bulletin type (reject if it's a built-in type)
+                if BUILTIN_BULLETINS.contains(&bulletin_contents.type_name()) {
+                    return Err("Cannot post bulletin of a built-in type".to_string());
+                }
+
+                // Get the previous bulletin hash for chaining
+                let previous_bb_msg_hash = self
+                    .bulletin_board
+                    .get_last_bulletin_hash()
+                    .unwrap_or_default();
+
+                // Get current timestamp (Unix timestamp in seconds)
+                let timestamp = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map_err(|e| format!("Failed to get timestamp: {}", e))?
+                    .as_secs();
+
+                // Create bulletin data from the bulletin contents.
+                let bulletin_data = BulletinData {
+                    election_hash: self.election_hash,
+                    contents: bulletin_contents,
+                    timestamp,
+                    previous_bb_msg_hash,
+                };
+
+                // Sign the bulletin.
+                let serialized_data = bulletin_data.ser();
+                let signature_bytes =
+                    crate::cryptography::sign_data(&serialized_data, &self.dbb_signing_key);
+
+                // Convert signature to string for bulletin
+                let signature = hex::encode(signature_bytes.to_bytes());
+
+                let bulletin = Bulletin {
+                    data: bulletin_data,
+                    signature,
+                };
+
+                // Post the bulletin to the bulletin board.
+                match self.bulletin_board.append_bulletin(bulletin) {
+                    Ok(tracker) => Ok(ActorOutput::BulletinPosted(tracker)),
+                    Err(err) => Err(err),
                 }
             }
         }
@@ -604,7 +662,11 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
 
 #[cfg(test)]
 mod tests {
+    use std::any::Any;
+    use vser_derive::VSerializable;
+
     use super::*;
+    use crate::bulletins::BALLOT_SUBMISSION_BULLETIN;
     use crate::cryptography::generate_signature_keypair;
     use crate::elections::string_to_election_hash;
     use crate::participants::digital_ballot_box::{InMemoryBulletinBoard, InMemoryStorage};
@@ -655,6 +717,73 @@ mod tests {
             assert_eq!(conn_id, 999);
         } else {
             panic!("Expected SessionClosed output");
+        }
+    }
+
+    #[test]
+    fn test_post_bulletin() {
+        let mut dbb = create_test_dbb();
+        #[derive(Debug, Clone, VSerializable)]
+        struct TestBulletinContents {
+            pub data: String,
+            pub data2: u64,
+        }
+        impl BulletinContents for TestBulletinContents {
+            fn type_name(&self) -> &'static str {
+                "test_bulletin_type"
+            }
+            fn serialize(&self) -> Vec<u8> {
+                self.ser()
+            }
+            fn as_any(&self) -> &dyn Any {
+                self
+            }
+            fn clone_box(&self) -> Box<dyn BulletinContents> {
+                Box::new(self.clone())
+            }
+        }
+
+        let result = dbb.process_input(ActorInput::Command(Command::PostBulletin {
+            bulletin_contents: Box::new(TestBulletinContents {
+                data: "test data".to_string(),
+                data2: 42,
+            }),
+        }));
+
+        assert!(result.is_ok());
+        if let Ok(ActorOutput::BulletinPosted(tracker)) = result {
+            assert!(!tracker.is_empty());
+        } else {
+            panic!("Expected BulletinPosted output");
+        }
+    }
+
+    #[test]
+    fn test_post_invalid_bulletin() {
+        let mut dbb = create_test_dbb();
+        #[derive(Debug, Clone)]
+        struct InvalidBulletinContents;
+        impl BulletinContents for InvalidBulletinContents {
+            fn type_name(&self) -> &'static str {
+                BALLOT_SUBMISSION_BULLETIN // This is a built-in type, so it should be rejected.
+            }
+            fn serialize(&self) -> Vec<u8> {
+                vec![]
+            }
+            fn as_any(&self) -> &dyn Any {
+                self
+            }
+            fn clone_box(&self) -> Box<dyn BulletinContents> {
+                Box::new(InvalidBulletinContents)
+            }
+        }
+
+        let result = dbb.process_input(ActorInput::Command(Command::PostBulletin {
+            bulletin_contents: Box::new(InvalidBulletinContents),
+        }));
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert_eq!(err, "Cannot post bulletin of a built-in type");
         }
     }
 }

@@ -15,7 +15,7 @@
 // currently ignored for code simplicity until performance data is analyzed
 #![allow(clippy::large_enum_variant)]
 
-use crate::bulletins::{Bulletin, Bulletin::BallotSubmission};
+use crate::bulletins::{BALLOT_CAST_BULLETIN, BallotSubContents};
 use crate::cryptography::{SigningKey, verify_signature};
 use crate::elections::{BallotTracker, ElectionHash};
 use crate::messages::{
@@ -276,18 +276,20 @@ impl CheckingActor {
         // previously cast it or another ballot. This is stricter than the protocol's
         // required check of "has the voter cast the ballot they want to check", but
         // more straightforward to implement.
-        match bulletin {
-            BallotSubmission(bs) => {
-                let voter_pseudonym = bs.data.ballot.data.voter_pseudonym;
-                if bulletin_board
-                    .get_bulletins_by_pseudonym(voter_pseudonym)
-                    .iter()
-                    .any(|b| matches!(b, Bulletin::BallotCast(_)))
-                {
-                    return Err("Voter has already cast a ballot".to_string());
-                }
-            }
-            _ => return Err("Tracker does not refer to a ballot submission".to_string()),
+        let sub = bulletin
+            .data
+            .contents
+            .as_any()
+            .downcast_ref::<BallotSubContents>()
+            .ok_or_else(|| "Tracker does not refer to a ballot submission".to_string())?;
+
+        let voter_pseudonym = sub.ballot.data.voter_pseudonym.clone();
+        if bulletin_board
+            .get_bulletins_by_pseudonym(voter_pseudonym)
+            .iter()
+            .any(|b| b.data.contents.type_name() == BALLOT_CAST_BULLETIN)
+        {
+            return Err("Voter has already cast a ballot".to_string());
         }
 
         Ok(())
@@ -366,22 +368,23 @@ impl CheckingActor {
             .get_bulletin(&randomizer_data.message.data.tracker)?
             .ok_or("Could not find ballot submission for tracker")?;
 
-        if let BallotSubmission(ballot_sub) = bulletin {
-            // Get the ballot style from the ballot
-            let ballot_style = ballot_sub.data.ballot.data.ballot_style;
+        let sub = bulletin
+            .data
+            .contents
+            .as_any()
+            .downcast_ref::<BallotSubContents>()
+            .ok_or_else(|| "Tracker does not refer to a ballot submission".to_string())?;
 
-            // Verify the ballot style matches between the submission and randomizers
-            if randomizer_data.encrypted_randomizers.ballot_style != ballot_style {
-                return Err(format!(
-                    "Randomizers ballot style {} does not match ballot submission style {}",
-                    randomizer_data.encrypted_randomizers.ballot_style, ballot_style
-                ));
-            }
-
-            Ok(())
-        } else {
-            Err("Tracker does not refer to a ballot submission".to_string())
+        // Verify the ballot style matches between the submission and randomizers
+        let ballot_style = sub.ballot.data.ballot_style;
+        if randomizer_data.encrypted_randomizers.ballot_style != ballot_style {
+            return Err(format!(
+                "Randomizers ballot style {} does not match ballot submission style {}",
+                randomizer_data.encrypted_randomizers.ballot_style, ballot_style
+            ));
         }
+
+        Ok(())
     }
 
     /// Check #6: The public_key matches the ballot submission.
@@ -395,15 +398,18 @@ impl CheckingActor {
             .get_bulletin(&randomizer_data.message.data.tracker)?
             .ok_or("Could not find ballot submission for tracker")?;
 
-        if let BallotSubmission(ballot_sub) = bulletin {
-            // Verify the public key matches
-            if ballot_sub.data.ballot.data.voter_verifying_key != randomizer_data.public_key {
-                return Err("Randomizer public key does not match ballot submission".to_string());
-            }
-            Ok(())
-        } else {
-            Err("Tracker does not refer to a ballot submission".to_string())
+        let sub = bulletin
+            .data
+            .contents
+            .as_any()
+            .downcast_ref::<BallotSubContents>()
+            .ok_or_else(|| "Tracker does not refer to a ballot submission".to_string())?;
+
+        // Verify the public key matches
+        if sub.ballot.data.voter_verifying_key != randomizer_data.public_key {
+            return Err("Randomizer public key does not match ballot submission".to_string());
         }
+        Ok(())
     }
 
     /// Check #1: The signature is valid.
@@ -466,10 +472,7 @@ impl CheckingActor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bulletins::{
-        BallotCastBulletin, BallotCastBulletinData, BallotSubBulletin, BallotSubBulletinData,
-        Bulletin,
-    };
+    use crate::bulletins::{BallotCastContents, BallotSubContents, Bulletin, BulletinData};
     use crate::cryptography::{
         BallotCryptogram, Signature, VerifyingKey, generate_encryption_keypair,
         generate_signature_keypair,
@@ -549,20 +552,21 @@ mod tests {
             signature: Signature::from_bytes(&ballot_signature_bytes.to_bytes()),
         };
 
-        let ballot_sub_bulletin_data = BallotSubBulletinData {
+        let bulletin_data = BulletinData {
             election_hash,
+            contents: Box::new(BallotSubContents {
+                ballot: ballot.clone(),
+            }),
             timestamp: 1000,
-            ballot: ballot.clone(),
             previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
         };
         let ballot_sub_signature_bytes =
-            crate::cryptography::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
-        let ballot_sub_bulletin = BallotSubBulletin {
-            data: ballot_sub_bulletin_data,
-            signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
-        };
+            crate::cryptography::sign_data(&bulletin_data.ser(), &dbb_signing_key);
         let tracker = bulletin_board
-            .append_bulletin(Bulletin::BallotSubmission(ballot_sub_bulletin))
+            .append_bulletin(Bulletin {
+                data: bulletin_data,
+                signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+            })
             .unwrap();
 
         // Create a check request from BCA
@@ -679,20 +683,21 @@ mod tests {
             signature: Signature::from_bytes(&ballot_signature_bytes.to_bytes()),
         };
 
-        let ballot_sub_bulletin_data = BallotSubBulletinData {
+        let sub_bulletin_data = BulletinData {
             election_hash,
+            contents: Box::new(BallotSubContents {
+                ballot: ballot.clone(),
+            }),
             timestamp: 1000,
-            ballot: ballot.clone(),
             previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
         };
         let ballot_sub_signature_bytes =
-            crate::cryptography::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
-        let ballot_sub_bulletin = BallotSubBulletin {
-            data: ballot_sub_bulletin_data.clone(),
-            signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
-        };
+            crate::cryptography::sign_data(&sub_bulletin_data.ser(), &dbb_signing_key);
         let tracker = bulletin_board
-            .append_bulletin(Bulletin::BallotSubmission(ballot_sub_bulletin))
+            .append_bulletin(Bulletin {
+                data: sub_bulletin_data,
+                signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+            })
             .unwrap();
 
         // Create a ballot cast bulletin for the ballot we just submitted
@@ -708,22 +713,22 @@ mod tests {
             data: cast_req_data,
             signature: Signature::from_bytes(&cast_req_signature_bytes.to_bytes()),
         };
-        let ballot_cast_bulletin_data = BallotCastBulletinData {
+        let cast_bulletin_data = BulletinData {
             election_hash,
+            contents: Box::new(BallotCastContents {
+                ballot: ballot.clone(),
+                cast_intent: cast_req_msg,
+            }),
             timestamp: 1001,
-            ballot: ballot_sub_bulletin_data.ballot,
-            cast_intent: cast_req_msg,
             previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
         };
         let ballot_cast_signature_bytes =
-            crate::cryptography::sign_data(&ballot_cast_bulletin_data.ser(), &dbb_signing_key);
-        let ballot_cast_bulletin = BallotCastBulletin {
-            data: ballot_cast_bulletin_data,
-            signature: hex::encode(ballot_cast_signature_bytes.to_bytes()),
-        };
-
+            crate::cryptography::sign_data(&cast_bulletin_data.ser(), &dbb_signing_key);
         let _cast_tracker = bulletin_board
-            .append_bulletin(Bulletin::BallotCast(ballot_cast_bulletin))
+            .append_bulletin(Bulletin {
+                data: cast_bulletin_data,
+                signature: hex::encode(ballot_cast_signature_bytes.to_bytes()),
+            })
             .unwrap();
 
         // Create a check request from BCA
@@ -864,20 +869,21 @@ mod tests {
             signature: Signature::from_bytes(&ballot_signature_bytes.to_bytes()),
         };
 
-        let ballot_sub_bulletin_data = BallotSubBulletinData {
+        let bulletin_data = BulletinData {
             election_hash,
+            contents: Box::new(BallotSubContents {
+                ballot: ballot.clone(),
+            }),
             timestamp: 1000,
-            ballot: ballot.clone(),
             previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
         };
         let ballot_sub_signature_bytes =
-            crate::cryptography::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
-        let ballot_sub_bulletin = BallotSubBulletin {
-            data: ballot_sub_bulletin_data,
-            signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
-        };
+            crate::cryptography::sign_data(&bulletin_data.ser(), &dbb_signing_key);
         let tracker = bulletin_board
-            .append_bulletin(Bulletin::BallotSubmission(ballot_sub_bulletin))
+            .append_bulletin(Bulletin {
+                data: bulletin_data,
+                signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+            })
             .unwrap();
 
         // Create check request but sign with WRONG key
@@ -935,20 +941,21 @@ mod tests {
             signature: Signature::from_bytes(&ballot_signature_bytes.to_bytes()),
         };
 
-        let ballot_sub_bulletin_data = BallotSubBulletinData {
+        let bulletin_data = BulletinData {
             election_hash,
+            contents: Box::new(BallotSubContents {
+                ballot: ballot.clone(),
+            }),
             timestamp: 1000,
-            ballot: ballot.clone(),
             previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
         };
         let ballot_sub_signature_bytes =
-            crate::cryptography::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
-        let ballot_sub_bulletin = BallotSubBulletin {
-            data: ballot_sub_bulletin_data,
-            signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
-        };
+            crate::cryptography::sign_data(&bulletin_data.ser(), &dbb_signing_key);
         let tracker = bulletin_board
-            .append_bulletin(Bulletin::BallotSubmission(ballot_sub_bulletin))
+            .append_bulletin(Bulletin {
+                data: bulletin_data,
+                signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+            })
             .unwrap();
 
         // Create check request with CORRUPTED signature
@@ -1032,20 +1039,21 @@ mod tests {
             signature: Signature::from_bytes(&ballot_signature_bytes.to_bytes()),
         };
 
-        let ballot_sub_bulletin_data = BallotSubBulletinData {
+        let bulletin_data = BulletinData {
             election_hash,
+            contents: Box::new(BallotSubContents {
+                ballot: ballot.clone(),
+            }),
             timestamp: 1000,
-            ballot: ballot.clone(),
             previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
         };
         let ballot_sub_signature_bytes =
-            crate::cryptography::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
-        let ballot_sub_bulletin = BallotSubBulletin {
-            data: ballot_sub_bulletin_data,
-            signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
-        };
+            crate::cryptography::sign_data(&bulletin_data.ser(), &dbb_signing_key);
         let tracker = bulletin_board
-            .append_bulletin(Bulletin::BallotSubmission(ballot_sub_bulletin))
+            .append_bulletin(Bulletin {
+                data: bulletin_data,
+                signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+            })
             .unwrap();
 
         // Cast ballot
@@ -1163,20 +1171,21 @@ mod tests {
             signature: Signature::from_bytes(&ballot_signature_bytes.to_bytes()),
         };
 
-        let ballot_sub_bulletin_data = BallotSubBulletinData {
+        let bulletin_data = BulletinData {
             election_hash,
+            contents: Box::new(BallotSubContents {
+                ballot: ballot.clone(),
+            }),
             timestamp: 1000,
-            ballot: ballot.clone(),
             previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
         };
         let ballot_sub_signature_bytes =
-            crate::cryptography::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
-        let ballot_sub_bulletin = BallotSubBulletin {
-            data: ballot_sub_bulletin_data,
-            signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
-        };
+            crate::cryptography::sign_data(&bulletin_data.ser(), &dbb_signing_key);
         let tracker = bulletin_board
-            .append_bulletin(Bulletin::BallotSubmission(ballot_sub_bulletin))
+            .append_bulletin(Bulletin {
+                data: bulletin_data,
+                signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+            })
             .unwrap();
 
         // Cast ballot
@@ -1280,20 +1289,21 @@ mod tests {
             signature: Signature::from_bytes(&ballot_signature_bytes.to_bytes()),
         };
 
-        let ballot_sub_bulletin_data = BallotSubBulletinData {
+        let bulletin_data = BulletinData {
             election_hash,
+            contents: Box::new(BallotSubContents {
+                ballot: ballot.clone(),
+            }),
             timestamp: 1000,
-            ballot: ballot.clone(),
             previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
         };
         let ballot_sub_signature_bytes =
-            crate::cryptography::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
-        let ballot_sub_bulletin = BallotSubBulletin {
-            data: ballot_sub_bulletin_data,
-            signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
-        };
+            crate::cryptography::sign_data(&bulletin_data.ser(), &dbb_signing_key);
         let tracker = bulletin_board
-            .append_bulletin(Bulletin::BallotSubmission(ballot_sub_bulletin))
+            .append_bulletin(Bulletin {
+                data: bulletin_data,
+                signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+            })
             .unwrap();
 
         // Create check request with all-zeros signature
@@ -1368,20 +1378,21 @@ mod tests {
             signature: Signature::from_bytes(&ballot_signature_bytes.to_bytes()),
         };
 
-        let ballot_sub_bulletin_data = BallotSubBulletinData {
+        let bulletin_data = BulletinData {
             election_hash,
+            contents: Box::new(BallotSubContents {
+                ballot: ballot.clone(),
+            }),
             timestamp: 1000,
-            ballot: ballot.clone(),
             previous_bb_msg_hash: bulletin_board.get_last_bulletin_hash().unwrap_or_default(),
         };
         let ballot_sub_signature_bytes =
-            crate::cryptography::sign_data(&ballot_sub_bulletin_data.ser(), &dbb_signing_key);
-        let ballot_sub_bulletin = BallotSubBulletin {
-            data: ballot_sub_bulletin_data,
-            signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
-        };
+            crate::cryptography::sign_data(&bulletin_data.ser(), &dbb_signing_key);
         let tracker = bulletin_board
-            .append_bulletin(Bulletin::BallotSubmission(ballot_sub_bulletin))
+            .append_bulletin(Bulletin {
+                data: bulletin_data,
+                signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+            })
             .unwrap();
 
         // Cast ballot

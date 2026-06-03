@@ -25,7 +25,8 @@ pub mod sub_actors;
 pub mod top_level_actor;
 
 // Re-export main types for convenience
-pub use bulletin_board::{BulletinBoard, BulletinType, InMemoryBulletinBoard};
+pub use crate::bulletins::BulletinTypeRegistry;
+pub use bulletin_board::{BulletinBoard, InMemoryBulletinBoard};
 pub use storage::{DBBStorage, InMemoryStorage};
 pub use top_level_actor::{
     ActorInput, ActorOutput, Command, DBBIncomingMessage, DBBOutgoingMessage,

@@ -35,7 +35,7 @@ use crate::messages::{FwdRandomizerMsg, FwdRandomizerMsgData};
 use crate::messages::{RandomizerMsg, RandomizerMsgData};
 use crate::messages::{SignedBallotMsg, SignedBallotMsgData};
 
-use crate::bulletins::Bulletin;
+use crate::bulletins::{BALLOT_CAST_BULLETIN, BallotCastContents, Bulletin};
 
 use cryptography::utils::serialization::VSerializable;
 
@@ -279,20 +279,25 @@ impl BallotCheckActor {
 
                 let num_casts = bulletins
                     .iter()
-                    .filter(|b| matches!(b, Bulletin::BallotCast(_)))
+                    .filter(|b| b.data.contents.type_name() == BALLOT_CAST_BULLETIN)
                     .count();
 
                 match (cast_decision, num_casts) {
                     (CastOrNot::Cast, 1) => {
                         // This could be a valid cast, let's get it and check.
-                        let cast_ballot = bulletins
+                        let cast_bulletin = bulletins
                             .iter()
-                            .find(|b| matches!(b, Bulletin::BallotCast(_)));
+                            .find(|b| b.data.contents.type_name() == BALLOT_CAST_BULLETIN);
 
                         // Compare the cast ballot with the one we checked.
-                        match cast_ballot {
-                            Some(Bulletin::BallotCast(bc)) => {
-                                if bc.data.ballot == self.ballot {
+                        match cast_bulletin.and_then(|b| {
+                            b.data
+                                .contents
+                                .as_any()
+                                .downcast_ref::<BallotCastContents>()
+                        }) {
+                            Some(bc) => {
+                                if bc.ballot == self.ballot {
                                     // The cast ballot matches the one we checked.
                                     BallotCheckOutput::Success()
                                 } else {
@@ -303,7 +308,7 @@ impl BallotCheckActor {
                                 }
                             }
 
-                            _ => {
+                            None => {
                                 // This can't happen but we need a match case for it
                                 BallotCheckOutput::Failure("Impossible type error".to_string())
                             }

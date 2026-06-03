@@ -67,11 +67,18 @@ pub type ElectionHash = crate::cryptography::CryptographicHash;
 /// typically based on their geographical location or voter registration.
 pub type BallotStyle = u16;
 
+/// Type alias for bulletin trackers.
+///
+/// A bulletin tracker is the hash of a [`crate::bulletins::Bulletin`] on the
+/// Public Bulletin Board, used to uniquely identify and look up that bulletin.
+pub type BulletinTracker = String;
+
 /// Type alias for ballot trackers.
 ///
-/// Trackers are unique identifiers assigned to submitted ballots that allow
-/// voters to verify their ballot was recorded correctly.
-pub type BallotTracker = String;
+/// A ballot tracker is the voter-domain name for a [`BulletinTracker`]: it is
+/// the hash of the bulletin that records the voter's ballot submission,
+/// allowing the voter to verify their ballot was recorded correctly.
+pub type BallotTracker = BulletinTracker;
 
 /// Type alias for voter pseudonyms.
 ///

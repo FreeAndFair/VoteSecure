@@ -13,7 +13,7 @@ mod tests {
     use crate::auth_service::{
         AuthServiceMsg, AuthServiceQueryMsg, AuthServiceReportMsg, InitAuthReqMsg, TokenReturnMsg,
     };
-    use crate::bulletins::Bulletin;
+    use crate::bulletins::BallotSubContents;
     use crate::cryptography::{Context, CryptographyContext, ElectionKey, SigningKey};
     use crate::elections::{
         Ballot, BallotStyle, BallotTracker, CastOrNot, ElectionHash, VoterPseudonym,
@@ -663,12 +663,14 @@ mod tests {
                         .expect("Bulletin should exist on bulletin board");
 
                     // Extract the signed ballot from the bulletin
-                    let check_ballot =
-                        if let Bulletin::BallotSubmission(ballot_sub_bulletin) = bulletin {
-                            ballot_sub_bulletin.data.ballot.clone()
-                        } else {
-                            panic!("Expected BallotSubmission bulletin");
-                        };
+                    let check_ballot = bulletin
+                        .data
+                        .contents
+                        .as_any()
+                        .downcast_ref::<BallotSubContents>()
+                        .expect("Expected BallotSubmission bulletin")
+                        .ballot
+                        .clone();
 
                     let check_start = bca.process_input(BCAInput::Command(
             crate::participants::ballot_check_application::top_level_actor::Command::StartBallotCheck(

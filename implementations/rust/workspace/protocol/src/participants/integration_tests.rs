@@ -24,7 +24,7 @@ mod tests {
     use crate::auth_service::{
         AuthServiceMsg, AuthServiceQueryMsg, AuthServiceReportMsg, InitAuthReqMsg, TokenReturnMsg,
     };
-    use crate::bulletins::Bulletin;
+    use crate::bulletins::{BALLOT_CAST_BULLETIN, BallotSubContents};
     use crate::cryptography::{
         Context, CryptographyContext, ElectionKey, SigningKey, VerifyingKey,
     };
@@ -490,22 +490,10 @@ mod tests {
             // to distinguish states, not cryptographic/timing details
             let bulletins = self.dbb.bulletin_board().get_all_bulletins();
             bulletins.len().hash(state);
-            for bulletin in bulletins {
-                std::mem::discriminant(&bulletin).hash(state);
-                match bulletin {
-                    Bulletin::BallotSubmission(sub) => {
-                        sub.data.ballot.data.voter_pseudonym.hash(state);
-                        sub.data.ballot.data.ballot_style.hash(state);
-                    }
-                    Bulletin::VoterAuthorization(auth) => {
-                        auth.data.authorization.data.voter_pseudonym.hash(state);
-                        auth.data.authorization.data.ballot_style.hash(state);
-                    }
-                    Bulletin::BallotCast(cast) => {
-                        cast.data.ballot.data.voter_pseudonym.hash(state);
-                        cast.data.ballot.data.ballot_style.hash(state);
-                    }
-                }
+            for bulletin in &bulletins {
+                bulletin.data.contents.type_name().hash(state);
+                bulletin.data.contents.voter_pseudonym().hash(state);
+                bulletin.data.contents.ballot_style().hash(state);
             }
 
             // Hash AS state (session counter and active sessions)
@@ -814,35 +802,13 @@ mod tests {
                 .zip(other_bulletins.iter())
                 .all(|(a, b)| {
                     // First check if bulletin types match
-                    if std::mem::discriminant(a) != std::mem::discriminant(b) {
+                    if a.data.contents.type_name() != b.data.contents.type_name() {
                         return false;
                     }
 
-                    // Then compare semantically relevant fields
-                    match (a, b) {
-                        (Bulletin::BallotSubmission(a_sub), Bulletin::BallotSubmission(b_sub)) => {
-                            a_sub.data.ballot.data.voter_pseudonym
-                                == b_sub.data.ballot.data.voter_pseudonym
-                                && a_sub.data.ballot.data.ballot_style
-                                    == b_sub.data.ballot.data.ballot_style
-                        }
-                        (
-                            Bulletin::VoterAuthorization(a_auth),
-                            Bulletin::VoterAuthorization(b_auth),
-                        ) => {
-                            a_auth.data.authorization.data.voter_pseudonym
-                                == b_auth.data.authorization.data.voter_pseudonym
-                                && a_auth.data.authorization.data.ballot_style
-                                    == b_auth.data.authorization.data.ballot_style
-                        }
-                        (Bulletin::BallotCast(a_cast), Bulletin::BallotCast(b_cast)) => {
-                            a_cast.data.ballot.data.voter_pseudonym
-                                == b_cast.data.ballot.data.voter_pseudonym
-                                && a_cast.data.ballot.data.ballot_style
-                                    == b_cast.data.ballot.data.ballot_style
-                        }
-                        _ => false, // Different types (shouldn't happen due to discriminant check above)
-                    }
+                    // Compare semantically relevant fields via trait methods
+                    a.data.contents.voter_pseudonym() == b.data.contents.voter_pseudonym()
+                        && a.data.contents.ballot_style() == b.data.contents.ballot_style()
                 })
         }
 
@@ -2850,11 +2816,12 @@ mod tests {
                         .get_bulletin(&tracker)
                         .ok()
                         .flatten()?;
-                    let ballot = if let Bulletin::BallotSubmission(sub) = bulletin {
-                        sub.data.ballot.clone()
-                    } else {
-                        return None;
-                    };
+                    let ballot = bulletin
+                        .data
+                        .contents
+                        .as_any()
+                        .downcast_ref::<BallotSubContents>()
+                        .map(|sub| sub.ballot.clone())?;
 
                     // Create BCA actor with the ballot to check
                     let bca = BCAActor::new(
@@ -3146,13 +3113,14 @@ mod tests {
         let mut cast_pseudonyms = BTreeSet::new();
 
         for bulletin in state.dbb.bulletin_board().get_all_bulletins() {
-            if let Bulletin::BallotCast(cast_bulletin) = bulletin {
-                let pseudonym = &cast_bulletin.data.ballot.data.voter_pseudonym;
-                if cast_pseudonyms.contains(pseudonym) {
-                    // Found a duplicate cast!
-                    return false;
+            if let Some(pseudonym) = bulletin.data.contents.voter_pseudonym() {
+                if bulletin.data.contents.type_name() == BALLOT_CAST_BULLETIN {
+                    if cast_pseudonyms.contains(&pseudonym) {
+                        // Found a duplicate cast!
+                        return false;
+                    }
+                    cast_pseudonyms.insert(pseudonym);
                 }
-                cast_pseudonyms.insert(pseudonym.clone());
             }
         }
 
@@ -3175,7 +3143,7 @@ mod tests {
             .bulletin_board()
             .get_all_bulletins()
             .iter()
-            .filter(|b| matches!(b, Bulletin::BallotCast(_)))
+            .filter(|b| b.data.contents.type_name() == BALLOT_CAST_BULLETIN)
             .count();
 
         // Check that internal counter matches bulletin board
@@ -3191,11 +3159,8 @@ mod tests {
                 .get_all_bulletins()
                 .iter()
                 .any(|b| {
-                    if let Bulletin::BallotCast(cast) = b {
-                        &cast.data.ballot.data.voter_pseudonym == pseudonym
-                    } else {
-                        false
-                    }
+                    b.data.contents.type_name() == BALLOT_CAST_BULLETIN
+                        && b.data.contents.voter_pseudonym().as_deref() == Some(pseudonym.as_str())
                 });
             if !found {
                 return false;
@@ -3211,7 +3176,7 @@ mod tests {
             .bulletin_board()
             .get_all_bulletins()
             .iter()
-            .filter(|b| matches!(b, Bulletin::BallotCast(_)))
+            .filter(|b| b.data.contents.type_name() == BALLOT_CAST_BULLETIN)
             .count();
 
         bb_cast_count >= state.config.num_voters_to_complete

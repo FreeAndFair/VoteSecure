@@ -8,7 +8,7 @@
 // currently ignored for code simplicity until performance data is analyzed
 #![allow(clippy::large_enum_variant)]
 
-use crate::bulletins::Bulletin;
+use crate::bulletins::{BallotSubContents, Bulletin};
 
 use crate::cryptography::{ElectionKey, RandomizersStruct};
 use crate::elections::{Ballot, BallotStyle, ElectionHash, VoterPseudonym};
@@ -290,32 +290,32 @@ impl SubmissionActor {
     /// Check #2: The tracker corresponds to a BallotSubBulletin on the public bulletin board
     /// which contains the previously submitted SignedBallotMsg.
     fn perform_bulletin_verification_checks(&self, bulletin: &Bulletin) -> Result<(), String> {
-        match bulletin {
-            Bulletin::BallotSubmission(ballot_bulletin) => {
-                // Verify the bulletin contains our exact ballot
-                if let Some(ref sent_ballot) = self.sent_ballot {
-                    if &ballot_bulletin.data.ballot != sent_ballot {
-                        return Err(
-                            "Bulletin from PBB does not contain the correct ballot".to_string()
-                        );
-                    }
-                } else {
-                    return Err("No sent ballot to compare against bulletin".to_string());
-                }
+        let sub = bulletin
+            .data
+            .contents
+            .as_any()
+            .downcast_ref::<BallotSubContents>()
+            .ok_or_else(|| {
+                "Received incorrect bulletin type from PBB - expected BallotSubmission".to_string()
+            })?;
 
-                // TODO: Additional verification that could be performed (but are
-                // redundant since they were performed before posting the bulletin):
-                // - Verify ballot_bulletin.data.election_hash matches our election
-                // - Verify ballot_bulletin.signature is valid from DBB
-                // - Verify ballot_bulletin.data.timestamp is reasonable
-                // - Verify ballot_bulletin.data.previous_bb_msg_hash is valid
-
-                Ok(())
+        // Verify the bulletin contains our exact ballot
+        if let Some(ref sent_ballot) = self.sent_ballot {
+            if &sub.ballot != sent_ballot {
+                return Err("Bulletin from PBB does not contain the correct ballot".to_string());
             }
-            _ => Err(
-                "Received incorrect bulletin type from PBB - expected BallotSubmission".to_string(),
-            ),
+        } else {
+            return Err("No sent ballot to compare against bulletin".to_string());
         }
+
+        // TODO: Additional verification that could be performed (but are
+        // redundant since they were performed before posting the bulletin):
+        // - Verify bulletin.data.election_hash matches our election
+        // - Verify bulletin.signature is valid from DBB
+        // - Verify bulletin.data.timestamp is reasonable
+        // - Verify bulletin.data.previous_bb_msg_hash is valid
+
+        Ok(())
     }
 }
 
