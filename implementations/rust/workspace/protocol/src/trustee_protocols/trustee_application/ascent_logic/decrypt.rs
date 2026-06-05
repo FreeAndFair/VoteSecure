@@ -128,6 +128,7 @@ pub(crate) mod infer {
     }
 }
 
+#[cfg(test)]
 mod stateright {
 
     use crate::trustee_protocols::trustee_application::ascent_logic;

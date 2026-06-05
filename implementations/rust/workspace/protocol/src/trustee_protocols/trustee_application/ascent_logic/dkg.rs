@@ -128,6 +128,7 @@ pub(crate) mod infer {
 }
 
 /// Stateright model and execution harness for DKG rules.
+#[cfg(test)]
 pub(crate) mod stateright {
 
     const HASH_SIZE: usize = 64;

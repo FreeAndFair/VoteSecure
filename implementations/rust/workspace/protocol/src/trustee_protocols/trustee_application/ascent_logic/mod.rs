@@ -165,6 +165,7 @@ ascent::ascent_source! { prelude:
 }
 
 /// Stateright model helpers and board abstractions used by Ascent tests.
+#[cfg(test)]
 pub(crate) mod stateright {
     use super::messages::Message;
     use super::types::*;

@@ -283,6 +283,7 @@ pub(crate) mod infer {
 }
 
 /// Stateright model and execution harness for mixing rules.
+#[cfg(test)]
 pub(crate) mod stateright {
 
     use stateright::{Model, Property};

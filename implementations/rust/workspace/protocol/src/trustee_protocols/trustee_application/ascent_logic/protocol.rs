@@ -36,6 +36,7 @@ pub mod composed_ascent_logic {
     }
 }
 
+#[cfg(test)]
 mod stateright {
     use cryptography::VSerializable;
     use stateright::{Model, Property};
