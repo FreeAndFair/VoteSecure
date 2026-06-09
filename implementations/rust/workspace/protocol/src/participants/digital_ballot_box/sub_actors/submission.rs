@@ -183,20 +183,28 @@ impl SubmissionActor {
         // Check #5: The ballot_style matches the AuthVoterMsg from check #3
         self.check_ballot_style_matches(&auth_msg, ballot.data.ballot_style)?;
 
-        // Check #6: The list of contest_id in the BallotCryptograms matches the ballot_style
-        // Note: In our simplified implementation, we have a single cryptogram for the entire ballot
-        // This check is implicitly satisfied by the ballot structure
-
-        // Check #7: All Naor-Yung proofs verify correctly
+        // Check #6: All Naor-Yung proofs verify correctly; this also verifies that all
+        // ciphertexts are encryptions for the election public key.
         self.check_naor_yung_proofs(ballot)?;
 
-        // Check #8: All ciphertexts are encryptions for the public election key
-        // Note: This is verified as part of the Naor-Yung proof verification in check #7
+        // Check #7: No previous cast ballot appears on the bulletin board with the same pseudonym.
+        self.check_no_previous_cast(ballot.data.voter_pseudonym.clone(), storage)?;
 
-        // Check #9: The ciphertext does not already appear on the bulletin board.
+        // Check #8: The ciphertext does not already appear on the bulletin board.
         self.check_ciphertext_not_on_bb(ballot, bulletin_board)?;
 
         Ok(())
+    }
+
+    /// Check #1: The signature is a valid signature over the message contents.
+    fn check_signature_valid(&self, ballot: &SignedBallotMsg) -> Result<(), String> {
+        let serialized = ballot.data.ser();
+        crate::cryptography::verify_signature(
+            &serialized,
+            &ballot.signature,
+            &ballot.data.voter_verifying_key,
+        )
+        .map_err(|_| "Invalid signature on ballot".to_string())
     }
 
     /// Check #2: The election_hash is the hash of the election configuration item.
@@ -256,18 +264,7 @@ impl SubmissionActor {
         Ok(())
     }
 
-    /// Check #1: The signature is a valid signature over the message contents.
-    fn check_signature_valid(&self, ballot: &SignedBallotMsg) -> Result<(), String> {
-        let serialized = ballot.data.ser();
-        crate::cryptography::verify_signature(
-            &serialized,
-            &ballot.signature,
-            &ballot.data.voter_verifying_key,
-        )
-        .map_err(|_| "Invalid signature on ballot".to_string())
-    }
-
-    /// Check #7: All Naor-Yung proofs verify correctly.
+    /// Check #6: All Naor-Yung proofs verify correctly.
     fn check_naor_yung_proofs(&self, ballot: &SignedBallotMsg) -> Result<(), String> {
         // Verify the Naor-Yung proof in the ballot ciphertext
         #[crate::warning(
@@ -288,7 +285,20 @@ impl SubmissionActor {
         Ok(())
     }
 
-    /// Check #9: Ciphertext does not already appear on bulletin board.
+    /// Check #7: No previous cast ballot appears on the bulletin board with the same pseudonym.
+    fn check_no_previous_cast<S: DBBStorage>(
+        &self,
+        voter_pseudonym: String,
+        storage: &S,
+    ) -> Result<(), String> {
+        if storage.has_voter_cast(&voter_pseudonym)? {
+            Err("voter has already cast a ballot".to_string())
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Check #8: Ciphertext does not already appear on bulletin board.
     fn check_ciphertext_not_on_bb<B: BulletinBoard>(
         &self,
         ballot: &SignedBallotMsg,
@@ -962,6 +972,73 @@ mod tests {
                 assert!(msg.data.submission_result.1.contains("Invalid signature"));
             }
             _ => panic!("Expected TrackerMsg"),
+        }
+    }
+
+    #[test]
+    fn test_submit_after_cast_rejected() {
+        let (
+            mut storage,
+            mut bulletin_board,
+            election_hash,
+            dbb_signing_key,
+            _dbb_verifying_key,
+            election_public_key,
+        ) = create_test_setup();
+
+        let (voter_signing_key, voter_verifying_key) = generate_signature_keypair();
+        create_authorized_voter(
+            &mut storage,
+            "voter123",
+            voter_verifying_key,
+            1,
+            election_hash,
+        );
+
+        // Mark this voter as having already cast a ballot (this would normally be done by the casting sub-actor).
+        storage
+            .store_cast_ballot(&"voter123".to_string(), &"existing_tracker".to_string())
+            .unwrap();
+
+        // Construct a fresh, otherwise-valid ballot for the same pseudonym.
+        let ballot = Ballot::test_ballot(12345);
+        let (ballot_cryptogram, _) = encrypt_ballot(
+            ballot,
+            &election_public_key,
+            &election_hash,
+            &"voter123".to_string(),
+        )
+        .unwrap();
+
+        let ballot_data = SignedBallotMsgData {
+            election_hash,
+            voter_pseudonym: "voter123".to_string(),
+            voter_verifying_key,
+            ballot_style: 1,
+            ballot_cryptogram,
+        };
+        let serialized = ballot_data.ser();
+        let signature = crate::cryptography::sign_data(&serialized, &voter_signing_key);
+        let signed_ballot = SignedBallotMsg {
+            data: ballot_data,
+            signature,
+        };
+
+        let mut actor = SubmissionActor::new(election_hash, dbb_signing_key, election_public_key);
+
+        let result = actor.process_input(
+            SubmissionInput::NetworkMessage(ProtocolMsg::SubmitSignedBallot(signed_ballot)),
+            &mut storage,
+            &mut bulletin_board,
+        );
+
+        assert!(result.is_ok());
+        match result.unwrap() {
+            SubmissionOutput::SendMessage(ProtocolMsg::ReturnBallotTracker(msg)) => {
+                assert!(!msg.data.submission_result.0);
+                assert!(msg.data.submission_result.1.contains("cast"));
+            }
+            _ => panic!("Expected ReturnBallotTracker"),
         }
     }
 

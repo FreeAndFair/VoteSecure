@@ -1214,6 +1214,16 @@ mod tests {
                                     .unwrap()
                                     .unauthorized_submission_failure = true;
                                 state.unauthorized_submission_failures += 1;
+                            } else if err.contains("already cast")
+                                || err.contains("Voter has already cast")
+                            {
+                                // This is an "already voted" failure
+                                state
+                                    .voter_sessions
+                                    .get_mut(&session_id)
+                                    .unwrap()
+                                    .already_voted_failure = true;
+                                state.already_voted_failures += 1;
                             } else {
                                 state
                                     .voter_sessions

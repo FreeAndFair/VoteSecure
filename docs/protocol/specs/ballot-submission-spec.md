@@ -62,13 +62,14 @@ channel properties
 
 ### Submit Signed Ballot Checks
 
-1. The `election_hash` is the hash of the election configuration item for the current election.
-2. The `voter_pseudonym` and `voter_verifying_key` match a stored `AuthVoterMsg` from the EAS.
-3. The `ballot_style` is a valid ballot style for this election.
-4. The `ballot_style` matches the `AuthVoterMsg` from check #2.
-5. The `signature` is a valid signature over the serialized contents of the `data` field signed by the signing key corresponding to `voter_verifying_key`.
+1. The `signature` is a valid signature over the serialized contents of the `data` field signed by the signing key corresponding to `voter_verifying_key`.
+2. The `election_hash` is the hash of the election configuration item for the current election.
+3. The `voter_pseudonym` and `voter_verifying_key` match a stored `AuthVoterMsg` from the EAS.
+4. The `ballot_style` is a valid ballot style for this election.
+5. The `ballot_style` matches the `AuthVoterMsg` from check #2.
 6. The ciphertext has a valid Naor-Yung proof.
-7. The ciphertext does not already exist on the bulletin board.
+7. No previous cast ballot appears on the bulletin board with the same pseudonym.
+8. The ciphertext does not already exist on the bulletin board.
 
 ### Ballot Submission Bulletin
 
