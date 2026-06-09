@@ -9,7 +9,7 @@
 //! one via cryptographic hash, creating an immutable audit trail.
 
 use crate::bulletins::{Bulletin, BulletinTypeRegistry};
-use crate::cryptography::{Digest, Hasher256, HasherTrait, VSerializable};
+use crate::cryptography::{BallotCiphertext, Digest, Hasher256, HasherTrait, VSerializable};
 use crate::elections::{BulletinTracker, VoterPseudonym};
 use std::collections::HashMap;
 
@@ -74,6 +74,39 @@ pub trait BulletinBoard: Clone + std::fmt::Debug {
     /// A vector of bulletins matching the specified pseudonym, in
     /// the order in which they appear on the bulletin board.
     fn get_bulletins_by_pseudonym(&self, voter_pseudonym: VoterPseudonym) -> Vec<Bulletin>;
+
+    /// Get bulletins of a specific type associated with a specific voter pseudonym.
+    ///
+    /// # Arguments
+    /// * `bulletin_type` - The type name of bulletins to retrieve (see the
+    ///   `*_TYPE` constants in [`crate::bulletins`])
+    /// * `voter_pseudonym` - The pseudonym to retrieve
+    ///
+    /// # Returns
+    /// A vector of bulletins matching the specified type and pseudonym, in
+    /// the order in which they appear on the bulletin board.
+    fn get_bulletins_by_type_and_pseudonym(
+        &self,
+        bulletin_type: &str,
+        voter_pseudonym: VoterPseudonym,
+    ) -> Vec<Bulletin>;
+
+    /// Check the bulletin board for any bulletins of the built-in ballot submission
+    /// and ballot cast types containing the given ciphertext. This is used to detect
+    /// various cryptographic attacks (see the threat model); this API allows this
+    /// check to be optimized by the bulletin board implementation (e.g. by
+    /// maintaining an index of ciphertexts on the back end) rather than forcing the
+    /// digital ballot box to perform a full scan of all bulletins at the Rust data
+    /// structure level.
+    ///
+    /// # Arguments
+    /// * `ciphertext` - The ciphertext to check for duplicates
+    ///
+    /// # Returns
+    /// * `Ok(true)` - If a bulletin with the same ciphertext exists
+    /// * `Ok(false)` - If no bulletin with the same ciphertext exists
+    /// * `Err(msg)` - If an error occurs during the check
+    fn has_ciphertext(&self, ciphertext: &BallotCiphertext) -> Result<bool, String>;
 
     /// Get the hash of the most recent bulletin.
     ///
@@ -215,6 +248,74 @@ impl BulletinBoard for InMemoryBulletinBoard {
             .filter(|b| b.data.contents.voter_pseudonym().as_deref() == Some(&voter_pseudonym))
             .cloned()
             .collect()
+    }
+
+    fn get_bulletins_by_type_and_pseudonym(
+        &self,
+        bulletin_type: &str,
+        voter_pseudonym: VoterPseudonym,
+    ) -> Vec<Bulletin> {
+        self.bulletins
+            .iter()
+            .filter(|b| {
+                b.data.contents.type_name() == bulletin_type
+                    && b.data.contents.voter_pseudonym().as_deref() == Some(&voter_pseudonym)
+            })
+            .cloned()
+            .collect()
+    }
+
+    fn has_ciphertext(&self, ciphertext: &BallotCiphertext) -> Result<bool, String> {
+        for b in &self.bulletins {
+            match b.data.contents.type_name() {
+                crate::bulletins::BALLOT_SUBMISSION_BULLETIN => {
+                    let contents = b
+                        .data
+                        .contents
+                        .as_any()
+                        .downcast_ref::<crate::bulletins::BallotSubContents>()
+                        .ok_or_else(|| {
+                            format!(
+                                "Failed to downcast contents of bulletin with type '{}'",
+                                b.data.contents.type_name()
+                            )
+                        })?;
+                    if contents
+                        .ballot
+                        .data
+                        .ballot_cryptogram
+                        .ciphertext
+                        .eq(ciphertext)
+                    {
+                        return Ok(true);
+                    }
+                }
+                crate::bulletins::BALLOT_CAST_BULLETIN => {
+                    let contents = b
+                        .data
+                        .contents
+                        .as_any()
+                        .downcast_ref::<crate::bulletins::BallotCastContents>()
+                        .ok_or_else(|| {
+                            format!(
+                                "Failed to downcast contents of bulletin with type '{}'",
+                                b.data.contents.type_name()
+                            )
+                        })?;
+                    if contents
+                        .ballot
+                        .data
+                        .ballot_cryptogram
+                        .ciphertext
+                        .eq(ciphertext)
+                    {
+                        return Ok(true);
+                    }
+                }
+                _ => { /* bulletin is of a type with no ballot ciphertext */ }
+            }
+        }
+        Ok(false)
     }
 
     fn get_last_bulletin_hash(&self) -> Option<String> {

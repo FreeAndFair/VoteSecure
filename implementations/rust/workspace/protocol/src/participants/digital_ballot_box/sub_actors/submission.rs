@@ -294,20 +294,11 @@ impl SubmissionActor {
         ballot: &SignedBallotMsg,
         bulletin_board: &B,
     ) -> Result<(), String> {
-        if bulletin_board.get_all_bulletins().iter().any(|b| {
-            b.data
-                .contents
-                .as_any()
-                .downcast_ref::<BallotSubContents>()
-                .map(|sub| {
-                    sub.ballot.data.ballot_cryptogram.ciphertext
-                        == ballot.data.ballot_cryptogram.ciphertext
-                })
-                .unwrap_or(false)
-        }) {
-            return Err("ciphertext already exists on bulletin board".to_string());
+        if bulletin_board.has_ciphertext(&ballot.data.ballot_cryptogram.ciphertext)? {
+            Err("ciphertext already exists on bulletin board".to_string())
+        } else {
+            Ok(())
         }
-        Ok(())
     }
 
     // --- Bulletin Creation and Posting ---
@@ -969,6 +960,88 @@ mod tests {
             SubmissionOutput::SendMessage(ProtocolMsg::ReturnBallotTracker(msg)) => {
                 assert!(!msg.data.submission_result.0);
                 assert!(msg.data.submission_result.1.contains("Invalid signature"));
+            }
+            _ => panic!("Expected TrackerMsg"),
+        }
+    }
+
+    #[test]
+    fn test_duplicate_ciphertext_rejected() {
+        let (
+            mut storage,
+            mut bulletin_board,
+            election_hash,
+            dbb_signing_key,
+            _dbb_verifying_key,
+            election_public_key,
+        ) = create_test_setup();
+
+        let (voter_signing_key, voter_verifying_key) = generate_signature_keypair();
+        create_authorized_voter(
+            &mut storage,
+            "voter123",
+            voter_verifying_key,
+            1,
+            election_hash,
+        );
+
+        let ballot = Ballot::test_ballot(12345);
+        let (ballot_cryptogram, _) = encrypt_ballot(
+            ballot,
+            &election_public_key,
+            &election_hash,
+            &"voter123".to_string(),
+        )
+        .unwrap();
+
+        let ballot_data = SignedBallotMsgData {
+            election_hash,
+            voter_pseudonym: "voter123".to_string(),
+            voter_verifying_key,
+            ballot_style: 1,
+            ballot_cryptogram,
+        };
+        let serialized = ballot_data.ser();
+        let signature = crate::cryptography::sign_data(&serialized, &voter_signing_key);
+        let signed_ballot = SignedBallotMsg {
+            data: ballot_data,
+            signature,
+        };
+
+        // First submission succeeds.
+        let mut actor = SubmissionActor::new(
+            election_hash,
+            dbb_signing_key.clone(),
+            election_public_key.clone(),
+        );
+        let result = actor.process_input(
+            SubmissionInput::NetworkMessage(ProtocolMsg::SubmitSignedBallot(signed_ballot.clone())),
+            &mut storage,
+            &mut bulletin_board,
+        );
+        assert!(result.is_ok());
+        match result.unwrap() {
+            SubmissionOutput::SendMessage(ProtocolMsg::ReturnBallotTracker(msg)) => {
+                assert!(
+                    msg.data.submission_result.0,
+                    "first submission should succeed"
+                );
+            }
+            _ => panic!("Expected TrackerMsg"),
+        }
+
+        // Second submission with the same ciphertext is rejected (check #9).
+        let mut actor2 = SubmissionActor::new(election_hash, dbb_signing_key, election_public_key);
+        let result2 = actor2.process_input(
+            SubmissionInput::NetworkMessage(ProtocolMsg::SubmitSignedBallot(signed_ballot)),
+            &mut storage,
+            &mut bulletin_board,
+        );
+        assert!(result2.is_ok());
+        match result2.unwrap() {
+            SubmissionOutput::SendMessage(ProtocolMsg::ReturnBallotTracker(msg)) => {
+                assert!(!msg.data.submission_result.0);
+                assert!(msg.data.submission_result.1.contains("ciphertext"));
             }
             _ => panic!("Expected TrackerMsg"),
         }

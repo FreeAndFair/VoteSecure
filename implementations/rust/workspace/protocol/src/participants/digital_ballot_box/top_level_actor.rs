@@ -252,7 +252,11 @@ pub struct DigitalBallotBoxActor<S: DBBStorage, B: BulletinBoard> {
 }
 
 impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
-    /// Create a new Digital Ballot Box actor.
+    /// Create a new Digital Ballot Box actor. Note that the bulletin board is
+    /// the canonical source of truth for the election; if this actor is
+    /// being created for an existing election (e.g. on failure recovery),
+    /// the caller is responsible for ensuring consistency between the bulletin
+    /// board, the provided storage, and the other initialization parameters.
     ///
     /// # Arguments
     /// * `storage` - Storage implementation
