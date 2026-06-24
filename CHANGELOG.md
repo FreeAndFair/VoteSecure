@@ -1,6 +1,15 @@
 # VoteSecure Change Log
 
-This change log lists changes to VoteSecure with each released version. It is not comprehensive (i.e., it does not include non-material changes like fixes for typographical errors, updates to the continuous integration scripts, etc.).
+This change log lists changes to VoteSecure with each released version. It is not comprehensive (i.e., it does not include non-material changes like fixes for typographical errors, updates to the continuous integration scripts, etc.). Starting with version 1.4, the change log explicitly calls out the impact of each change on integrators.
+
+## [Version 1.4](https://github.com/FreeAndFair/VoteSecure/releases/tag/v1_4) - ?? June 2026
+
+- changed the data structures that represent bulletin board entries ("bulletins") so that custom bulletin types can be added by integrators
+  - *Impact:* Any code that used the v1.0-v1.3 bulletin types must be rewritten to use the new bulletin types.
+- added a check at ballot submit time for a cast ballot with the same voter pseudonym
+  - *Impact:* An attempt to submit a ballot for a voter who has already cast a ballot will fail at the protocol level immediately, rather than needing to be detected/prevented at the application level or causing a failure at attempted cast time.
+- removed Stateright from production builds; it is only used for testing, but was previously linked into all builds
+  - *Impact:* None
 
 ## [Version 1.3](https://github.com/FreeAndFair/VoteSecure/releases/tag/v1_3) - 15 May 2026
 
