@@ -1,7 +1,7 @@
 # .github/workflows/test-validity-of-refinements-paper.yml
 # Author: Daniel M. Zimmerman
 # Created: 2025-02-20
-# Modified: 2026-03-31
+# Modified: 2026-06-25
 
 # This workflow tests the validity of the "Refinements Among
 # High Level Models" paper by building it. It also saves the
@@ -11,39 +11,28 @@ name: Test Validity of "Refinements Among High-Level Models" Paper
 
 on:
   # We run this for pushes to `main`, manual workflow dispatch, and
-  # on PRs. We also run it twice a week on `main` so that the
-  # TeXLive cache doesn't disappear after GitHub's 7 day cache timeout.
-  # There's only one shared TeXLive cache, so we only need to do this
-  # automatic run on one action that uses setup-texlive-action.
+  # on PRs.
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
     paths:
       - 'docs/papers/refinements_among_high_level_models/**'
+      - '.github/workflows/test-validity-of-refinements-paper.yml'
 
   workflow_dispatch:
-
-  schedule:
-    - cron: '31 7 * * 1' # every week on Monday
-    - cron: '31 7 * * 5' # every week on Friday
 
 jobs:
   refinements-paper:
     name: Run Latexmk on Paper
     runs-on: ubuntu-latest
     steps:
-      - name: Install/Restore TeXLive Environment
-        uses: FreeAndFair/setup-texlive-action@v3
-        with:
-          packages: |
-            scheme-full
-
       - name: Checkout Repository
         uses: actions/checkout@v6
 
       - name: Run Latexmk in Paper Directory
-        run: |
-          cd docs/papers/refinements_among_high_level_models
-          latexmk --pdf refinements_paper.tex
+        uses: FreeAndFair/latex-action@v4
+        with:
+          working_directory: docs/papers/refinements_among_high_level_models
+          root_file: refinements_paper.tex
 
       - name: Save the Generated PDF
         uses: actions/upload-artifact@v7

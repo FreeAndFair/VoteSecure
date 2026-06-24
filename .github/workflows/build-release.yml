@@ -1,7 +1,7 @@
 # .github/workflows/build-release.yml
 # Author: Daniel M. Zimmerman
 # Created: 2025-01-22
-# Modified: 2026-03-31
+# Modified: 2026-06-25
 
 # This workflow creates a "Latest" release with all the release artifacts
 # from this repository
@@ -17,6 +17,7 @@ on:
       - 'models/threat-model/**'
       - 'docs/papers/refinements_among_high_level_models/**'
       - 'docs/faq/**'
+      - '.github/workflows/build-release.yml'
 
   workflow_dispatch:
 
@@ -28,30 +29,37 @@ jobs:
       - name: Install Packages
         run: sudo apt-get install build-essential
 
-      - name: Install/Restore TeXLive Environment
-        uses: FreeAndFair/setup-texlive-action@v3
-        with:
-          packages: |
-            scheme-full
-
       - name: Checkout Repository
         uses: actions/checkout@v6
 
-      - name: Render Threat Model PDF and HTML
+      - name: Render Threat Model HTML
         run: |
           cd models/threat-model
           pip install -r requirements.txt
-          make html pdf
+          make html
+
+      - name: Prepare Threat Model PDF Dependencies
+        run: |
+          cd models/threat-model
+          make latex
+
+      - name: Render Threat Model PDF
+        uses: FreeAndFair/latex-action@v4
+        with:
+          working_directory: models/threat-model
+          root_file: threat-model.tex
 
       - name: Render Refinements Paper
-        run: |
-          cd docs/papers/refinements_among_high_level_models
-          latexmk --pdf refinements_paper.tex
+        uses: FreeAndFair/latex-action@v4
+        with:
+          working_directory: docs/papers/refinements_among_high_level_models
+          root_file: refinements_paper.tex
 
       - name: Render FAQ
-        run: |
-          cd docs/faq
-          latexmk --pdf faq.tex
+        uses: FreeAndFair/latex-action@v4
+        with:
+          working_directory: docs/faq
+          root_file: faq.tex
 
       - name: Release Generated Files
         uses: FreeAndFair/action-gh-create-release@v5.0.1
