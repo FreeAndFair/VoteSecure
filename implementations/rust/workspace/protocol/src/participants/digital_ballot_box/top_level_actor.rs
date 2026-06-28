@@ -5,15 +5,14 @@
 //! Top-level actor for the Digital Ballot Box.
 //!
 //! This actor manages concurrent sessions and routes messages to the appropriate
-//! sub-actors. It also handles EAS authorization messages and maintains persistent
-//! state through the storage and bulletin board traits.
+//! sub-actors. It maintains persistent state entirely through the bulletin
+//! board trait; the DBB holds no other state of its own.
 
 // TODO: consider boxing structs in large enum variants to improve performance
 // currently ignored for code simplicity until performance data is analyzed
 #![allow(clippy::large_enum_variant)]
 
 use super::bulletin_board::BulletinBoard;
-use super::storage::DBBStorage;
 use super::sub_actors::{
     casting::{CastingActor, CastingInput, CastingOutput, CastingState},
     checking::{CheckingActor, CheckingInput, CheckingOutput, CheckingState},
@@ -23,7 +22,7 @@ use super::sub_actors::{
 use crate::bulletins::{BUILTIN_BULLETINS, Bulletin, BulletinContents, BulletinData};
 use crate::cryptography::{ElectionKey, SigningKey, VerifyingKey};
 use crate::elections::{BallotTracker, BulletinTracker, ElectionHash};
-use crate::messages::{AuthVoterMsg, ProtocolMsg};
+use crate::messages::ProtocolMsg;
 use cryptography::utils::serialization::VSerializable;
 
 use std::collections::HashMap;
@@ -52,15 +51,6 @@ pub struct DBBOutgoingMessage {
     pub message: ProtocolMsg,
 }
 
-/// Message from the Election Administration Server.
-///
-/// EAS messages don't need a connection ID because there's only one EAS
-/// and these messages are stored directly without creating a session.
-#[derive(Debug, Clone)]
-pub struct EASMessage {
-    pub message: AuthVoterMsg,
-}
-
 // =============================================================================
 // Commands and I/O Types
 // =============================================================================
@@ -68,12 +58,6 @@ pub struct EASMessage {
 /// Commands that can be sent to the Digital Ballot Box.
 #[derive(Debug, Clone)]
 pub enum Command {
-    /// Process an authorization message from the EAS.
-    ///
-    /// This is stored directly in the voter authorization table
-    /// without creating a session.
-    ProcessEASAuthorization(AuthVoterMsg),
-
     /// Close a specific session by connection ID.
     ///
     /// This is used by the host to clean up sessions that are no
@@ -112,9 +96,6 @@ pub enum ActorInput {
 
     /// An incoming message from a connection.
     IncomingMessage(DBBIncomingMessage),
-
-    /// A message from the Election Administration Server.
-    EASMessage(EASMessage),
 }
 
 /// Output from the Digital Ballot Box actor.
@@ -215,22 +196,18 @@ impl ActiveSession {
 /// The top-level Digital Ballot Box actor.
 ///
 /// This actor manages concurrent sessions using a HashMap and routes messages
-/// to the appropriate sub-actors. It also maintains persistent state through
-/// the storage and bulletin board traits.
+/// to the appropriate sub-actors. It maintains persistent state entirely
+/// through the bulletin board trait; it holds no other state of its own.
 ///
 /// # Generic Parameters
-/// * `S` - Storage implementation (must implement DBBStorage trait)
 /// * `B` - Bulletin board implementation (must implement BulletinBoard trait)
 #[derive(Clone, Debug)]
-pub struct DigitalBallotBoxActor<S: DBBStorage, B: BulletinBoard> {
+pub struct DigitalBallotBoxActor<B: BulletinBoard> {
     // --- Session Management ---
     /// Maps connection IDs to active sessions.
     active_sessions: HashMap<u64, ActiveSession>,
 
     // --- Persistent State ---
-    /// Storage for voter authorizations, submitted ballots, and cast ballots.
-    storage: S,
-
     /// The public bulletin board containing the tamper-evident chain.
     bulletin_board: B,
 
@@ -251,15 +228,14 @@ pub struct DigitalBallotBoxActor<S: DBBStorage, B: BulletinBoard> {
     election_public_key: ElectionKey,
 }
 
-impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
+impl<B: BulletinBoard> DigitalBallotBoxActor<B> {
     /// Create a new Digital Ballot Box actor. Note that the bulletin board is
     /// the canonical source of truth for the election; if this actor is
     /// being created for an existing election (e.g. on failure recovery),
-    /// the caller is responsible for ensuring consistency between the bulletin
-    /// board, the provided storage, and the other initialization parameters.
+    /// the caller is responsible for ensuring consistency between the
+    /// provided bulletin board and the other initialization parameters.
     ///
     /// # Arguments
-    /// * `storage` - Storage implementation
     /// * `bulletin_board` - Bulletin board implementation
     /// * `election_hash` - The election hash
     /// * `dbb_signing_key` - The DBB's signing key
@@ -270,7 +246,6 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
     /// # Returns
     /// A new `DigitalBallotBoxActor` with no active sessions.
     pub fn new(
-        storage: S,
         bulletin_board: B,
         election_hash: ElectionHash,
         dbb_signing_key: SigningKey,
@@ -280,7 +255,6 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
     ) -> Self {
         Self {
             active_sessions: HashMap::new(),
-            storage,
             bulletin_board,
             election_hash,
             dbb_signing_key,
@@ -304,7 +278,6 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
         match input {
             ActorInput::Command(command) => self.handle_command(command),
             ActorInput::IncomingMessage(msg) => self.handle_incoming_message(msg),
-            ActorInput::EASMessage(msg) => self.handle_eas_message(msg),
         }
     }
 
@@ -313,11 +286,6 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
     /// Handle a command from the host application.
     fn handle_command(&mut self, command: Command) -> Result<ActorOutput, String> {
         match command {
-            Command::ProcessEASAuthorization(_auth_msg) => {
-                // This is handled via EASMessage input, not as a command
-                Err("Use EASMessage input for authorization messages".to_string())
-            }
-
             Command::CloseSession(connection_id) => {
                 self.active_sessions.remove(&connection_id);
                 Ok(ActorOutput::SessionClosed(connection_id))
@@ -339,7 +307,6 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
                 if let Some(ActiveSession::Checking(actor)) = &mut session {
                     let output = actor.process_input(
                         CheckingInput::VAConnectionProvided(va_connection_id),
-                        &self.storage,
                         &self.bulletin_board,
                     )?;
                     let result = self.handle_checking_output(checking_session_id, output);
@@ -412,31 +379,6 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
         }
     }
 
-    /// Handle an EAS authorization message.
-    fn handle_eas_message(&mut self, msg: EASMessage) -> Result<ActorOutput, String> {
-        // Validate the authorization message signature
-        let serialized = msg.message.data.ser();
-        crate::cryptography::verify_signature(
-            &serialized,
-            &msg.message.signature,
-            &self.eas_verifying_key,
-        )
-        .map_err(|_| "Invalid EAS signature on authorization message".to_string())?;
-
-        // Validate the election hash
-        if msg.message.data.election_hash != self.election_hash {
-            return Err("Authorization message has incorrect election hash".to_string());
-        }
-
-        // Store the authorization directly (no session needed)
-        let voter_pseudonym = msg.message.data.voter_pseudonym.clone();
-        self.storage
-            .store_voter_authorization(&voter_pseudonym, msg.message)?;
-
-        // No output - this is a fire-and-forget operation
-        Ok(ActorOutput::SessionClosed(0)) // Use 0 as a sentinel for "no connection"
-    }
-
     /// Handle an incoming message from a connection.
     fn handle_incoming_message(&mut self, msg: DBBIncomingMessage) -> Result<ActorOutput, String> {
         // Check if there's an existing session for this connection
@@ -471,7 +413,6 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
                         connection_id,
                         message,
                     },
-                    &self.storage,
                     &self.bulletin_board,
                 )?;
                 self.handle_checking_output(connection_id, output)
@@ -503,12 +444,12 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
                 let mut actor = SubmissionActor::new(
                     self.election_hash,
                     self.dbb_signing_key.clone(),
+                    self.eas_verifying_key,
                     self.election_public_key.clone(),
                 );
 
                 let output = actor.process_input(
                     SubmissionInput::NetworkMessage(message),
-                    &mut self.storage,
                     &mut self.bulletin_board,
                 )?;
 
@@ -518,11 +459,14 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
             ProtocolMsg::CastReq(_) => {
                 // One-shot operation: create actor, process, return result
                 // No session storage needed
-                let mut actor = CastingActor::new(self.election_hash, self.dbb_signing_key.clone());
+                let mut actor = CastingActor::new(
+                    self.election_hash,
+                    self.dbb_signing_key.clone(),
+                    self.eas_verifying_key,
+                );
 
                 let output = actor.process_input(
                     CastingInput::NetworkMessage(message),
-                    &mut self.storage,
                     &mut self.bulletin_board,
                 )?;
 
@@ -542,7 +486,6 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
                         connection_id,
                         message,
                     },
-                    &self.storage,
                     &self.bulletin_board,
                 )?;
                 let result = self.handle_checking_output(connection_id, output)?;
@@ -655,13 +598,6 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
     pub(crate) fn bulletin_board(&self) -> &B {
         &self.bulletin_board
     }
-
-    /// Returns a reference to the storage for testing purposes,
-    /// to allow tests to verify predicates about stored data.
-    #[cfg(test)]
-    pub(crate) fn storage(&self) -> &S {
-        &self.storage
-    }
 }
 
 #[cfg(test)]
@@ -673,10 +609,9 @@ mod tests {
     use crate::bulletins::BALLOT_SUBMISSION_BULLETIN;
     use crate::cryptography::generate_signature_keypair;
     use crate::elections::string_to_election_hash;
-    use crate::participants::digital_ballot_box::{InMemoryBulletinBoard, InMemoryStorage};
+    use crate::participants::digital_ballot_box::InMemoryBulletinBoard;
 
-    fn create_test_dbb() -> DigitalBallotBoxActor<InMemoryStorage, InMemoryBulletinBoard> {
-        let storage = InMemoryStorage::new();
+    fn create_test_dbb() -> DigitalBallotBoxActor<InMemoryBulletinBoard> {
         let bulletin_board = InMemoryBulletinBoard::new();
         let (dbb_signing_key, dbb_verifying_key) = generate_signature_keypair();
         let (_, eas_verifying_key) = generate_signature_keypair();
@@ -684,7 +619,6 @@ mod tests {
             crate::cryptography::generate_encryption_keypair(b"test_context").unwrap();
 
         DigitalBallotBoxActor::new(
-            storage,
             bulletin_board,
             string_to_election_hash("test_election"),
             dbb_signing_key,

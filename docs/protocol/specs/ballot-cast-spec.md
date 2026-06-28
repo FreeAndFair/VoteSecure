@@ -20,8 +20,7 @@ purpose
 ```rust
 struct CastReqMsgData {
   election_hash : ElectionHash,
-  voter_pseudonym : VoterPseudonym,
-  voter_verifying_key : VerifyingKey,
+  voter_authorization : VoterAuthorization,
   ballot_tracker : BallotTracker,
 }
 
@@ -31,52 +30,25 @@ struct CastReqMsg {
 }
 ```
 
-- `election_hash`: The hash of the unique election configuration item.
-- `voter_pseudonym`: The unique identifier for the voter.
-- `voter_verifying_key`: The verifying key associated with this voting session.
+- `voter_authorization`: An authorization token, signed by the EAS, containing the hash of the unique election configuration item, the voter's pseudonym (the unique identifier for the voter for the current election), the ballot style they are authorized to vote, and the verifying key associated with this voting session. See the voter authentication specification for more details about this data structure.
 - `ballot_tracker`: The unique identifier of the ballot cryptogram to be cast.
 - `data`: The data being signed (contains the election hash, voter pseudonym, voter verifying key, and ballot tracker).
 - `signature`: A digital signature created over the serialized contents of the `data` field by the voting application's signing key.
 
 ### Cast Request Checks
 
-1. The `election_hash` is the hash of the election configuration item for the current election.
-2. The `voter_pseudonym` and `voter_verifying_key` match a current (i.e., the most recent for that `voter_pseudonym`) `AuthVoterMsg` from the EAS.
-3. The `ballot_tracker` matches a previously published `BallotSubBulletin` entry on the public bulletin board and the `election_hash`, `voter_pseudonym`, and `voter_verifying_key` from this message match the corresponding elements of the `BallotSubBulletin` entry.
-4. There are no previously published `BallotCastBulletin` entries on the public bulletin board with the same `voter_pseudonym`.
-5. The `BallotSubBulletin` corresponding to the `ballot_tracker` is the most recent such entry on the bulletin board with this `voter_pseudonym`.
-6. The `signature` is a valid signature over the serialized contents of the `data` field signed by the signing key corresponding to `voter_verifying_key`.
-
-### Voter Authorization Bulletin
-
-Once the *Cast Request Checks* have been completed successfully, the digital ballot box appends this entry to the public bulletin board. This entry serves to permanently record the authorization of a signing key and voter pseudonym provided by the election administration server using a tamper evident data structure. For clarification, this is the same voter authorization message previously received from the election administration server, which was used both when validating ballot submissions and when validating the cast request. The voter authorization was not published to the bulletin board until now, after all casting checks have been completed and directly prior to a ballot casting, so as to support multiple authorizations yet ensure only one key is ever authorized when casting a ballot to aid in universal verifiability.
-
-***structure***
-
-```rust
-struct VoterAuthBulletinData {
-  election_hash : ElectionHash,
-  timestamp : u64,
-  authorization : AuthVoterMsg,
-  previous_bb_msg_hash : String,
-}
-
-struct VoterAuthBulletin {
-  data : VoterAuthBulletinData,
-  signature : String,
-}
-```
-
-- `election_hash`: The hash of the unique election configuration item.
-- `timestamp`: The timestamp of when the DBB processed the submission (Unix timestamp in seconds since epoch).
-- `authorization`: The signed voter authorization message from the EAS.
-- `previous_bb_msg_hash`: The hash of the last message posted to the bulletin board.
-- `data`: The data being signed (contains the election hash, timestamp, authorization, and previous bulletin board message hash).
-- `signature`: A digital signature created over the serialized contents of the `data` field by the digital ballot box signing key.
+1. The `voter_authorization` is valid.
+    1. Its signature verifies with the known EAS signature verification key for the current election.
+    2. Its election hash is the hash of the election configuration item for the current election.
+    3. Its timestamp is in the past.
+2. The `signature` is a valid signature over the serialized contents of the `data` field (it verifies with the verifying key within the `voter_authorization`).
+3. The `ballot_tracker` matches a previously published `BallotSubBulletin` entry on the public bulletin board and the `voter_authorization` in this message is identical to the `voter_authorization` in that `BallotSubBulletin` entry.
+4. No cast ballot appears on the bulletin board with the voter pseudonym in the `voter_authorization`.
+5. The `BallotSubBulletin` corresponding to the `ballot_tracker` is the most recent submitted ballot on the bulletin board with the voter pseudonym in the `voter_authorization`.
 
 ### Ballot Cast Bulletin
 
-Once the *Voter Authorization Bulletin* has been posted, the casting of the selected ballot can proceed. The digital ballot box appends this entry to the public bulletin board. This entry officially casts the ballot on behalf of the voter for this election. this process can only occur once per voter and is unable to be canceled once completed. The casting bulletin serves to permanently record the voter's ballot choices as cast using a tamper evident data structure.
+Once the *Cast Request Checks* have been completed successfully, the casting of the selected ballot can proceed. The digital ballot box appends this entry to the public bulletin board. This entry officially casts the ballot on behalf of the voter for this election. This process can only occur once per voter and cannot be canceled once completed. The casting bulletin serves to permanently record the voter's ballot choices as cast, and the voter's authorization to cast the ballot (included in both the `SignedBallotMsg` and the `CastReqMsg`), using a tamper evident data structure.
 
 ***structure***
 
@@ -116,7 +88,7 @@ recipient
 : Voting Application (VA)
 
 purpose
-: Confirm to the voting application that the ballot has been successfully cast and provide the voting application with a locater for the public bulletin board message where the casting message was written.
+: Confirm to the voting application that the ballot has been successfully cast and provide the voting application with a locator for the public bulletin board message where the casting message was written.
 
 ***structure***
 

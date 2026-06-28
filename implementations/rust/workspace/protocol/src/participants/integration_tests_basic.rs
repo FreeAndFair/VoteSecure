@@ -16,16 +16,15 @@ mod tests {
     use crate::bulletins::BallotSubContents;
     use crate::cryptography::{Context, CryptographyContext, ElectionKey, SigningKey};
     use crate::elections::{
-        Ballot, BallotStyle, BallotTracker, CastOrNot, ElectionHash, VoterPseudonym,
-        string_to_election_hash,
+        Ballot, BallotStyle, BallotTracker, CastOrNot, ElectionHash, VoterAuthorizationTimestamp,
+        VoterPseudonym, string_to_election_hash,
     };
     use crate::participants::ballot_check_application::top_level_actor::{
         ActorInput as BCAInput, BallotCheckApplicationActor as BCAActor,
     };
     use crate::participants::digital_ballot_box::{
         ActorInput as DBBInput, ActorOutput as DBBOutput, BulletinBoard, Command as DBBCommand,
-        DBBIncomingMessage, DigitalBallotBoxActor, EASMessage, InMemoryBulletinBoard,
-        InMemoryStorage,
+        DBBIncomingMessage, DigitalBallotBoxActor, InMemoryBulletinBoard,
     };
     use crate::participants::election_admin_server::sub_actors::voter_authentication::{
         VoterAuthenticationInput, VoterAuthenticationOutput,
@@ -186,12 +185,13 @@ mod tests {
             std::time::Duration::from_secs(60), // 60 second timeout
             "test_project_id".to_string(),
             "test_api_key".to_string(),
+            // Backdated so the DBB's "timestamp is in the past" check
+            // doesn't race against how quickly the test delivers messages.
+            VoterAuthorizationTimestamp::Fixed(0),
         );
 
-        // Create real DBB with in-memory storage and bulletin board
-        let storage = InMemoryStorage::new();
+        // Create real DBB with an in-memory bulletin board
         let mut dbb = DigitalBallotBoxActor::new(
-            storage,
             InMemoryBulletinBoard::new(),
             election_hash,
             dbb_signing_key.clone(),
@@ -287,24 +287,23 @@ mod tests {
                                     assert!(token_result.is_ok(), "EAS should handle token");
 
                                     if let Ok(EASSubprotocolOutput::VoterAuthentication(
-                                        VoterAuthenticationOutput::NetworkMessage(messages),
+                                        VoterAuthenticationOutput::NetworkMessage(message),
                                         _,
                                     )) = token_result
                                     {
-                                        // EAS should send HandToken to VA
-                                        assert_eq!(messages.len(), 1, "Expected 1 message");
-                                        if let crate::messages::ProtocolMsg::HandToken(
+                                        // EAS should send AuthServiceToken to VA
+                                        if let crate::messages::ProtocolMsg::AuthServiceToken(
                                             hand_token_msg,
-                                        ) = &messages[0]
+                                        ) = &message
                                         {
-                                            println!("EAS -> VA: HandToken");
+                                            println!("EAS -> VA: AuthServiceToken");
 
                                             // VA receives token
                                             let token_result = va.process_input(
                                                 VAInput::SubprotocolInput(
                                                     VASubprotocolInput::Authentication(
                                                         crate::participants::voting_application::sub_actors::authentication::AuthenticationInput::NetworkMessage(
-                                                            crate::messages::ProtocolMsg::HandToken(hand_token_msg.clone())
+                                                            crate::messages::ProtocolMsg::AuthServiceToken(hand_token_msg.clone())
                                                         )
                                                     )
                                                 )
@@ -422,46 +421,17 @@ mod tests {
 
                                                         if let Ok(EASSubprotocolOutput::VoterAuthentication(
                                                             VoterAuthenticationOutput::NetworkMessage(
-                                                                messages,
+                                                                message,
                                                             ),
                                                             _,
                                                         )) = bio_ok_result
                                                         {
-                                                            // EAS should send both AuthVoter (to DBB) and ConfirmAuthorization (to VA)
-                                                            assert_eq!(
-                                                                messages.len(),
-                                                                2,
-                                                                "Expected 2 messages"
-                                                            );
-
-                                                            // Find AuthVoter and ConfirmAuthorization messages
-                                                            let mut auth_voter_msg = None;
-                                                            let mut confirm_auth_msg = None;
-
-                                                            for msg in &messages {
-                                                                match msg {
-                                                                    crate::messages::ProtocolMsg::AuthVoter(m) => {
-                                                                        auth_voter_msg = Some(m.clone());
-                                                                    }
-                                                                    crate::messages::ProtocolMsg::ConfirmAuthorization(m) => {
-                                                                        confirm_auth_msg = Some(m.clone());
-                                                                    }
-                                                                    _ => {}
-                                                                }
-                                                            }
-
-                                                            let auth_voter_msg = auth_voter_msg
-                                                                .expect("Should have AuthVoter message");
-                                                            let _confirm_auth_msg = confirm_auth_msg
-                                                                .expect("Should have ConfirmAuthorization message");
-
-                                                            println!("EAS -> DBB: AuthVoter");
-
-                                                            // DBB records authorization
-                                                            dbb.process_input(DBBInput::EASMessage(EASMessage {
-                                                                message: auth_voter_msg.clone(),
-                                                            }))
-                                                                .expect("DBB should record authorization");
+                                                            // EAS should send ConfirmAuthorization to VA
+                                                            // (the voter_authorization is embedded in it).
+                                                            let confirm_auth_msg = match message {
+                                                                crate::messages::ProtocolMsg::ConfirmAuthorization(m) => m,
+                                                                other => panic!("Expected ConfirmAuthorization message, got: {:?}", other),
+                                                            };
 
                                                             println!("EAS -> VA: ConfirmAuthorization");
 
@@ -470,7 +440,7 @@ mod tests {
                                                                 VAInput::SubprotocolInput(
                                                                     VASubprotocolInput::Authentication(
                                                                         crate::participants::voting_application::sub_actors::authentication::AuthenticationInput::NetworkMessage(
-                                                                            crate::messages::ProtocolMsg::ConfirmAuthorization(_confirm_auth_msg)
+                                                                            crate::messages::ProtocolMsg::ConfirmAuthorization(confirm_auth_msg)
                                                                         )
                                                                     )
                                                                 )

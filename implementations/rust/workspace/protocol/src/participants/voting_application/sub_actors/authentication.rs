@@ -9,9 +9,9 @@
 #![allow(clippy::large_enum_variant)]
 
 use crate::cryptography::{Signature, SigningKey, VerifyingKey};
-use crate::elections::{BallotStyle, ElectionHash, VoterPseudonym};
+use crate::elections::{ElectionHash, VoterAuthorization, VoterPseudonym};
 use crate::messages::{
-    AuthFinishMsg, AuthFinishMsgData, AuthReqMsg, ConfirmAuthorizationMsg, HandTokenMsg,
+    AuthFinishMsg, AuthFinishMsgData, AuthReqMsg, AuthServiceTokenMsg, ConfirmAuthorizationMsg,
     ProtocolMsg,
 };
 use cryptography::utils::serialization::VSerializable;
@@ -50,12 +50,12 @@ pub enum AuthenticationOutput {
 pub struct VoterAuthenticationResult {
     /// The authentication result.
     pub result: (bool, String),
-    /// The voter pseudonym (if authentication was successful).
-    pub voter_pseudonym: Option<VoterPseudonym>,
+    /// The voter authorization token issued by the EAS (if authentication
+    /// was successful), to be carried in later ballot submission and
+    /// ballot cast messages.
+    pub voter_authorization: Option<VoterAuthorization>,
     /// The session-specific public key generated during this protocol.
     pub session_public_key: VerifyingKey,
-    /// The ballot style for this voter from the AuthVoterMsg.
-    pub ballot_style: Option<BallotStyle>,
 }
 
 // --- II. Actor Implementation ---
@@ -141,7 +141,7 @@ impl AuthenticationActor {
 
             (
                 SubState::AwaitingToken,
-                AuthenticationInput::NetworkMessage(ProtocolMsg::HandToken(token_msg)),
+                AuthenticationInput::NetworkMessage(ProtocolMsg::AuthServiceToken(token_msg)),
             ) => {
                 // Perform "Voter Token Return Checks" from the spec
                 if let Err(reason) = self.perform_voter_token_return_checks(&token_msg) {
@@ -186,9 +186,8 @@ impl AuthenticationActor {
 
                 AuthenticationOutput::Success(VoterAuthenticationResult {
                     result: auth_msg.data.authentication_result,
-                    voter_pseudonym: auth_msg.data.voter_pseudonym,
+                    voter_authorization: auth_msg.data.voter_authorization,
                     session_public_key: self.session_verifying_key,
-                    ballot_style: auth_msg.data.ballot_style,
                 })
             }
 
@@ -199,7 +198,10 @@ impl AuthenticationActor {
     // --- Voter Token Return Checks (Phase 1 Response) ---
 
     /// Performs all "Voter Token Return Checks" from the specification.
-    fn perform_voter_token_return_checks(&self, token_msg: &HandTokenMsg) -> Result<(), String> {
+    fn perform_voter_token_return_checks(
+        &self,
+        token_msg: &AuthServiceTokenMsg,
+    ) -> Result<(), String> {
         self.check_token_election_hash(&token_msg.data.election_hash)?;
         self.check_token_voter_verifying_key(&token_msg.data.voter_verifying_key)?;
         self.check_token_signature(&token_msg.data, &token_msg.signature)?;
@@ -211,7 +213,7 @@ impl AuthenticationActor {
     /// Check #1: The election_hash is the hash for the current election.
     fn check_token_election_hash(&self, election_hash: &ElectionHash) -> Result<(), String> {
         if election_hash != &self.election_hash {
-            return Err("HandTokenMsg has incorrect election hash".to_string());
+            return Err("AuthServiceTokenMsg has incorrect election hash".to_string());
         }
         Ok(())
     }
@@ -222,7 +224,7 @@ impl AuthenticationActor {
         voter_verifying_key: &VerifyingKey,
     ) -> Result<(), String> {
         if *voter_verifying_key != self.session_verifying_key {
-            return Err("HandTokenMsg has incorrect voter_verifying_key".to_string());
+            return Err("AuthServiceTokenMsg has incorrect voter_verifying_key".to_string());
         }
         Ok(())
     }
@@ -230,7 +232,7 @@ impl AuthenticationActor {
     /// Check #3: The signature is a valid signature from the EAS.
     fn check_token_signature(
         &self,
-        data: &crate::messages::HandTokenMsgData,
+        data: &crate::messages::AuthServiceTokenMsgData,
         signature: &Signature,
     ) -> Result<(), String> {
         // Serialize the data for signature verification using VSerializable
@@ -243,7 +245,7 @@ impl AuthenticationActor {
     /// Additional check: The token should be non-empty and properly formatted.
     fn check_token_validity(&self, token: &str) -> Result<(), String> {
         if token.is_empty() {
-            return Err("HandTokenMsg token cannot be empty".to_string());
+            return Err("AuthServiceTokenMsg token cannot be empty".to_string());
         }
         // TODO: Additional token format validation if needed
         Ok(())
@@ -261,31 +263,23 @@ impl AuthenticationActor {
         self.check_auth_voter_signature(&auth_msg.data, &auth_msg.signature)?;
         match auth_msg.data.authentication_result {
             (true, _) => {
-                self.check_auth_voter_pseudonym(
-                    auth_msg
-                        .data
-                        .voter_pseudonym
-                        .as_ref()
-                        .expect("pseudonym must exist in successful authorization"),
-                )?;
-                self.check_auth_voter_ballot_style(
-                    auth_msg
-                        .data
-                        .ballot_style
-                        .as_ref()
-                        .expect("ballot style must exist in successful authorization"),
-                )?;
+                let voter_authorization = auth_msg
+                    .data
+                    .voter_authorization
+                    .as_ref()
+                    .expect("voter authorization must exist in successful authorization");
+                // validate() covers the voter_authorization's election_hash,
+                // timestamp, and signature checks.
+                voter_authorization.validate(&self.eas_verifying_key, &self.election_hash)?;
+                self.check_auth_voter_pseudonym(&voter_authorization.data.voter_pseudonym)?;
+                self.check_auth_voter_verifying_key(&voter_authorization.data.voter_verifying_key)?;
             }
 
             (false, _) => {
-                if auth_msg.data.voter_pseudonym.is_some() {
+                if auth_msg.data.voter_authorization.is_some() {
                     return Err(
-                        "pseudonym must not exist in unsuccessful authorization".to_string()
-                    );
-                };
-                if auth_msg.data.ballot_style.is_some() {
-                    return Err(
-                        "ballot style must not exist in unsuccessful authorization".to_string()
+                        "voter authorization must not exist in unsuccessful authorization"
+                            .to_string(),
                     );
                 };
             }
@@ -297,7 +291,7 @@ impl AuthenticationActor {
     /// Check #1: The election_hash is the hash for the current election.
     fn check_auth_voter_election_hash(&self, election_hash: &ElectionHash) -> Result<(), String> {
         if election_hash != &self.election_hash {
-            return Err("AuthVoterMsg has incorrect election hash".to_string());
+            return Err("ConfirmAuthorizationMsg has incorrect election hash".to_string());
         }
         Ok(())
     }
@@ -308,7 +302,7 @@ impl AuthenticationActor {
         voter_verifying_key: &VerifyingKey,
     ) -> Result<(), String> {
         if *voter_verifying_key != self.session_verifying_key {
-            return Err("AuthVoterMsg has incorrect voter_verifying_key".to_string());
+            return Err("ConfirmAuthorizationMsg has incorrect voter_verifying_key".to_string());
         }
         Ok(())
     }
@@ -329,20 +323,10 @@ impl AuthenticationActor {
     /// Additional check: Voter pseudonym should be valid.
     fn check_auth_voter_pseudonym(&self, voter_pseudonym: &VoterPseudonym) -> Result<(), String> {
         if voter_pseudonym.is_empty() {
-            return Err("AuthVoterMsg voter_pseudonym cannot be empty".to_string());
+            return Err("voter authorization pseudonym cannot be empty".to_string());
         }
         // TODO: Additional validation of pseudonym format if required
         Ok(())
-    }
-
-    /// Additional check: Ballot style should be valid.
-    fn check_auth_voter_ballot_style(&self, ballot_style: &BallotStyle) -> Result<(), String> {
-        // BallotStyle is a u8, so validate it's greater than 0
-        if *ballot_style > 0 {
-            Ok(())
-        } else {
-            Err("AuthVoterMsg ballot_style must be greater than 0".to_string())
-        }
     }
 }
 
@@ -368,8 +352,8 @@ mod tests {
             "AuthReqMsgData serialization should not be empty"
         );
 
-        // Test HandTokenMsgData serialization
-        let hand_token_data = crate::messages::HandTokenMsgData {
+        // Test AuthServiceTokenMsgData serialization
+        let hand_token_data = crate::messages::AuthServiceTokenMsgData {
             election_hash: crate::elections::string_to_election_hash(&election_hash),
             token: "test_token_12345".to_string(),
             voter_verifying_key: verifying_key,
@@ -377,7 +361,7 @@ mod tests {
         let serialized_hand_token = hand_token_data.ser();
         assert!(
             !serialized_hand_token.is_empty(),
-            "HandTokenMsgData serialization should not be empty"
+            "AuthServiceTokenMsgData serialization should not be empty"
         );
 
         // Test AuthFinishMsgData serialization
@@ -392,19 +376,19 @@ mod tests {
             "AuthFinishMsgData serialization should not be empty"
         );
 
-        // Test AuthVoterMsgData serialization
-        let auth_voter_data = crate::messages::AuthVoterMsgData {
+        // Test VoterAuthorizationData serialization
+        let voter_authorization_data = crate::elections::VoterAuthorizationData {
             election_hash: crate::elections::string_to_election_hash(&election_hash),
+            timestamp: 0,
             voter_pseudonym: "voter_123".to_string(),
-            voter_verifying_key: verifying_key,
             ballot_style: 1,
+            voter_verifying_key: verifying_key,
         };
-        let serialized_auth_voter = auth_voter_data.ser();
+        let serialized_voter_authorization = voter_authorization_data.ser();
         assert!(
-            !serialized_auth_voter.is_empty(),
-            "AuthVoterMsgData serialization should not be empty"
+            !serialized_voter_authorization.is_empty(),
+            "VoterAuthorizationData serialization should not be empty"
         );
-        assert!(!serialized_auth_voter.is_empty());
     }
 
     #[test]

@@ -20,7 +20,7 @@ use super::sub_actors::{
     submission::{SubmissionActor, SubmissionInput, SubmissionOutput},
 };
 use crate::cryptography::{ElectionKey, RandomizersStruct, SigningKey, VerifyingKey};
-use crate::elections::{Ballot, BallotStyle, BallotTracker, ElectionHash, VoterPseudonym};
+use crate::elections::{Ballot, BallotTracker, ElectionHash, VoterAuthorization};
 
 // =============================================================================
 // Commands and I/O Types
@@ -164,11 +164,9 @@ pub struct VotingApplicationActor {
     /// The voter's ephemeral session verifying key, set after successful authentication.
     voter_session_verifying_key: Option<VerifyingKey>,
 
-    /// The voter's pseudonym, set after successful authentication.
-    voter_pseudonym: Option<VoterPseudonym>,
-
-    /// The voter's ballot style, set after successful authentication.
-    voter_ballot_style: Option<BallotStyle>,
+    /// The voter authorization token issued by the EAS, set after successful
+    /// authentication. Carried in later ballot submission and cast messages.
+    voter_authorization: Option<VoterAuthorization>,
 
     /// The ballot tracker returned by the DBB after successful submission.
     ballot_tracker: Option<BallotTracker>,
@@ -202,8 +200,7 @@ impl VotingApplicationActor {
             election_public_key,
             voter_session_signing_key: None,
             voter_session_verifying_key: None,
-            voter_pseudonym: None,
-            voter_ballot_style: None,
+            voter_authorization: None,
             ballot_tracker: None,
             ballot_randomizers: None,
         }
@@ -247,25 +244,19 @@ impl VotingApplicationActor {
             }
 
             Command::StartSubmission(ballot) => {
-                let (pseudonym, verifying_key, ballot_style) =
-                    match (
-                        &self.voter_pseudonym,
-                        &self.voter_session_verifying_key,
-                        &self.voter_ballot_style,
-                    ) {
-                        (Some(p), Some(vk), Some(bs)) => (p.clone(), *vk, *bs),
-                        _ => return Ok(SubprotocolOutput::Submission(SubmissionOutput::Failure(
-                            "Cannot submit ballot without prior authentication and ballot style"
-                                .to_string(),
-                        ))),
-                    };
+                let voter_authorization = match &self.voter_authorization {
+                    Some(auth) => auth.clone(),
+                    None => {
+                        return Ok(SubprotocolOutput::Submission(SubmissionOutput::Failure(
+                            "Cannot submit ballot without prior authentication".to_string(),
+                        )));
+                    }
+                };
 
                 let mut actor = SubmissionActor::new(
                     self.election_hash,
                     self.dbb_verifying_key,
-                    pseudonym,
-                    verifying_key,
-                    ballot_style,
+                    voter_authorization,
                     self.election_public_key.clone(),
                 );
 
@@ -281,18 +272,15 @@ impl VotingApplicationActor {
             }
 
             Command::StartCasting => {
-                let (pseudonym, signing_key, verifying_key) = match (
-                    &self.voter_pseudonym,
-                    &self.voter_session_signing_key,
-                    &self.voter_session_verifying_key,
-                ) {
-                    (Some(p), Some(sk), Some(vk)) => (p.clone(), sk.clone(), *vk),
-                    _ => {
-                        return Ok(SubprotocolOutput::Casting(CastingOutput::Failure(
-                            "Cannot cast ballot without prior authentication".to_string(),
-                        )));
-                    }
-                };
+                let (voter_authorization, signing_key) =
+                    match (&self.voter_authorization, &self.voter_session_signing_key) {
+                        (Some(auth), Some(sk)) => (auth.clone(), sk.clone()),
+                        _ => {
+                            return Ok(SubprotocolOutput::Casting(CastingOutput::Failure(
+                                "Cannot cast ballot without prior authentication".to_string(),
+                            )));
+                        }
+                    };
 
                 let tracker = match &self.ballot_tracker {
                     Some(t) => t.clone(),
@@ -306,9 +294,8 @@ impl VotingApplicationActor {
                 let mut actor = CastingActor::new(
                     self.election_hash,
                     self.dbb_verifying_key,
-                    pseudonym,
+                    voter_authorization,
                     signing_key,
-                    verifying_key,
                 );
                 let output = actor.process_input(CastingInput::Start(tracker));
                 self.active_subprotocol = ActiveSubprotocol::Casting(actor);
@@ -407,10 +394,9 @@ impl VotingApplicationActor {
     fn handle_state_updates(&mut self, output: &SubprotocolOutput) {
         match output {
             SubprotocolOutput::Authentication(AuthenticationOutput::Success(result)) => {
-                // Whether authentication succeeded or failed, these assignments still work
-                // (because the values are guaranteed by subactor checks to be None if it failed).
-                self.voter_pseudonym = result.voter_pseudonym.clone();
-                self.voter_ballot_style = result.ballot_style;
+                // Whether authentication succeeded or failed, this assignment still works
+                // (because the value is guaranteed by subactor checks to be None if it failed).
+                self.voter_authorization = result.voter_authorization.clone();
                 // Extract keys from the authentication actor if authentication was successful
                 if result.result.0
                     && let ActiveSubprotocol::Authentication(auth_actor) = &self.active_subprotocol
@@ -455,10 +441,10 @@ impl VotingApplicationActor {
 
     // --- Getter Methods (Integration Testing) ---
 
-    /// Returns the voter pseudonym if authentication completed successfully.
+    /// Returns the voter authorization token if authentication completed successfully.
     #[cfg(test)]
-    pub(crate) fn voter_pseudonym(&self) -> Option<&VoterPseudonym> {
-        self.voter_pseudonym.as_ref()
+    pub(crate) fn voter_authorization(&self) -> Option<&VoterAuthorization> {
+        self.voter_authorization.as_ref()
     }
 
     /// Returns the ballot tracker if a ballot was successfully submitted.

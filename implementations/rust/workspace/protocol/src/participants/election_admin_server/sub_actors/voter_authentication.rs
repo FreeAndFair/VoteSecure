@@ -23,14 +23,14 @@ use crate::cryptography::{sign_data, verify_signature};
 use crate::elections::BallotStyle;
 use crate::elections::ElectionHash;
 use crate::elections::VoterPseudonym;
+use crate::elections::{VoterAuthorization, VoterAuthorizationTimestamp};
 
 use crate::messages::ProtocolMsg;
-use crate::messages::ProtocolMsg::{AuthFinish, AuthReq, AuthVoter, ConfirmAuthorization};
+use crate::messages::ProtocolMsg::{AuthFinish, AuthReq, ConfirmAuthorization};
 use crate::messages::{AuthFinishMsg, AuthFinishMsgData};
 use crate::messages::{AuthReqMsg, AuthReqMsgData};
-use crate::messages::{AuthVoterMsg, AuthVoterMsgData};
+use crate::messages::{AuthServiceTokenMsg, AuthServiceTokenMsgData};
 use crate::messages::{ConfirmAuthorizationMsg, ConfirmAuthorizationMsgData};
-use crate::messages::{HandTokenMsg, HandTokenMsgData};
 
 use crate::participants::election_admin_server::top_level_actor::AuthReqId;
 
@@ -69,8 +69,8 @@ pub enum VoterAuthenticationInput {
 /// Outputs from the voter authentication sub-actor.
 #[derive(Debug, Clone)]
 pub enum VoterAuthenticationOutput {
-    /// Protocol messages to be sent over the network.
-    NetworkMessage(Vec<ProtocolMsg>),
+    /// A protocol message to be sent over the network.
+    NetworkMessage(ProtocolMsg),
 
     /// A message to be sent to the Authentication Service (AS).
     AuthServiceMessage(AuthServiceMsg),
@@ -124,6 +124,7 @@ pub struct VoterAuthenticationActor {
     eas_signing_key: SigningKey,
     as_project_id: String,
     as_api_key: String,
+    auth_timestamp: VoterAuthorizationTimestamp,
 
     /// Records the time of the last input received by this sub-actor.
     ///
@@ -149,6 +150,8 @@ impl VoterAuthenticationActor {
     /// * `eas_signing_key` - The EAS's signing key for issuing authorization messages.
     /// * `as_project_id` - The project ID for the authentication service.
     /// * `as_api_key` - The API key for the authentication service.
+    /// * `auth_timestamp` - How to timestamp issued voter
+    ///   authorizations; see [`VoterAuthorizationTimestamp`].
     ///
     /// # Returns
     /// A new `VoterAuthenticationActor` ready to receive the voter's initial auth request.
@@ -157,6 +160,7 @@ impl VoterAuthenticationActor {
         eas_signing_key: SigningKey,
         as_project_id: String,
         as_api_key: String,
+        auth_timestamp: VoterAuthorizationTimestamp,
     ) -> Self {
         Self {
             state: SubState::default(),
@@ -164,6 +168,7 @@ impl VoterAuthenticationActor {
             eas_signing_key,
             as_project_id,
             as_api_key,
+            auth_timestamp,
             time_of_last_input: Instant::now(),
             voter_verifying_key: None,
             auth_record: None,
@@ -226,19 +231,19 @@ impl VoterAuthenticationActor {
                     session_id: msg.session_id.clone(),
                 });
 
-                // Create HandTokenMsg data
-                let hand_token_msg_data = HandTokenMsgData {
+                // Create AuthServiceTokenMsg data
+                let hand_token_msg_data = AuthServiceTokenMsgData {
                     election_hash: self.election_hash,
                     token: msg.token.clone(),
                     voter_verifying_key: self.voter_verifying_key.unwrap(),
                 };
 
-                // Create HandTokenMsg signature
+                // Create AuthServiceTokenMsg signature
                 let hand_token_msg_signature =
                     sign_data(hand_token_msg_data.ser().as_slice(), &self.eas_signing_key);
 
-                // Create HandTokenMsg signed by the EAS
-                let hand_token_msg = HandTokenMsg {
+                // Create AuthServiceTokenMsg signed by the EAS
+                let hand_token_msg = AuthServiceTokenMsg {
                     data: hand_token_msg_data,
                     signature: hand_token_msg_signature,
                 };
@@ -246,9 +251,9 @@ impl VoterAuthenticationActor {
                 self.state = SubState::ReceiveAuthFinishMsg;
 
                 // Return network protocol message to hand token to VA.
-                VoterAuthenticationOutput::NetworkMessage(vec![ProtocolMsg::HandToken(
+                VoterAuthenticationOutput::NetworkMessage(ProtocolMsg::AuthServiceToken(
                     hand_token_msg,
-                )])
+                ))
             }
 
             (
@@ -296,9 +301,8 @@ impl VoterAuthenticationActor {
                     // Create ConfirmAuthorizationMsg data
                     let confirm_auth_msg_data = ConfirmAuthorizationMsgData {
                         election_hash: self.election_hash,
-                        voter_pseudonym: None,
+                        voter_authorization: None,
                         voter_verifying_key,
-                        ballot_style: None,
                         authentication_result: (false, failure_msg),
                     };
 
@@ -319,9 +323,9 @@ impl VoterAuthenticationActor {
                     // Return a single network protocol message to inform
                     // the voter that authentication has failed. No message
                     // is sent to the Digital Ballot Box (DBB) in that case.
-                    VoterAuthenticationOutput::NetworkMessage(vec![ConfirmAuthorization(
+                    VoterAuthenticationOutput::NetworkMessage(ConfirmAuthorization(
                         confirm_auth_msg,
-                    )])
+                    ))
                 } else {
                     self.state = SubState::VerifyBiographicalInfo;
 
@@ -348,30 +352,23 @@ impl VoterAuthenticationActor {
                 // Declare local for voter_verifying_key for convenience
                 let voter_verifying_key = self.auth_record.as_ref().unwrap().voter_verifying_key;
 
-                // Create AuthVoterMsg data
-                let auth_voter_msg_data = AuthVoterMsgData {
-                    election_hash: self.election_hash,
-                    voter_pseudonym: voter_pseudonym.clone(),
-                    voter_verifying_key,
+                // Create the voter authorization token, included in the
+                // ballot submission and ballot cast messages the VA will
+                // later send to the DBB.
+                let voter_authorization = VoterAuthorization::new(
+                    self.election_hash,
+                    voter_pseudonym.clone(),
                     ballot_style,
-                };
-
-                // Create AuthVoterMsg signature
-                let auth_voter_msg_signature =
-                    sign_data(auth_voter_msg_data.ser().as_slice(), &self.eas_signing_key);
-
-                // Create AuthVoterMsg signed by the EAS
-                let auth_voter_msg = AuthVoterMsg {
-                    data: auth_voter_msg_data,
-                    signature: auth_voter_msg_signature,
-                };
+                    voter_verifying_key,
+                    &self.eas_signing_key,
+                    self.auth_timestamp,
+                );
 
                 // Create ConfirmAuthorizationMsg data
                 let confirm_auth_msg_data = ConfirmAuthorizationMsgData {
                     election_hash: self.election_hash,
-                    voter_pseudonym: Some(voter_pseudonym.clone()),
+                    voter_authorization: Some(voter_authorization),
                     voter_verifying_key,
-                    ballot_style: Some(ballot_style),
                     authentication_result: (true, "Authentication Successful".to_string()),
                 };
 
@@ -389,13 +386,10 @@ impl VoterAuthenticationActor {
 
                 self.state = SubState::Completed;
 
-                // Return network protocol messages to confirm voter
-                // authentication with the Digital Ballot Box (DBB)
-                // and Voter Application (VA).
-                VoterAuthenticationOutput::NetworkMessage(vec![
-                    AuthVoter(auth_voter_msg),
-                    ConfirmAuthorization(confirm_auth_msg),
-                ])
+                // Return a network protocol message to confirm voter
+                // authentication with the Voter Application (VA). The EAS no
+                // longer sends a message to the Digital Ballot Box (DBB).
+                VoterAuthenticationOutput::NetworkMessage(ConfirmAuthorization(confirm_auth_msg))
             }
 
             (
@@ -416,9 +410,8 @@ impl VoterAuthenticationActor {
                 // Create ConfirmAuthorizationMsg data
                 let confirm_auth_msg_data = ConfirmAuthorizationMsgData {
                     election_hash: self.election_hash,
-                    voter_pseudonym: None,
+                    voter_authorization: None,
                     voter_verifying_key,
-                    ballot_style: None,
                     authentication_result: (false, failure_msg),
                 };
 
@@ -439,9 +432,7 @@ impl VoterAuthenticationActor {
                 // Return a single network protocol message to inform
                 // the voter that authentication has failed. No message
                 // is sent to the Digital Ballot Box (DBB) in that case.
-                VoterAuthenticationOutput::NetworkMessage(vec![ConfirmAuthorization(
-                    confirm_auth_msg,
-                )])
+                VoterAuthenticationOutput::NetworkMessage(ConfirmAuthorization(confirm_auth_msg))
             }
 
             // Catch-all pattern for all other state/message combinations.

@@ -17,7 +17,7 @@ use super::sub_actors::voter_authentication::VoterAuthenticationInput;
 use super::sub_actors::voter_authentication::VoterAuthenticationOutput;
 
 use crate::cryptography::SigningKey;
-use crate::elections::ElectionHash;
+use crate::elections::{ElectionHash, VoterAuthorizationTimestamp};
 use crate::messages::AuthReqMsg;
 use crate::messages::ProtocolMsg;
 
@@ -134,6 +134,9 @@ pub struct ElectionAdminServerActor {
 
     /// The Authentication Service API key, shared with sub-actors.
     as_api_key: String,
+
+    /// How to timestamp voter authorizations issued by sub-actors.
+    auth_timestamp: VoterAuthorizationTimestamp,
 }
 
 impl ElectionAdminServerActor {
@@ -145,6 +148,8 @@ impl ElectionAdminServerActor {
     /// * `network_timeout` - How long a sub-actor may be idle before expiry
     /// * `as_project_id` - The Authentication Service project ID
     /// * `as_api_key` - The Authentication Service API key
+    /// * `auth_timestamp` - How to timestamp issued voter
+    ///   authorizations; see [`VoterAuthorizationTimestamp`].
     ///
     /// # Returns
     /// A new `ElectionAdminServerActor` with no active authentication sessions.
@@ -154,6 +159,7 @@ impl ElectionAdminServerActor {
         network_timeout: Duration,
         as_project_id: String,
         as_api_key: String,
+        auth_timestamp: VoterAuthorizationTimestamp,
     ) -> Self {
         Self {
             election_hash,
@@ -163,6 +169,7 @@ impl ElectionAdminServerActor {
             network_timeout,
             as_project_id,
             as_api_key,
+            auth_timestamp,
         }
     }
 
@@ -218,6 +225,7 @@ impl ElectionAdminServerActor {
                     self.eas_signing_key.clone(),
                     self.as_project_id.clone(),
                     self.as_api_key.clone(),
+                    self.auth_timestamp,
                 );
 
                 self.requests.insert(fresh_id, sub_actor);

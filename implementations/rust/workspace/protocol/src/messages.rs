@@ -15,7 +15,7 @@ use vser_derive::VSerializable;
 use crate::cryptography::{
     BallotCryptogram, ElectionKey, RandomizersCryptogram, Signature, VerifyingKey,
 };
-use crate::elections::{BallotStyle, BallotTracker, ElectionHash, VoterPseudonym};
+use crate::elections::{BallotTracker, ElectionHash, VoterAuthorization};
 
 // --- Voter Authentication Subprotocol Messages ---
 // Defined in `voter-authentication-spec.md`
@@ -34,9 +34,9 @@ pub struct AuthReqMsg {
     pub signature: Signature,
 }
 
-/// The data part of the `HandTokenMsg`, which is what is signed.
+/// The data part of the `AuthServiceTokenMsg`, which is what is signed.
 #[derive(Debug, Clone, PartialEq, VSerializable)]
-pub struct HandTokenMsgData {
+pub struct AuthServiceTokenMsgData {
     pub election_hash: ElectionHash,
     pub token: String,
     pub voter_verifying_key: VerifyingKey,
@@ -44,8 +44,8 @@ pub struct HandTokenMsgData {
 
 /// Sent from EAS to VA to provide the token for third-party authentication.
 #[derive(Debug, Clone, PartialEq, VSerializable)]
-pub struct HandTokenMsg {
-    pub data: HandTokenMsgData,
+pub struct AuthServiceTokenMsg {
+    pub data: AuthServiceTokenMsgData,
     pub signature: Signature,
 }
 
@@ -64,29 +64,12 @@ pub struct AuthFinishMsg {
     pub signature: Signature,
 }
 
-/// The data part of the `AuthVoterMsg`, which is what is signed.
-#[derive(Debug, Clone, PartialEq, VSerializable)]
-pub struct AuthVoterMsgData {
-    pub election_hash: ElectionHash,
-    pub voter_pseudonym: VoterPseudonym,
-    pub voter_verifying_key: VerifyingKey,
-    pub ballot_style: BallotStyle,
-}
-
-/// Sent from EAS to DBB to authorize a voter to submit and cast ballots.
-#[derive(Debug, Clone, PartialEq, VSerializable)]
-pub struct AuthVoterMsg {
-    pub data: AuthVoterMsgData,
-    pub signature: Signature,
-}
-
 /// The data part of the `ConfirmAuthorizationMsg`, which is what is signed.
 #[derive(Debug, Clone, PartialEq, VSerializable)]
 pub struct ConfirmAuthorizationMsgData {
     pub election_hash: ElectionHash,
-    pub voter_pseudonym: Option<VoterPseudonym>,
+    pub voter_authorization: Option<VoterAuthorization>,
     pub voter_verifying_key: VerifyingKey,
-    pub ballot_style: Option<BallotStyle>,
     pub authentication_result: (bool, String),
 }
 
@@ -103,10 +86,7 @@ pub struct ConfirmAuthorizationMsg {
 /// The data part of the `SignedBallotMsg`, which is what is signed.
 #[derive(Debug, Clone, PartialEq, VSerializable)]
 pub struct SignedBallotMsgData {
-    pub election_hash: ElectionHash,
-    pub voter_pseudonym: VoterPseudonym,
-    pub voter_verifying_key: VerifyingKey,
-    pub ballot_style: BallotStyle,
+    pub voter_authorization: VoterAuthorization,
     pub ballot_cryptogram: BallotCryptogram,
 }
 
@@ -139,8 +119,7 @@ pub struct TrackerMsg {
 #[derive(Debug, Clone, PartialEq, VSerializable)]
 pub struct CastReqMsgData {
     pub election_hash: ElectionHash,
-    pub voter_pseudonym: VoterPseudonym,
-    pub voter_verifying_key: VerifyingKey,
+    pub voter_authorization: VoterAuthorization,
     pub ballot_tracker: BallotTracker,
 }
 
@@ -237,9 +216,8 @@ pub struct FwdRandomizerMsg {
 pub enum ProtocolMsg {
     // Voter Authentication
     AuthReq(AuthReqMsg),
-    HandToken(HandTokenMsg),
+    AuthServiceToken(AuthServiceTokenMsg),
     AuthFinish(AuthFinishMsg),
-    AuthVoter(AuthVoterMsg),
     ConfirmAuthorization(ConfirmAuthorizationMsg),
 
     // Ballot Submission
@@ -264,6 +242,7 @@ mod tests {
     use super::*;
     use crate::cryptography::generate_signature_keypair;
     use crate::cryptography::{encrypt_ballot, generate_encryption_keypair};
+    use crate::elections::VoterAuthorizationData;
     use cryptography::utils::serialization::VSerializable;
 
     #[test]
@@ -302,8 +281,8 @@ mod tests {
         // Test that VSerializable works on multiple different struct types
         let (_, verifying_key) = generate_signature_keypair();
 
-        // Test HandTokenMsgData
-        let hand_token_data = HandTokenMsgData {
+        // Test AuthServiceTokenMsgData
+        let hand_token_data = AuthServiceTokenMsgData {
             election_hash: crate::elections::string_to_election_hash("test_election_2024"),
             token: "authentication_token_123".to_string(),
             voter_verifying_key: verifying_key,
@@ -340,15 +319,31 @@ mod tests {
         let serialized_tracker = tracker_msg.ser();
         assert!(!serialized_tracker.is_empty());
 
-        // Test more complex struct with vectors
-        let signed_ballot_data = SignedBallotMsgData {
+        // Test SignedBallotMsg
+        let (eas_signing_key, _eas_verifying_key) = generate_signature_keypair();
+        let voter_authorization_data = VoterAuthorizationData {
             election_hash: crate::elections::string_to_election_hash("test_election_2024"),
+            timestamp: 0,
             voter_pseudonym: "voter_12345".to_string(),
-            voter_verifying_key: verifying_key,
             ballot_style: 1,
+            voter_verifying_key: verifying_key,
+        };
+        let voter_authorization = VoterAuthorization {
+            signature: crate::cryptography::sign_data(
+                &voter_authorization_data.ser(),
+                &eas_signing_key,
+            ),
+            data: voter_authorization_data,
+        };
+        let signed_ballot_data = SignedBallotMsgData {
+            voter_authorization,
             ballot_cryptogram,
         };
-        let serialized_signed_ballot = signed_ballot_data.ser();
+        let signed_ballot_msg = SignedBallotMsg {
+            data: signed_ballot_data,
+            signature: Signature::from_bytes(&[0u8; 64]),
+        };
+        let serialized_signed_ballot = signed_ballot_msg.ser();
         assert!(!serialized_signed_ballot.is_empty());
     }
 }

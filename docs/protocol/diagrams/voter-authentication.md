@@ -8,7 +8,6 @@ sequenceDiagram
     participant UserAgent as "Voter's User Agent/Browser"
     participant EAS as "Election Admin Server"
     participant AS as "Authentication Service (AS)"
-    participant DBB as "Digital Ballot Box"
 
     VA->>EAS: Request Authentication for Voter (PublicKey: P)
     activate VA
@@ -47,12 +46,8 @@ sequenceDiagram
     %% --- Happy Path Steps ---
     %% Happy Path: Voter is Eligible
     Note over EAS: Look up voter info, Check Eligibility using PublicKey P
-    EAS->>DBB: Authorize PublicKey P for Submission/Casting (Ballot Type: ...)
-    activate DBB
-    DBB->>DBB: Append Record to PBB: 'PublicKey P Authorized...'
     EAS->>VA: Auth Success & Eligible (Elections: [...], For PublicKey: P)
     Note over VA: Display pseudonym to authenticated voter
-    deactivate DBB
     %% --- End Happy Path Steps ---
 
     deactivate EAS

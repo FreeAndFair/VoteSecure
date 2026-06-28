@@ -254,13 +254,13 @@ impl BallotCheckApplicationActor {
         if verify_signature(
             &msg.data.ser(),
             &msg.signature,
-            &msg.data.voter_verifying_key,
+            &msg.data.voter_authorization.data.voter_verifying_key,
         )
         .is_err()
         {
             return Err("signature of ballot to be checked is invalid".to_string());
         }
-        if msg.data.election_hash != self.election_hash {
+        if msg.data.voter_authorization.data.election_hash != self.election_hash {
             return Err("wrong election hash of ballot to be checked".to_string());
         }
 

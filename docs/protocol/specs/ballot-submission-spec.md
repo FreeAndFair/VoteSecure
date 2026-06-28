@@ -28,10 +28,7 @@ purpose
 
 ```rust
 struct SignedBallotMsgData {
-  election_hash : ElectionHash,
-  voter_pseudonym : VoterPseudonym,
-  voter_verifying_key : VerifyingKey,
-  ballot_style : BallotStyle,
+  voter_authorization : VoterAuthorization,
   ballot_cryptogram : BallotCryptogram,
 }
 
@@ -46,10 +43,7 @@ struct BallotCryptogram {
 }
 ```
 
-- `election_hash`: The hash of the unique election configuration item.
-- `voter_pseudonym`: The unique identifier for the voter.
-- `voter_verifying_key`: The verifying key associated with this voting session.
-- `ballot_style`: The identifier for this unique ballot style.
+- `voter_authorization`: An authorization token, signed by the EAS, containing the hash of the unique election configuration item, the voter's pseudonym (the unique identifier for the voter for the current election), the ballot style they are authorized to vote, and the verifying key associated with this voting session. See the voter authentication specification for more details about this data structure.
 - `ballot_cryptogram`: The ballot cryptogram containing the encrypted ballot ciphertext.
 - `data`: The data being signed (contains the election hash, voter pseudonym, voter verifying key, ballot style, and ballot cryptogram).
 - `signature`: A digital signature created over the serialized contents of the `data` field by the signing key corresponding to the authorized voter verifying key.
@@ -62,14 +56,16 @@ channel properties
 
 ### Submit Signed Ballot Checks
 
-1. The `signature` is a valid signature over the serialized contents of the `data` field signed by the signing key corresponding to `voter_verifying_key`.
-2. The `election_hash` is the hash of the election configuration item for the current election.
-3. The `voter_pseudonym` and `voter_verifying_key` match a stored `AuthVoterMsg` from the EAS.
-4. The `ballot_style` is a valid ballot style for this election.
-5. The `ballot_style` matches the `AuthVoterMsg` from check #2.
-6. The ciphertext has a valid Naor-Yung proof.
-7. No previous cast ballot appears on the bulletin board with the same pseudonym.
-8. The ciphertext does not already exist on the bulletin board.
+1. The `voter_authorization` is valid.
+    1. Its signature verifies with the known EAS signature verification key for the current election.
+    2. Its election hash is the hash of the election configuration item for the current election.
+    3. Its timestamp is in the past.
+2. The `signature` is a valid signature over the serialized contents of the `data` field (it verifies with the verifying key within the `voter_authorization`).
+3. The `election_hash` is the hash of the election configuration item for the current election.
+4. The ciphertext has a valid Naor-Yung proof.
+5. The `ballot_style` in the `ballot_cryptogram` matches the `ballot_style` in the `voter_authorization`.
+6. No cast ballot appears on the bulletin board with the voter pseudonym in the `voter_authorization`.
+7. The ciphertext does not already exist on the bulletin board.
 
 ### Ballot Submission Bulletin
 

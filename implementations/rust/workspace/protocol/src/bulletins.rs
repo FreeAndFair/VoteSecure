@@ -7,7 +7,7 @@
 
 use crate::cryptography::VSerializable as VSerializableTrait;
 use crate::elections::{BallotStyle, ElectionHash, VoterPseudonym};
-use crate::messages::{AuthVoterMsg, CastReqMsg, SignedBallotMsg};
+use crate::messages::{CastReqMsg, SignedBallotMsg};
 use cryptography::utils::serialization::VDeserializable;
 use cryptography::utils::serialization::variable::{LENGTH_BYTES, LengthU};
 use std::any::Any;
@@ -21,21 +21,13 @@ use vser_derive::VSerializable;
 /// [`BulletinContents::type_name`] and [`BulletinBoard::get_bulletins_by_type`].
 pub const BALLOT_SUBMISSION_BULLETIN: &str = "BallotSubmission";
 
-/// Type name for voter authorization bulletins, for use with
-/// [`BulletinContents::type_name`] and [`BulletinBoard::get_bulletins_by_type`].
-pub const VOTER_AUTHORIZATION_BULLETIN: &str = "VoterAuthorization";
-
 /// Type name for ballot cast bulletins, for use with
 /// [`BulletinContents::type_name`] and [`BulletinBoard::get_bulletins_by_type`].
 pub const BALLOT_CAST_BULLETIN: &str = "BallotCast";
 
 /// All built-in bulletin type names, used by the DBB to reject attempts to
 /// post built-in bulletin types via the external `PostBulletin` command.
-pub const BUILTIN_BULLETINS: &[&str] = &[
-    BALLOT_SUBMISSION_BULLETIN,
-    VOTER_AUTHORIZATION_BULLETIN,
-    BALLOT_CAST_BULLETIN,
-];
+pub const BUILTIN_BULLETINS: &[&str] = &[BALLOT_SUBMISSION_BULLETIN, BALLOT_CAST_BULLETIN];
 
 // --- Bulletin Contents Trait ---
 
@@ -265,7 +257,6 @@ impl BulletinTypeRegistry {
             custom: HashMap::new(),
         };
         registry.register_builtin::<BallotSubContents>(BALLOT_SUBMISSION_BULLETIN);
-        registry.register_builtin::<VoterAuthContents>(VOTER_AUTHORIZATION_BULLETIN);
         registry.register_builtin::<BallotCastContents>(BALLOT_CAST_BULLETIN);
         registry
     }
@@ -364,44 +355,23 @@ pub struct BallotSubContents {
 
 impl BulletinContents for BallotSubContents {
     fn voter_pseudonym(&self) -> Option<VoterPseudonym> {
-        Some(self.ballot.data.voter_pseudonym.clone())
+        Some(
+            self.ballot
+                .data
+                .voter_authorization
+                .data
+                .voter_pseudonym
+                .clone(),
+        )
     }
     fn ballot_style(&self) -> Option<BallotStyle> {
-        Some(self.ballot.data.ballot_style)
+        Some(self.ballot.data.voter_authorization.data.ballot_style)
     }
     fn serialize(&self) -> Vec<u8> {
         self.ser()
     }
     fn type_name(&self) -> &'static str {
         BALLOT_SUBMISSION_BULLETIN
-    }
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn clone_box(&self) -> Box<dyn BulletinContents> {
-        Box::new(self.clone())
-    }
-}
-
-/// Contents of a voter authorization bulletin.
-/// Defined in `ballot-cast-spec.md`.
-#[derive(Debug, Clone, PartialEq, VSerializable)]
-pub struct VoterAuthContents {
-    pub authorization: AuthVoterMsg,
-}
-
-impl BulletinContents for VoterAuthContents {
-    fn voter_pseudonym(&self) -> Option<VoterPseudonym> {
-        Some(self.authorization.data.voter_pseudonym.clone())
-    }
-    fn ballot_style(&self) -> Option<BallotStyle> {
-        Some(self.authorization.data.ballot_style)
-    }
-    fn serialize(&self) -> Vec<u8> {
-        self.ser()
-    }
-    fn type_name(&self) -> &'static str {
-        VOTER_AUTHORIZATION_BULLETIN
     }
     fn as_any(&self) -> &dyn Any {
         self
@@ -421,10 +391,17 @@ pub struct BallotCastContents {
 
 impl BulletinContents for BallotCastContents {
     fn voter_pseudonym(&self) -> Option<VoterPseudonym> {
-        Some(self.ballot.data.voter_pseudonym.clone())
+        Some(
+            self.ballot
+                .data
+                .voter_authorization
+                .data
+                .voter_pseudonym
+                .clone(),
+        )
     }
     fn ballot_style(&self) -> Option<BallotStyle> {
-        Some(self.ballot.data.ballot_style)
+        Some(self.ballot.data.voter_authorization.data.ballot_style)
     }
     fn serialize(&self) -> Vec<u8> {
         self.ser()
@@ -445,15 +422,18 @@ mod tests {
     use super::*;
     use crate::cryptography::generate_signature_keypair;
     use crate::cryptography::{BallotCryptogram, Signature};
-    use crate::messages::{AuthVoterMsgData, CastReqMsgData, SignedBallotMsgData};
+    use crate::elections::VoterAuthorization;
+    use crate::messages::{CastReqMsgData, SignedBallotMsgData};
     use cryptography::utils::serialization::VSerializable;
 
     fn make_signed_ballot(verifying_key: crate::cryptography::VerifyingKey) -> SignedBallotMsg {
         let signed_ballot_data = SignedBallotMsgData {
-            election_hash: crate::elections::string_to_election_hash("test_election"),
-            voter_pseudonym: "voter_123".to_string(),
-            voter_verifying_key: verifying_key,
-            ballot_style: 1,
+            voter_authorization: VoterAuthorization::test_voter_authorization(
+                crate::elections::string_to_election_hash("test_election"),
+                "voter_123",
+                1,
+                verifying_key,
+            ),
             ballot_cryptogram: BallotCryptogram {
                 ballot_style: 1,
                 // Create a dummy ciphertext for casting.
@@ -520,38 +500,6 @@ mod tests {
     }
 
     #[test]
-    fn test_roundtrip_voter_auth() {
-        // Serialize and deserialize a VoterAuthContents bulletin.
-        let (_, verifying_key) = generate_signature_keypair();
-        let auth_data = AuthVoterMsgData {
-            election_hash: crate::elections::string_to_election_hash("test_election"),
-            voter_pseudonym: "voter_123".to_string(),
-            voter_verifying_key: verifying_key,
-            ballot_style: 1,
-        };
-        let original = Bulletin {
-            data: BulletinData {
-                election_hash: crate::elections::string_to_election_hash("test_election"),
-                contents: Box::new(VoterAuthContents {
-                    authorization: crate::messages::AuthVoterMsg {
-                        data: auth_data,
-                        signature: Signature::from_bytes(&[0u8; 64]),
-                    },
-                }),
-                timestamp: 1640995200,
-                previous_bb_msg_hash: "prev_hash".to_string(),
-            },
-            signature: "test_sig".to_string(),
-        };
-        let registry = BulletinTypeRegistry::new();
-        let bytes = original.ser();
-        let bytes2 = original.ser();
-        assert_eq!(bytes, bytes2); // Serialization is deterministic.
-        let recovered = Bulletin::from_bytes(&bytes, &registry).unwrap();
-        assert_eq!(original, recovered); // Round-tripping recovers the same bulletin.
-    }
-
-    #[test]
     fn test_roundtrip_ballot_cast() {
         // Serialize and deserialize a BallotCastContents bulletin.
         let (_, verifying_key) = generate_signature_keypair();
@@ -559,8 +507,12 @@ mod tests {
         let cast_req = crate::messages::CastReqMsg {
             data: CastReqMsgData {
                 election_hash: crate::elections::string_to_election_hash("test_election"),
-                voter_pseudonym: "voter_123".to_string(),
-                voter_verifying_key: verifying_key,
+                voter_authorization: VoterAuthorization::test_voter_authorization(
+                    crate::elections::string_to_election_hash("test_election"),
+                    "voter_123",
+                    1,
+                    verifying_key,
+                ),
                 ballot_tracker: "tracker_123".to_string(),
             },
             signature: Signature::from_bytes(&[0u8; 64]),
@@ -693,11 +645,6 @@ mod tests {
         assert!(
             registry
                 .register::<BallotSubContents>(BALLOT_SUBMISSION_BULLETIN)
-                .is_err()
-        );
-        assert!(
-            registry
-                .register::<VoterAuthContents>(VOTER_AUTHORIZATION_BULLETIN)
                 .is_err()
         );
         assert!(

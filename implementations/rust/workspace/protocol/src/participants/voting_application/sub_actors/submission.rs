@@ -11,7 +11,7 @@
 use crate::bulletins::{BallotSubContents, Bulletin};
 
 use crate::cryptography::{ElectionKey, RandomizersStruct};
-use crate::elections::{Ballot, BallotStyle, ElectionHash, VoterPseudonym};
+use crate::elections::{Ballot, ElectionHash, VoterAuthorization};
 use crate::messages::{ProtocolMsg, SignedBallotMsg, TrackerMsg};
 
 // Import cryptography library types directly
@@ -70,10 +70,7 @@ pub struct SubmissionActor {
     // --- Injected State from VotingApplicationActor ---
     election_hash: ElectionHash,
     dbb_verifying_key: VerifyingKey,
-    voter_pseudonym: VoterPseudonym,
-    voter_verifying_key: VerifyingKey,
-    // --- Additional state needed for spec compliance ---
-    ballot_style: BallotStyle,
+    voter_authorization: VoterAuthorization,
     election_public_key: ElectionKey,
     // --- State generated and used only within this protocol ---
     sent_ballot: Option<SignedBallotMsg>,
@@ -88,9 +85,8 @@ impl SubmissionActor {
     /// # Arguments
     /// * `election_hash` - The election configuration hash.
     /// * `dbb_verifying_key` - The DBB's verifying key for validating response signatures.
-    /// * `voter_pseudonym` - The voter's pseudonym for ballot submission.
-    /// * `voter_verifying_key` - The voter's verifying key included with submitted ballots.
-    /// * `ballot_style` - The ballot style describing the contests and rankings.
+    /// * `voter_authorization` - The voter authorization token issued by the EAS,
+    ///   embedded in the submitted ballot.
     /// * `election_public_key` - The election public key used to encrypt ballots.
     ///
     /// # Returns
@@ -98,18 +94,14 @@ impl SubmissionActor {
     pub fn new(
         election_hash: ElectionHash,
         dbb_verifying_key: VerifyingKey,
-        voter_pseudonym: VoterPseudonym,
-        voter_verifying_key: VerifyingKey,
-        ballot_style: BallotStyle,
+        voter_authorization: VoterAuthorization,
         election_public_key: ElectionKey,
     ) -> Self {
         Self {
             state: SubState::ReadyToStart,
             election_hash,
             dbb_verifying_key,
-            voter_pseudonym,
-            voter_verifying_key,
-            ballot_style,
+            voter_authorization,
             election_public_key,
             sent_ballot: None,
             generated_randomizers: None,
@@ -167,7 +159,7 @@ impl SubmissionActor {
                     ballot,
                     &self.election_public_key,
                     &self.election_hash,
-                    &self.voter_pseudonym,
+                    &self.voter_authorization.data.voter_pseudonym,
                 ) {
                     Ok(result) => result,
                     Err(e) => {
@@ -183,10 +175,7 @@ impl SubmissionActor {
 
                 // Construct SignedBallotMsgData
                 let data = SignedBallotMsgData {
-                    election_hash: self.election_hash,
-                    voter_pseudonym: self.voter_pseudonym.clone(),
-                    voter_verifying_key: self.voter_verifying_key,
-                    ballot_style: self.ballot_style,
+                    voter_authorization: self.voter_authorization.clone(),
                     ballot_cryptogram,
                 };
 
@@ -329,21 +318,22 @@ mod tests {
         let (_, voter_verifying_key) = crate::cryptography::generate_signature_keypair();
         let election_keypair =
             crate::cryptography::generate_encryption_keypair(b"test_context").unwrap();
+        let election_hash = crate::elections::string_to_election_hash("test_election_hash");
 
         let actor = SubmissionActor::new(
-            crate::elections::string_to_election_hash("test_election_hash"),
+            election_hash,
             dbb_verifying_key,
-            "test_pseudonym".to_string(),
-            voter_verifying_key,
-            1,
+            VoterAuthorization::test_voter_authorization(
+                election_hash,
+                "test_pseudonym",
+                1,
+                voter_verifying_key,
+            ),
             election_keypair.pkey,
         );
 
-        assert_eq!(
-            actor.election_hash,
-            crate::elections::string_to_election_hash("test_election_hash")
-        );
-        assert_eq!(actor.ballot_style, 1);
+        assert_eq!(actor.election_hash, election_hash);
+        assert_eq!(actor.voter_authorization.data.ballot_style, 1);
     }
 
     #[test]
@@ -352,13 +342,17 @@ mod tests {
         let (_, voter_verifying_key) = crate::cryptography::generate_signature_keypair();
         let election_keypair =
             crate::cryptography::generate_encryption_keypair(b"test_context").unwrap();
+        let election_hash = crate::elections::string_to_election_hash("test_election_hash");
 
         let mut actor = SubmissionActor::new(
-            crate::elections::string_to_election_hash("test_election_hash"),
+            election_hash,
             dbb_verifying_key,
-            "test_pseudonym".to_string(),
-            voter_verifying_key,
-            1,
+            VoterAuthorization::test_voter_authorization(
+                election_hash,
+                "test_pseudonym",
+                1,
+                voter_verifying_key,
+            ),
             election_keypair.pkey,
         );
 
@@ -375,13 +369,18 @@ mod tests {
             crate::cryptography::generate_signature_keypair();
         let election_keypair =
             crate::cryptography::generate_encryption_keypair(b"test_context").unwrap();
+        let election_hash = crate::elections::string_to_election_hash("test_election_hash");
+        let voter_authorization = VoterAuthorization::test_voter_authorization(
+            election_hash,
+            "test_pseudonym",
+            1,
+            voter_verifying_key,
+        );
 
         let mut actor = SubmissionActor::new(
-            crate::elections::string_to_election_hash("test_election_hash"),
+            election_hash,
             dbb_verifying_key,
-            "test_pseudonym".to_string(),
-            voter_verifying_key,
-            1,
+            voter_authorization.clone(),
             election_keypair.pkey.clone(),
         );
 
@@ -396,7 +395,7 @@ mod tests {
         let (ballot_cryptogram, randomizers) = crate::cryptography::encrypt_ballot(
             ballot,
             &election_keypair.pkey,
-            &crate::elections::string_to_election_hash("test_election_hash"),
+            &election_hash,
             &"test_pseudonym".to_string(),
         )
         .unwrap();
@@ -424,10 +423,7 @@ mod tests {
 
         // Test constructing the signed ballot message directly
         let data = SignedBallotMsgData {
-            election_hash: crate::elections::string_to_election_hash("test_election_2024"),
-            voter_pseudonym: "test_pseudonym".to_string(),
-            voter_verifying_key,
-            ballot_style: 1,
+            voter_authorization,
             ballot_cryptogram,
         };
 
@@ -462,10 +458,12 @@ mod tests {
         .unwrap();
 
         let signed_ballot_data = crate::messages::SignedBallotMsgData {
-            election_hash,
-            voter_pseudonym: "voter_123".to_string(),
-            voter_verifying_key: verifying_key,
-            ballot_style: 1,
+            voter_authorization: VoterAuthorization::test_voter_authorization(
+                election_hash,
+                "voter_123",
+                1,
+                verifying_key,
+            ),
             ballot_cryptogram,
         };
         let serialized_signed_ballot = signed_ballot_data.ser();
@@ -497,13 +495,17 @@ mod tests {
             crate::cryptography::generate_encryption_keypair(b"test_context").unwrap();
         let election_hash = crate::elections::string_to_election_hash("test_election_2024");
         let voter_pseudonym = "test_pseudonym".to_string();
+        let voter_authorization = VoterAuthorization::test_voter_authorization(
+            election_hash,
+            "voter_123",
+            1,
+            voter_verifying_key,
+        );
 
         let mut submission_actor = SubmissionActor::new(
             election_hash,
             dbb_verifying_key,
-            "voter_123".to_string(),
-            voter_verifying_key,
-            1,
+            voter_authorization.clone(),
             election_keypair.pkey.clone(),
         );
         submission_actor.set_voter_signing_key(voter_signing_key.clone());
@@ -523,10 +525,7 @@ mod tests {
         .unwrap();
 
         let data = SignedBallotMsgData {
-            election_hash,
-            voter_pseudonym: "voter_123".to_string(),
-            voter_verifying_key,
-            ballot_style: 1,
+            voter_authorization,
             ballot_cryptogram,
         };
 
@@ -548,12 +547,16 @@ mod tests {
 
         // Test that verification fails with wrong data
         let mut wrong_data = signed_ballot_msg.data.clone();
-        wrong_data.voter_pseudonym = "wrong_voter".to_string();
+        wrong_data.voter_authorization.data.voter_pseudonym = "wrong_voter".to_string();
         let wrong_serialized = wrong_data.ser();
         let wrong_verification_result = crate::cryptography::verify_signature(
             &wrong_serialized,
             &signed_ballot_msg.signature,
-            &signed_ballot_msg.data.voter_verifying_key,
+            &signed_ballot_msg
+                .data
+                .voter_authorization
+                .data
+                .voter_verifying_key,
         );
         assert!(
             wrong_verification_result.is_err(),

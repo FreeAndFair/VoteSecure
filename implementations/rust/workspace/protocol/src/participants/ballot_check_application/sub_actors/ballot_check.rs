@@ -246,7 +246,7 @@ impl BallotCheckActor {
                     &decrypted_randomizers,
                     &self.election_public_key,
                     &self.election_hash,
-                    &self.ballot.data.voter_pseudonym,
+                    &self.ballot.data.voter_authorization.data.voter_pseudonym,
                 );
 
                 // Check whether ballot decryption was successful.
@@ -437,7 +437,14 @@ impl BallotCheckActor {
 
     /// Check #5: message public key matches ballot submission bulletin key.
     fn check_randomizer_msg_public_key(&self, msg: &RandomizerMsg) -> Result<(), String> {
-        if msg.data.public_key != self.ballot.data.voter_verifying_key {
+        if msg.data.public_key
+            != self
+                .ballot
+                .data
+                .voter_authorization
+                .data
+                .voter_verifying_key
+        {
             Err("public signing key in the randomizer message does not match the voter's public key according to the ballot submission bulletin (tracker)".to_string())
         } else {
             Ok(())

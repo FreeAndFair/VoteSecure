@@ -1,6 +1,6 @@
 # Voter Authentication Subprotocol
 
-## Phase 1 Initiation
+## Phase 1: Initiation
 
 ### Initial Request Message
 
@@ -124,14 +124,14 @@ purpose
 ***structure***
 
 ```rust
-struct HandTokenMsgData {
+struct AuthServiceTokenMsgData {
   election_hash : ElectionHash,
   token : String,
   voter_verifying_key : VerifyingKey,
 }
 
-struct HandTokenMsg {
-  data : HandTokenMsgData,
+struct AuthServiceTokenMsg {
+  data : AuthServiceTokenMsgData,
   signature : Signature,
 }
 ```
@@ -151,11 +151,11 @@ channel properties
 2. The `voter_verifying_key` is the voting application's verifying key.
 3. The `signature` is a valid signature over the serialized contents of the `data` field signed by the election administration server signing key.
 
-## Phase 2 Third-Party Authentication
+## Phase 2: Third-Party Authentication
 
 The VA and the AS directly send messages back and forth according to the AS protocol. At the end of the process, the AS stores the authentication data of the voter who is using the VA and notifies the VA when the authentication process is complete.
 
-## Phase 3 Validation of Authentication
+## Phase 3: Validation of Authentication
 
 ### Validation Request Message
 
@@ -441,57 +441,12 @@ Note: This structure is specified in JSON reflecting the JSON API of our candida
 channel properties
 : The assumptions for this channel is the security of TLS for connecting to and using the API provided by the authentication service.
 
-## Phase 4 Voter Authorization
+## Phase 4: Voter Authorization
 
 ### Authorization Checks
 
 1. Biographical information from the *Authentication Service Report Message* match a registered voter in the voter registration database.
 2. The `token` in the *Authentication Service Report Message* matches one `AuthSessionRecord.token`.
-
-### Authorize Voter Message
-
-sender
-: Election Administration Server (EAS)
-
-recipient
-: Digital Ballot Box (DBB)
-
-purpose
-: This message is sent from the election administration server to the digital ballot box  authorizing the acceptance of ballot submission and ballot casting messages signed by the `voter_verifying_key` representing votes from the voter with pseudonym `voter_pseudonym`. This authorization will be stored in a table in the digital ballot box keyed by `voter_pseudonym`.
-
-***structure***
-
-```rust
-struct AuthVoterMsgData {
-  election_hash : ElectionHash,
-  voter_pseudonym : VoterPseudonym,
-  voter_verifying_key : VerifyingKey,
-  ballot_style : BallotStyle,
-}
-
-struct AuthVoterMsg {
-  data : AuthVoterMsgData,
-  signature : Signature,
-}
-```
-
-- `election_hash`: The hash of the unique election configuration item.
-- `voter_pseudonym`: The unique identifier for the voter retrieved from the EAS voter registration database.
-- `voter_verifying_key`: The verifying key from the initial request message.
-- `ballot_style`: The ballot style this voter is authorized to cast, retrieved from the EAS voter registration database and the election manifest.
-- `data`: The data being signed (contains the election hash, voter pseudonym, voter verifying key, and ballot style).
-- `signature`: A digital signature created by the EAS's signing key over the serialized contents of the `data` field.
-
-channel properties
-: The signature by the Election Administration Server is intended to provide *integrity* over the contents of the message and *authentication* for the digital ballot box.
-
-### Authorize Voter Checks
-
-1. The `election_hash` is the hash of the election configuration item for the current election.
-2. The `voter_pseudonym` is present and a well formed identifier.
-3. The `voter_verifying_key` is present and a well formed verifying key from a supported cryptosystem.
-4. The `ballot_style` is a valid ballot style for this election.
-5. The `signature` is a valid signature over the serialized contents of the `data` field signed by the election administration server signing key.
 
 ### Confirm Authorization Message
 
@@ -499,20 +454,32 @@ sender
 : Election Administration Server (EAS)
 
 recipient
-: Voting Application
+: Voting Application (VA)
 
 purpose
-: This message copies the message authorizing the public key for voting and sends it to the voter confirming they are authorized to vote. This message also informs the voter of their officially registered ballot style.
+: This message provides the authentication result to the VA, and if authentication was successful, includes the signed authorization that the VA will need to submit and cast a ballot; this authorization includes the election hash and a timestamp, along with the voter's assigned pseudonym, ballot style, and verifying key. The verifying key is also included in the message itself, to be used to confirm the intended recipient of the message in the event of an authentication that is either unsuccessful, or that is successful but corresponds to a voter not authorized to vote in the current election.
 
 ***structure***
 
 ```rust
 struct ConfirmAuthorizationMsgData {
   election_hash : ElectionHash,
-  voter_pseudonym : Option<VoterPseudonym>,
+  voter_authorization: Option<VoterAuthorization>,
   voter_verifying_key : VerifyingKey,
-  ballot_style : Option<BallotStyle>,
   authentication_result : (bool, String),
+}
+
+struct VoterAuthorizationData {
+  election_hash: ElectionHash,
+  timestamp: u64,
+  voter_pseudonym: String,
+  ballot_style: BallotStyle,
+  voter_verifying_key: VerifyingKey
+}
+
+struct VoterAuthorization {
+  data: VoterAuthorizationData,
+  signature: Signature,
 }
 
 struct ConfirmAuthorizationMsg {
@@ -522,12 +489,14 @@ struct ConfirmAuthorizationMsg {
 ```
 
 - `election_hash`: The hash of the unique election configuration item.
-- `voter_pseudonym`: The optional unique identifier for the voter retrieved from the EAS voter registration database (present only if authentication succeeded).
+- `voter_authorization`: The signed voter authorization that the VA will need to provide to the DBB when submitting or casting a ballot (present only if authentication succeeded and the voter is authorized to vote in the current election).
+- `timestamp`: The timestamp of when the EAS processed the authentication result (Unix timestamp in seconds since epoch).
+- `voter_pseudonym`: The unique identifier for the voter retrieved from the EAS voter registration database (present only if authentication succeeded and the voter is authorized to vote in the current election).
 - `voter_verifying_key`: The verifying key from the initial request message.
-- `ballot_style`: The optional ballot style this voter is authorized to cast, retrieved from the EAS voter registration database and the election manifest (present only if authentication succeeded).
-- `authentication_result`: A tuple containing a boolean indicating if the voter was authenticated by the authentication service and if they are registered to vote in this election, and a string with result details.
-- `data`: The data being signed (contains all the above fields).
-- `signature`: A digital signature created by the EAS's signing key over the serialized contents of the `data` field.
+- `ballot_style`: The ballot style this voter is authorized to cast, retrieved from the EAS voter registration database and the election manifest.
+- `authentication_result`: A tuple containing a boolean indicating if the voter was authenticated by the authentication service and authorized to vote in this election, and a string with result details.
+- `data`: The data being signed (the EAS signs both the `data` of the `VoterAuthorization` and the `data` of the `ConfirmAuthorizationMsg`).
+- `signature`: A digital signature created by the EAS's signing key over the serialized contents of a `data` field.
 
 channel properties
 : The signature by the Election Administration Server is intended to provide *integrity* over the contents of the message and *authentication* for the voting application.
@@ -535,10 +504,14 @@ channel properties
 ### Confirm Authorization Checks
 
 1. The `election_hash` is the hash of the election configuration item for the current election.
-2. If `voter_pseudonym` is present, it is a well formed identifier.
-3. The `voter_verifying_key` is the voting application's verifying key.
-4. If `ballot_style` is present, it is a valid ballot style for this election.
-5. The `signature` is a valid signature over the serialized contents of the `data` field signed by the election administration server signing key.
+2. If `voter_authorization` is present, it is valid:
+    1. Its `election_hash` is the hash of the election configuration item for the current election.
+    2. Its `timestamp` is in the past.
+    3. Its `voter_pseudonym` is a well-formed identifier.
+    4. Its `voter_verifying_key` matches the verifying key for the current voting session.
+    5. Its `signature` is a valid signature over the serialized contents of its `data` field signed by the election administration server signing key.
+3. The `voter_verifying_key` matches the verifying key for the current voting session.
+4. The `signature` is a valid signature over the serialized contents of the `data` field signed by the election administration server signing key.
 
 ## Voting Application Process Diagram
 

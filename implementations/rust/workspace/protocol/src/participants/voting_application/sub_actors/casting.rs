@@ -9,7 +9,7 @@
 #![allow(clippy::large_enum_variant)]
 
 use crate::cryptography::{Signature, SigningKey, VerifyingKey};
-use crate::elections::{BallotTracker, ElectionHash, VoterPseudonym};
+use crate::elections::{BallotTracker, ElectionHash, VoterAuthorization};
 use crate::messages::{CastConfMsg, CastReqMsg, CastReqMsgData, ProtocolMsg};
 use cryptography::utils::serialization::VSerializable;
 
@@ -57,9 +57,8 @@ pub struct CastingActor {
     // --- Injected State from VotingApplicationActor ---
     election_hash: ElectionHash,
     dbb_verifying_key: VerifyingKey,
-    voter_pseudonym: VoterPseudonym,
+    voter_authorization: VoterAuthorization,
     voter_signing_key: SigningKey,
-    voter_verifying_key: VerifyingKey,
     // --- State generated and used only within this protocol ---
     sent_cast_request: Option<CastReqMsg>,
 }
@@ -70,26 +69,24 @@ impl CastingActor {
     /// # Arguments
     /// * `election_hash` - The election configuration hash.
     /// * `dbb_verifying_key` - The DBB's verifying key for validating cast responses.
-    /// * `voter_pseudonym` - The voter's pseudonym used in cast requests.
+    /// * `voter_authorization` - The voter authorization token issued by the EAS,
+    ///   embedded in the cast request.
     /// * `voter_signing_key` - The voter's signing key used to sign cast requests.
-    /// * `voter_verifying_key` - The voter's verifying key included with cast requests.
     ///
     /// # Returns
     /// A new `CastingActor` in the `ReadyToStart` state.
     pub fn new(
         election_hash: ElectionHash,
         dbb_verifying_key: VerifyingKey,
-        voter_pseudonym: VoterPseudonym,
+        voter_authorization: VoterAuthorization,
         voter_signing_key: SigningKey,
-        voter_verifying_key: VerifyingKey,
     ) -> Self {
         Self {
             state: SubState::ReadyToStart,
             election_hash,
             dbb_verifying_key,
-            voter_pseudonym,
+            voter_authorization,
             voter_signing_key,
-            voter_verifying_key,
             sent_cast_request: None,
         }
     }
@@ -106,8 +103,7 @@ impl CastingActor {
             (SubState::ReadyToStart, CastingInput::Start(tracker)) => {
                 let data = CastReqMsgData {
                     election_hash: self.election_hash,
-                    voter_pseudonym: self.voter_pseudonym.clone(),
-                    voter_verifying_key: self.voter_verifying_key,
+                    voter_authorization: self.voter_authorization.clone(),
                     ballot_tracker: tracker,
                 };
 
@@ -249,17 +245,20 @@ mod tests {
 
     #[test]
     fn test_casting_actor_creation() {
-        let election_hash = "test_election_hash".to_string();
+        let election_hash = crate::elections::string_to_election_hash("test_election_hash");
         let (_, dbb_verifying_key) = generate_signature_keypair();
-        let voter_pseudonym = "voter123".to_string();
         let (voter_signing_key, voter_verifying_key) = generate_signature_keypair();
 
         let actor = CastingActor::new(
-            crate::elections::string_to_election_hash(&election_hash),
+            election_hash,
             dbb_verifying_key,
-            voter_pseudonym,
+            VoterAuthorization::test_voter_authorization(
+                election_hash,
+                "voter123",
+                1,
+                voter_verifying_key,
+            ),
             voter_signing_key,
-            voter_verifying_key,
         );
 
         // Verify initial state
@@ -269,17 +268,20 @@ mod tests {
 
     #[test]
     fn test_cast_request_signature_creation() {
-        let election_hash = "test_election_hash".to_string();
+        let election_hash = crate::elections::string_to_election_hash("test_election_hash");
         let (_, dbb_verifying_key) = generate_signature_keypair();
-        let voter_pseudonym = "voter123".to_string();
         let (voter_signing_key, voter_verifying_key) = generate_signature_keypair();
 
         let mut actor = CastingActor::new(
-            crate::elections::string_to_election_hash(&election_hash),
+            election_hash,
             dbb_verifying_key,
-            voter_pseudonym,
+            VoterAuthorization::test_voter_authorization(
+                election_hash,
+                "voter123",
+                1,
+                voter_verifying_key,
+            ),
             voter_signing_key,
-            voter_verifying_key,
         );
 
         let ballot_tracker = "ballot_tracker_123".to_string();
@@ -295,7 +297,7 @@ mod tests {
                 let verification_result = crate::cryptography::verify_signature(
                     &serialized,
                     &cast_req.signature,
-                    &cast_req.data.voter_verifying_key,
+                    &cast_req.data.voter_authorization.data.voter_verifying_key,
                 );
                 assert!(verification_result.is_ok(), "Signature should be valid");
             }
@@ -305,23 +307,17 @@ mod tests {
 
     #[test]
     fn test_message_serialization() {
-        let election_hash = "test_election_hash".to_string();
-        let (_, dbb_verifying_key) = generate_signature_keypair();
-        let voter_pseudonym = "voter123".to_string();
-        let (voter_signing_key, voter_verifying_key) = generate_signature_keypair();
-
-        let _actor = CastingActor::new(
-            crate::elections::string_to_election_hash(&election_hash),
-            dbb_verifying_key,
-            voter_pseudonym.clone(),
-            voter_signing_key,
-            voter_verifying_key,
-        );
+        let election_hash = crate::elections::string_to_election_hash("test_election_hash");
+        let (_, voter_verifying_key) = generate_signature_keypair();
 
         let data = CastReqMsgData {
-            election_hash: crate::elections::string_to_election_hash(&election_hash),
-            voter_pseudonym: voter_pseudonym.clone(),
-            voter_verifying_key,
+            election_hash,
+            voter_authorization: VoterAuthorization::test_voter_authorization(
+                election_hash,
+                "voter123",
+                1,
+                voter_verifying_key,
+            ),
             ballot_tracker: "test_tracker".to_string(),
         };
 
@@ -336,13 +332,17 @@ mod tests {
     fn test_vserializable_casting_messages() {
         // Test that VSerializable works correctly for casting message serialization
         let (_, verifying_key) = generate_signature_keypair();
-        let election_hash = "test_election_2024".to_string();
+        let election_hash = crate::elections::string_to_election_hash("test_election_2024");
 
         // Test CastReqMsgData serialization
         let cast_req_data = CastReqMsgData {
-            election_hash: crate::elections::string_to_election_hash(&election_hash),
-            voter_pseudonym: "voter_123".to_string(),
-            voter_verifying_key: verifying_key,
+            election_hash,
+            voter_authorization: VoterAuthorization::test_voter_authorization(
+                election_hash,
+                "voter_123",
+                1,
+                verifying_key,
+            ),
             ballot_tracker: "tracker_123".to_string(),
         };
         let serialized_cast_req = cast_req_data.ser();
@@ -353,7 +353,7 @@ mod tests {
 
         // Test CastConfMsgData serialization
         let cast_conf_data = crate::messages::CastConfMsgData {
-            election_hash: crate::elections::string_to_election_hash(&election_hash),
+            election_hash,
             ballot_sub_tracker: "sub_tracker_123".to_string(),
             ballot_cast_tracker: Some("cast_tracker_456".to_string()),
             cast_result: (true, "".to_string()),
@@ -368,17 +368,21 @@ mod tests {
     #[test]
     fn test_casting_actor_signature_compatibility() {
         // Test that the casting actor can create and verify signatures using VSerializable
-        let election_hash = "test_election_2024".to_string();
+        let election_hash = crate::elections::string_to_election_hash("test_election_2024");
         let (_, dbb_verifying_key) = generate_signature_keypair();
-        let voter_pseudonym = "voter_pseudonym".to_string();
         let (voter_signing_key, voter_verifying_key) = generate_signature_keypair();
+        let voter_authorization = VoterAuthorization::test_voter_authorization(
+            election_hash,
+            "voter_pseudonym",
+            1,
+            voter_verifying_key,
+        );
 
         let mut casting_actor = CastingActor::new(
-            crate::elections::string_to_election_hash(&election_hash),
+            election_hash,
             dbb_verifying_key,
-            voter_pseudonym.clone(),
+            voter_authorization.clone(),
             voter_signing_key,
-            voter_verifying_key,
         );
 
         let ballot_tracker = "test_tracker_456".to_string();
@@ -389,15 +393,19 @@ mod tests {
         match result {
             CastingOutput::SendMessage(ProtocolMsg::CastReq(cast_req_msg)) => {
                 // Verify that the message was created successfully
+                assert_eq!(cast_req_msg.data.election_hash, election_hash);
                 assert_eq!(
-                    cast_req_msg.data.election_hash,
-                    crate::elections::string_to_election_hash(&election_hash)
+                    cast_req_msg.data.voter_authorization.data.voter_pseudonym,
+                    voter_authorization.data.voter_pseudonym
                 );
-                assert_eq!(cast_req_msg.data.voter_pseudonym, voter_pseudonym);
                 assert_eq!(cast_req_msg.data.ballot_tracker, ballot_tracker);
                 assert_eq!(
-                    cast_req_msg.data.voter_verifying_key,
-                    casting_actor.voter_verifying_key
+                    cast_req_msg
+                        .data
+                        .voter_authorization
+                        .data
+                        .voter_verifying_key,
+                    voter_verifying_key
                 );
 
                 // Verify that the signature can be verified using VSerializable
@@ -405,7 +413,11 @@ mod tests {
                 let verification_result = crate::cryptography::verify_signature(
                     &serialized,
                     &cast_req_msg.signature,
-                    &cast_req_msg.data.voter_verifying_key,
+                    &cast_req_msg
+                        .data
+                        .voter_authorization
+                        .data
+                        .voter_verifying_key,
                 );
                 assert!(
                     verification_result.is_ok(),
@@ -419,7 +431,11 @@ mod tests {
                 let wrong_verification = crate::cryptography::verify_signature(
                     &wrong_serialized,
                     &cast_req_msg.signature,
-                    &cast_req_msg.data.voter_verifying_key,
+                    &cast_req_msg
+                        .data
+                        .voter_authorization
+                        .data
+                        .voter_verifying_key,
                 );
                 assert!(
                     wrong_verification.is_err(),

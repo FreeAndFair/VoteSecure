@@ -362,9 +362,10 @@ impl BulletinBoard for InMemoryBulletinBoard {
 mod tests {
     use super::*;
     use crate::bulletins::{
-        BALLOT_SUBMISSION_BULLETIN, BallotSubContents, BulletinData, VOTER_AUTHORIZATION_BULLETIN,
+        BALLOT_CAST_BULLETIN, BALLOT_SUBMISSION_BULLETIN, BallotSubContents, BulletinData,
     };
     use crate::cryptography::{Signature, generate_signature_keypair};
+    use crate::elections::VoterAuthorization;
     use crate::elections::string_to_election_hash;
     use crate::messages::SignedBallotMsgData;
 
@@ -381,11 +382,15 @@ mod tests {
         )
         .unwrap();
 
+        let voter_authorization = VoterAuthorization::test_voter_authorization(
+            string_to_election_hash("test_election"),
+            "voter123",
+            1,
+            verifying_key,
+        );
+
         let ballot_msg_data = SignedBallotMsgData {
-            election_hash: string_to_election_hash("test_election"),
-            voter_pseudonym: "voter123".to_string(),
-            voter_verifying_key: verifying_key,
-            ballot_style: 1,
+            voter_authorization,
             ballot_cryptogram,
         };
 
@@ -504,9 +509,9 @@ mod tests {
         let submissions = board.get_bulletins_by_type(BALLOT_SUBMISSION_BULLETIN);
         assert_eq!(submissions.len(), 2);
 
-        // Get voter authorization bulletins (should be empty)
-        let auths = board.get_bulletins_by_type(VOTER_AUTHORIZATION_BULLETIN);
-        assert_eq!(auths.len(), 0);
+        // Get ballot cast bulletins (should be empty)
+        let casts = board.get_bulletins_by_type(BALLOT_CAST_BULLETIN);
+        assert_eq!(casts.len(), 0);
     }
 
     #[test]
