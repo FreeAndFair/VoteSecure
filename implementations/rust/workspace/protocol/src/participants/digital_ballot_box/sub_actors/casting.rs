@@ -136,10 +136,22 @@ impl CastingActor {
         self.ballot_sub_tracker = Some(ballot_tracker.clone());
         self.cast_request = Some(cast_req.clone());
 
-        // Perform all validation checks; on success, this also returns the
-        // submitted ballot being cast, fetched from the bulletin board.
-        let ballot = match self.perform_cast_request_checks(&cast_req, bulletin_board) {
-            Ok(ballot) => ballot,
+        // Perform checks #1 and #2, which don't depend on bulletin board state.
+        if let Err(error_msg) = self.perform_pre_board_checks(&cast_req) {
+            self.state = CastingState::Complete;
+            return Ok(CastingOutput::SendMessage(ProtocolMsg::CastConf(
+                self.create_error_message(error_msg),
+            )));
+        }
+
+        // Atomically perform checks #3–#5 (which do depend on bulletin
+        // board state) and post the resulting ballot cast bulletin.
+        let actor = &*self;
+        let ballot_cast_tracker =
+            bulletin_board.append_bulletin_atomic(|bb| actor.build_cast_bulletin(&cast_req, bb));
+
+        let ballot_cast_tracker = match ballot_cast_tracker {
+            Ok(tracker) => tracker,
             Err(error_msg) => {
                 self.state = CastingState::Complete;
                 return Ok(CastingOutput::SendMessage(ProtocolMsg::CastConf(
@@ -148,23 +160,8 @@ impl CastingActor {
             }
         };
 
-        // Publish the ballot cast bulletin
-        let ballot_cast_tracker =
-            self.publish_ballot_cast(ballot, cast_req.clone(), bulletin_board);
-
-        if let Err(error_msg) = ballot_cast_tracker {
-            // The cast bulletin couldn't be published.
-            self.state = CastingState::Complete;
-            return Ok(CastingOutput::SendMessage(ProtocolMsg::CastConf(
-                self.create_error_message(error_msg),
-            )));
-        }
-
         // Create and send the confirmation message
-        let conf_msg = self.create_confirmation_message(
-            ballot_tracker,
-            ballot_cast_tracker.expect("cast tracker must exist at this point"),
-        );
+        let conf_msg = self.create_confirmation_message(ballot_tracker, ballot_cast_tracker);
 
         self.state = CastingState::Complete;
 
@@ -175,11 +172,12 @@ impl CastingActor {
     // Validation Checks (from ballot-cast-spec.md)
     // =============================================================================
 
-    fn perform_cast_request_checks<B: BulletinBoard>(
-        &self,
-        cast_req: &CastReqMsg,
-        bulletin_board: &B,
-    ) -> Result<SignedBallotMsg, String> {
+    /// Performs checks #1 and #2 of the "Cast Request Checks" from the
+    /// spec, which don't depend on bulletin board state. Checks #3–#5
+    /// (which do) are performed in [`Self::build_cast_bulletin`],
+    /// atomically with posting the resulting bulletin; see that method's
+    /// documentation for more information.
+    fn perform_pre_board_checks(&self, cast_req: &CastReqMsg) -> Result<(), String> {
         // Check #1: signature is valid (moved first to avoid expensive operations on invalid signatures)
         self.check_signature_valid(cast_req)?;
 
@@ -190,18 +188,7 @@ impl CastingActor {
             .voter_authorization
             .validate(&self.eas_verifying_key, &self.election_hash)?;
 
-        // Check #3: ballot_tracker matches a BallotSubBulletin entry whose
-        // voter_authorization is identical to this message's.
-        let ballot = self.check_ballot_tracker_valid(&cast_req.data, bulletin_board)?;
-
-        // Check #4: no previously published BallotCastBulletin for this voter
-        self.check_no_previous_cast(&cast_req.data.voter_authorization, bulletin_board)?;
-
-        // Check #5: the BallotSubBulletin being cast is the most recent
-        // submitted ballot for this voter
-        self.check_most_recent_submission(&cast_req.data, &ballot, bulletin_board)?;
-
-        Ok(ballot)
+        Ok(())
     }
 
     /// Check #3: The ballot_tracker matches a `BallotSubBulletin` entry, and
@@ -294,13 +281,31 @@ impl CastingActor {
     // Bulletin Publishing
     // =============================================================================
 
-    /// Publish the ballot cast bulletin to the bulletin board.
-    fn publish_ballot_cast<B: BulletinBoard>(
+    /// Performs checks #3–#5 of the "Cast Request Checks" and builds the
+    /// resulting signed ballot cast bulletin, ready to post.
+    ///
+    /// This function is meant to be passed as the `build` closure to
+    /// [`BulletinBoard::append_bulletin_atomic`]: checks #3–#5 read
+    /// bulletin board state (the referenced submission, prior casts for
+    /// this voter, the most recent submission for this voter), so they
+    /// have to be evaluated atomically with the append to prevent race
+    /// conditions.
+    fn build_cast_bulletin<B: BulletinBoard>(
         &self,
-        ballot: crate::messages::SignedBallotMsg,
-        cast_intent: CastReqMsg,
-        bulletin_board: &mut B,
-    ) -> Result<BulletinTracker, String> {
+        cast_req: &CastReqMsg,
+        bulletin_board: &B,
+    ) -> Result<Bulletin, String> {
+        // Check #3: ballot_tracker matches a BallotSubBulletin entry whose
+        // voter_authorization is identical to this message's.
+        let ballot = self.check_ballot_tracker_valid(&cast_req.data, bulletin_board)?;
+
+        // Check #4: no previously published BallotCastBulletin for this voter
+        self.check_no_previous_cast(&cast_req.data.voter_authorization, bulletin_board)?;
+
+        // Check #5: the BallotSubBulletin being cast is the most recent
+        // submitted ballot for this voter
+        self.check_most_recent_submission(&cast_req.data, &ballot, bulletin_board)?;
+
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|e| format!("Failed to get timestamp: {}", e))?
@@ -312,7 +317,7 @@ impl CastingActor {
             election_hash: self.election_hash,
             contents: Box::new(BallotCastContents {
                 ballot,
-                cast_intent,
+                cast_intent: cast_req.clone(),
             }),
             timestamp,
             previous_bb_msg_hash: previous_hash,
@@ -324,13 +329,10 @@ impl CastingActor {
             crate::cryptography::sign_data(&serialized_data, &self.dbb_signing_key);
         let signature = hex::encode(signature_bytes.to_bytes());
 
-        let bulletin = Bulletin {
+        Ok(Bulletin {
             data: bulletin_data,
             signature,
-        };
-
-        let tracker = bulletin_board.append_bulletin(bulletin)?;
-        Ok(tracker)
+        })
     }
 
     /// Create the confirmation message to send back to the VA.
@@ -457,9 +459,11 @@ mod tests {
         };
         let signature_bytes = crate::cryptography::sign_data(&bulletin_data.ser(), dbb_signing_key);
         bulletin_board
-            .append_bulletin(Bulletin {
-                data: bulletin_data,
-                signature: hex::encode(signature_bytes.to_bytes()),
+            .append_bulletin_atomic(|_| {
+                Ok(Bulletin {
+                    data: bulletin_data.clone(),
+                    signature: hex::encode(signature_bytes.to_bytes()),
+                })
             })
             .unwrap()
     }
@@ -634,9 +638,11 @@ mod tests {
         let cast_bulletin_signature =
             crate::cryptography::sign_data(&cast_bulletin_data.ser(), &dbb_signing_key);
         bulletin_board
-            .append_bulletin(Bulletin {
-                data: cast_bulletin_data,
-                signature: hex::encode(cast_bulletin_signature.to_bytes()),
+            .append_bulletin_atomic(|_| {
+                Ok(Bulletin {
+                    data: cast_bulletin_data.clone(),
+                    signature: hex::encode(cast_bulletin_signature.to_bytes()),
+                })
             })
             .unwrap();
 

@@ -111,9 +111,8 @@ impl SubmissionActor {
             (SubmissionState::AwaitingBallot, SubmissionInput::NetworkMessage(msg)) => {
                 match msg {
                     ProtocolMsg::SubmitSignedBallot(signed_ballot) => {
-                        // Perform all "Submit Signed Ballot Checks"
-                        let check_result = self
-                            .perform_submit_signed_ballot_checks(&signed_ballot, bulletin_board);
+                        // Perform checks #1-#4, which don't depend on bulletin board state.
+                        let check_result = self.perform_pre_board_checks(&signed_ballot);
 
                         if let Err(error_msg) = check_result {
                             // The ballot was invalid.
@@ -129,9 +128,12 @@ impl SubmissionActor {
                         self.received_ballot = Some(signed_ballot.clone());
                         self.state = SubmissionState::ProcessingBallot;
 
-                        // Create and post a ballot submission bulletin
-                        let tracker_result =
-                            self.create_and_post_bulletin(&signed_ballot, bulletin_board);
+                        // Atomically perform checks #5 and #6 (which do depend on
+                        // bulletin board state) and post the resulting bulletin.
+                        let actor = &*self;
+                        let tracker_result = bulletin_board.append_bulletin_atomic(|bb| {
+                            actor.build_submission_bulletin(&signed_ballot, bb)
+                        });
 
                         if let Err(error_msg) = tracker_result {
                             // The ballot was invalid.
@@ -160,12 +162,12 @@ impl SubmissionActor {
 
     // --- Submit Signed Ballot Checks (from ballot-submission-spec.md) ---
 
-    /// Performs all "Submit Signed Ballot Checks" from the spec.
-    fn perform_submit_signed_ballot_checks<B: BulletinBoard>(
-        &self,
-        ballot: &SignedBallotMsg,
-        bulletin_board: &B,
-    ) -> Result<(), String> {
+    /// Performs checks #1–#4 of the "Submit Signed Ballot Checks" from the
+    /// spec, which don't depend on bulletin board state. Checks #5 and #6
+    /// (which do) are performed in [`Self::build_submission_bulletin`],
+    /// atomically with posting the resulting bulletin; see that method's
+    /// documentation for more information.
+    fn perform_pre_board_checks(&self, ballot: &SignedBallotMsg) -> Result<(), String> {
         // Check #1: The signature is a valid signature over the message contents
         // (moved first to avoid expensive operations on invalid signatures)
         self.check_signature_valid(ballot)?;
@@ -184,13 +186,6 @@ impl SubmissionActor {
         // Check #4: The ballot_style in the ballot_cryptogram matches the ballot_style
         // in the voter_authorization.
         self.check_ballot_style_matches(ballot)?;
-
-        // Check #5: No cast ballot appears on the bulletin board with the voter
-        // pseudonym in the voter_authorization.
-        self.check_no_previous_cast(ballot, bulletin_board)?;
-
-        // Check #6: The ciphertext does not already appear on the bulletin board.
-        self.check_ciphertext_not_on_bb(ballot, bulletin_board)?;
 
         Ok(())
     }
@@ -274,12 +269,27 @@ impl SubmissionActor {
 
     // --- Bulletin Creation and Posting ---
 
-    /// Create and post a ballot submission bulletin to the bulletin board.
-    fn create_and_post_bulletin<B: BulletinBoard>(
+    /// Performs checks #5 and #6 of the "Submit Signed Ballot Checks" and
+    /// builds the resulting signed ballot submission bulletin, ready to
+    /// post.
+    ///
+    /// This function is meant to be passed as the `build` closure to
+    /// [`BulletinBoard::append_bulletin_atomic`]: checks #5 and #6 read
+    /// bulletin board state ("no cast ballot exists for this pseudonym",
+    /// "this ciphertext doesn't already exist"), so they have to be
+    /// evaluated atomically with the append to prevent race conditions.
+    fn build_submission_bulletin<B: BulletinBoard>(
         &self,
         ballot: &SignedBallotMsg,
-        bulletin_board: &mut B,
-    ) -> Result<String, String> {
+        bulletin_board: &B,
+    ) -> Result<Bulletin, String> {
+        // Check #5: No cast ballot appears on the bulletin board with the voter
+        // pseudonym in the voter_authorization.
+        self.check_no_previous_cast(ballot, bulletin_board)?;
+
+        // Check #6: The ciphertext does not already appear on the bulletin board.
+        self.check_ciphertext_not_on_bb(ballot, bulletin_board)?;
+
         // Get the previous bulletin hash for chaining
         let previous_bb_msg_hash = bulletin_board.get_last_bulletin_hash().unwrap_or_default();
 
@@ -307,16 +317,10 @@ impl SubmissionActor {
         // Convert signature to string for bulletin
         let signature = hex::encode(signature_bytes.to_bytes());
 
-        // Create the bulletin
-        let bulletin = Bulletin {
+        Ok(Bulletin {
             data: bulletin_data,
             signature,
-        };
-
-        // Append to bulletin board and get tracker
-        let tracker = bulletin_board.append_bulletin(bulletin)?;
-
-        Ok(tracker)
+        })
     }
 
     /// Create a TrackerMsg to return to the VA.
@@ -1005,9 +1009,11 @@ mod tests {
         let cast_bulletin_signature =
             crate::cryptography::sign_data(&cast_bulletin_data.ser(), &dbb_signing_key);
         bulletin_board
-            .append_bulletin(Bulletin {
-                data: cast_bulletin_data,
-                signature: hex::encode(cast_bulletin_signature.to_bytes()),
+            .append_bulletin_atomic(|_| {
+                Ok(Bulletin {
+                    data: cast_bulletin_data.clone(),
+                    signature: hex::encode(cast_bulletin_signature.to_bytes()),
+                })
             })
             .unwrap();
 

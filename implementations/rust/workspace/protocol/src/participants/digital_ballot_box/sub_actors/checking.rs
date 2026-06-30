@@ -581,9 +581,11 @@ mod tests {
         let ballot_sub_signature_bytes =
             crate::cryptography::sign_data(&bulletin_data.ser(), &dbb_signing_key);
         let tracker = bulletin_board
-            .append_bulletin(Bulletin {
-                data: bulletin_data,
-                signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+            .append_bulletin_atomic(|_| {
+                Ok(Bulletin {
+                    data: bulletin_data.clone(),
+                    signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+                })
             })
             .unwrap();
 
@@ -699,9 +701,11 @@ mod tests {
         let ballot_sub_signature_bytes =
             crate::cryptography::sign_data(&sub_bulletin_data.ser(), &dbb_signing_key);
         let tracker = bulletin_board
-            .append_bulletin(Bulletin {
-                data: sub_bulletin_data,
-                signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+            .append_bulletin_atomic(|_| {
+                Ok(Bulletin {
+                    data: sub_bulletin_data.clone(),
+                    signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+                })
             })
             .unwrap();
 
@@ -729,9 +733,11 @@ mod tests {
         let ballot_cast_signature_bytes =
             crate::cryptography::sign_data(&cast_bulletin_data.ser(), &dbb_signing_key);
         let _cast_tracker = bulletin_board
-            .append_bulletin(Bulletin {
-                data: cast_bulletin_data,
-                signature: hex::encode(ballot_cast_signature_bytes.to_bytes()),
+            .append_bulletin_atomic(|_| {
+                Ok(Bulletin {
+                    data: cast_bulletin_data.clone(),
+                    signature: hex::encode(ballot_cast_signature_bytes.to_bytes()),
+                })
             })
             .unwrap();
 
@@ -872,9 +878,11 @@ mod tests {
         let ballot_sub_signature_bytes =
             crate::cryptography::sign_data(&bulletin_data.ser(), &dbb_signing_key);
         let tracker = bulletin_board
-            .append_bulletin(Bulletin {
-                data: bulletin_data,
-                signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+            .append_bulletin_atomic(|_| {
+                Ok(Bulletin {
+                    data: bulletin_data.clone(),
+                    signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+                })
             })
             .unwrap();
 
@@ -936,9 +944,11 @@ mod tests {
         let ballot_sub_signature_bytes =
             crate::cryptography::sign_data(&bulletin_data.ser(), &dbb_signing_key);
         let tracker = bulletin_board
-            .append_bulletin(Bulletin {
-                data: bulletin_data,
-                signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+            .append_bulletin_atomic(|_| {
+                Ok(Bulletin {
+                    data: bulletin_data.clone(),
+                    signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+                })
             })
             .unwrap();
 
@@ -1006,9 +1016,11 @@ mod tests {
         let ballot_sub_signature_bytes =
             crate::cryptography::sign_data(&bulletin_data.ser(), &dbb_signing_key);
         let tracker = bulletin_board
-            .append_bulletin(Bulletin {
-                data: bulletin_data,
-                signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+            .append_bulletin_atomic(|_| {
+                Ok(Bulletin {
+                    data: bulletin_data.clone(),
+                    signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+                })
             })
             .unwrap();
 
@@ -1097,9 +1109,11 @@ mod tests {
         let ballot_sub_signature_bytes =
             crate::cryptography::sign_data(&bulletin_data.ser(), &dbb_signing_key);
         let tracker = bulletin_board
-            .append_bulletin(Bulletin {
-                data: bulletin_data,
-                signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+            .append_bulletin_atomic(|_| {
+                Ok(Bulletin {
+                    data: bulletin_data.clone(),
+                    signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+                })
             })
             .unwrap();
 
@@ -1194,9 +1208,11 @@ mod tests {
         let ballot_sub_signature_bytes =
             crate::cryptography::sign_data(&bulletin_data.ser(), &dbb_signing_key);
         let tracker = bulletin_board
-            .append_bulletin(Bulletin {
-                data: bulletin_data,
-                signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+            .append_bulletin_atomic(|_| {
+                Ok(Bulletin {
+                    data: bulletin_data.clone(),
+                    signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+                })
             })
             .unwrap();
 
@@ -1255,9 +1271,11 @@ mod tests {
         let ballot_sub_signature_bytes =
             crate::cryptography::sign_data(&bulletin_data.ser(), &dbb_signing_key);
         let tracker = bulletin_board
-            .append_bulletin(Bulletin {
-                data: bulletin_data,
-                signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+            .append_bulletin_atomic(|_| {
+                Ok(Bulletin {
+                    data: bulletin_data.clone(),
+                    signature: hex::encode(ballot_sub_signature_bytes.to_bytes()),
+                })
             })
             .unwrap();
 

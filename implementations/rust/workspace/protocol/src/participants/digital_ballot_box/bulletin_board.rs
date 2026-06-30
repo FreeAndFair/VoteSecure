@@ -23,21 +23,6 @@ use std::collections::HashMap;
 /// each bulletin contains a hash of the previous bulletin, creating an
 /// immutable audit trail.
 pub trait BulletinBoard: Clone + std::fmt::Debug {
-    /// Append a signed bulletin to the board.
-    ///
-    /// The DBB has already signed the bulletin before passing it here.
-    /// This method validates the previous_hash matches the last bulletin,
-    /// computes the hash of this bulletin (which becomes its tracker),
-    /// stores the bulletin, and returns the tracker.
-    ///
-    /// # Arguments
-    /// * `bulletin` - The signed bulletin to append
-    ///
-    /// # Returns
-    /// * `Ok(tracker)` - The hash/tracker of the appended bulletin
-    /// * `Err(msg)` - If validation fails
-    fn append_bulletin(&mut self, bulletin: Bulletin) -> Result<BulletinTracker, String>;
-
     /// Get a bulletin by its tracker (hash).
     ///
     /// # Arguments
@@ -127,6 +112,47 @@ pub trait BulletinBoard: Clone + std::fmt::Debug {
     /// * `Ok(())` - If the chain is valid
     /// * `Err(msg)` - If validation fails
     fn validate_chain(&self) -> Result<(), String>;
+
+    /// Atomically build and append a bulletin.
+    ///
+    /// This is the only way to post a bulletin to the board — there is no
+    /// separate, unchecked append. Callers whose checks depend on the
+    /// current board state (e.g. "no cast bulletin already exists for this
+    /// pseudonym", "this ciphertext isn't already posted") must perform
+    /// those checks and construct the resulting signed [`Bulletin`]
+    /// (including reading [`get_last_bulletin_hash`][Self::get_last_bulletin_hash]
+    /// for its `previous_bb_msg_hash`), inside `build` rather than reading
+    /// the board separately beforehand. This lets concurrent implementations
+    /// (e.g., a database shared by multiple DBB replicas) guarantee the
+    /// checks and the append are atomic, preventing time-of-check to
+    /// time-of-use races. An unconditional append (no board-dependent checks
+    /// needed) is just `append_bulletin_atomic(|_| Ok(bulletin))`. If `build`
+    /// returns an `Err`, the board *must* be left unchanged and the error
+    /// returned to the caller.
+    ///
+    /// Implementations backed by storage that may be concurrently written
+    /// by other actors must provide this atomicity (e.g., via a transaction
+    /// or lock held for the duration of `build` and the append, or via
+    /// unique constraints plus retry on conflict). `build` may be invoked
+    /// more than once by an implementation using optimistic-retry
+    /// concurrency control, so it must be a *pure function* of the board
+    /// state it's given: only reads via `&Self`, with no other side
+    /// effects. Implementations where `&mut self` already implies
+    /// exclusive access (e.g. [`InMemoryBulletinBoard`]) can simply call
+    /// `build` once, since Rust's borrow checker rules out any other
+    /// writer running concurrently against the same in-process value.
+    ///
+    /// # Arguments
+    /// * `build` - Given a read-only view of the current board state,
+    ///   performs any board-dependent checks and returns the fully
+    ///   constructed, signed bulletin to append, or an `Err` if those
+    ///   checks fail (in which case nothing is appended).
+    /// # Returns
+    /// * `Ok(tracker)` - The tracker of the appended bulletin
+    /// * `Err(msg)` - If `build` failed, or if the append itself failed
+    fn append_bulletin_atomic<F>(&mut self, build: F) -> Result<BulletinTracker, String>
+    where
+        F: Fn(&Self) -> Result<Bulletin, String>;
 }
 
 // =============================================================================
@@ -191,16 +217,13 @@ impl InMemoryBulletinBoard {
         let result = hasher.finalize();
         hex::encode(result)
     }
-}
 
-impl Default for InMemoryBulletinBoard {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl BulletinBoard for InMemoryBulletinBoard {
-    fn append_bulletin(&mut self, bulletin: Bulletin) -> Result<BulletinTracker, String> {
+    /// Validate `bulletin`'s `previous_bb_msg_hash` against the current
+    /// head, then store it. Not part of the `BulletinBoard` trait — only
+    /// reachable through [`BulletinBoard::append_bulletin_atomic`], so
+    /// every append goes through the checked path; see that method's
+    /// documentation for why a separate, unchecked append isn't exposed.
+    fn append_bulletin_internal(&mut self, bulletin: Bulletin) -> Result<BulletinTracker, String> {
         // Validate that previous_hash matches the last bulletin's hash
         let expected_previous_hash = self.get_last_bulletin_hash().unwrap_or_default();
         let actual_previous_hash = &bulletin.data.previous_bb_msg_hash;
@@ -221,6 +244,24 @@ impl BulletinBoard for InMemoryBulletinBoard {
         self.bulletin_hashes.insert(tracker.clone(), index);
 
         Ok(tracker)
+    }
+}
+
+impl Default for InMemoryBulletinBoard {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl BulletinBoard for InMemoryBulletinBoard {
+    fn append_bulletin_atomic<F>(&mut self, build: F) -> Result<BulletinTracker, String>
+    where
+        F: Fn(&Self) -> Result<Bulletin, String>,
+    {
+        // `&mut self` is already exclusive access in-process, so `build` is
+        // only ever called once here; no concurrent writer can interleave.
+        let bulletin = build(self)?;
+        self.append_bulletin_internal(bulletin)
     }
 
     fn get_bulletin(&self, tracker: &BulletinTracker) -> Result<Option<Bulletin>, String> {
@@ -424,7 +465,9 @@ mod tests {
         let mut board = InMemoryBulletinBoard::new();
         let bulletin = create_test_ballot_submission(String::new());
 
-        let tracker = board.append_bulletin(bulletin.clone()).unwrap();
+        let tracker = board
+            .append_bulletin_atomic(|_| Ok(bulletin.clone()))
+            .unwrap();
 
         assert!(!tracker.is_empty());
         assert_eq!(board.get_all_bulletins().len(), 1);
@@ -437,15 +480,21 @@ mod tests {
 
         // First bulletin with empty previous hash
         let bulletin1 = create_test_ballot_submission(String::new());
-        let tracker1 = board.append_bulletin(bulletin1).unwrap();
+        let tracker1 = board
+            .append_bulletin_atomic(|_| Ok(bulletin1.clone()))
+            .unwrap();
 
         // Second bulletin with previous hash = tracker1
         let bulletin2 = create_test_ballot_submission(tracker1.clone());
-        let tracker2 = board.append_bulletin(bulletin2).unwrap();
+        let tracker2 = board
+            .append_bulletin_atomic(|_| Ok(bulletin2.clone()))
+            .unwrap();
 
         // Third bulletin with previous hash = tracker2
         let bulletin3 = create_test_ballot_submission(tracker2.clone());
-        let tracker3 = board.append_bulletin(bulletin3).unwrap();
+        let tracker3 = board
+            .append_bulletin_atomic(|_| Ok(bulletin3.clone()))
+            .unwrap();
 
         assert_eq!(board.get_all_bulletins().len(), 3);
         assert_eq!(board.get_last_bulletin_hash().unwrap(), tracker3);
@@ -455,7 +504,9 @@ mod tests {
     fn test_get_bulletin_by_tracker() {
         let mut board = InMemoryBulletinBoard::new();
         let bulletin = create_test_ballot_submission(String::new());
-        let tracker = board.append_bulletin(bulletin.clone()).unwrap();
+        let tracker = board
+            .append_bulletin_atomic(|_| Ok(bulletin.clone()))
+            .unwrap();
 
         let retrieved = board.get_bulletin(&tracker).unwrap();
         assert!(retrieved.is_some());
@@ -471,12 +522,53 @@ mod tests {
 
         // First bulletin succeeds
         let bulletin1 = create_test_ballot_submission(String::new());
-        board.append_bulletin(bulletin1).unwrap();
+        board
+            .append_bulletin_atomic(|_| Ok(bulletin1.clone()))
+            .unwrap();
 
         // Second bulletin with wrong previous hash should fail
         let bulletin2 = create_test_ballot_submission("wrong_hash".to_string());
-        let result = board.append_bulletin(bulletin2);
+        let result = board.append_bulletin_atomic(|_| Ok(bulletin2.clone()));
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_append_bulletin_atomic_build_failure_appends_nothing() {
+        let mut board = InMemoryBulletinBoard::new();
+
+        // A failing build should leave the board untouched.
+        let result: Result<BulletinTracker, String> =
+            board.append_bulletin_atomic(|_| Err("checks failed".to_string()));
+        assert!(result.is_err());
+        assert!(board.get_all_bulletins().is_empty());
+        assert!(board.get_last_bulletin_hash().is_none());
+    }
+
+    #[test]
+    fn test_append_bulletin_atomic_build_sees_current_state() {
+        let mut board = InMemoryBulletinBoard::new();
+
+        // `build` reads the board's current head to chain correctly,
+        // rather than the caller computing it beforehand.
+        let tracker1 = board
+            .append_bulletin_atomic(|bb| {
+                Ok(create_test_ballot_submission(
+                    bb.get_last_bulletin_hash().unwrap_or_default(),
+                ))
+            })
+            .unwrap();
+
+        let tracker2 = board
+            .append_bulletin_atomic(|bb| {
+                Ok(create_test_ballot_submission(
+                    bb.get_last_bulletin_hash().unwrap_or_default(),
+                ))
+            })
+            .unwrap();
+
+        assert_ne!(tracker1, tracker2);
+        assert_eq!(board.get_all_bulletins().len(), 2);
+        assert!(board.validate_chain().is_ok());
     }
 
     #[test]
@@ -485,10 +577,14 @@ mod tests {
 
         // Build a valid chain
         let bulletin1 = create_test_ballot_submission(String::new());
-        let tracker1 = board.append_bulletin(bulletin1).unwrap();
+        let tracker1 = board
+            .append_bulletin_atomic(|_| Ok(bulletin1.clone()))
+            .unwrap();
 
         let bulletin2 = create_test_ballot_submission(tracker1);
-        board.append_bulletin(bulletin2).unwrap();
+        board
+            .append_bulletin_atomic(|_| Ok(bulletin2.clone()))
+            .unwrap();
 
         // Chain should be valid
         assert!(board.validate_chain().is_ok());
@@ -500,10 +596,14 @@ mod tests {
 
         // Add ballot submission bulletins
         let bulletin1 = create_test_ballot_submission(String::new());
-        let tracker1 = board.append_bulletin(bulletin1).unwrap();
+        let tracker1 = board
+            .append_bulletin_atomic(|_| Ok(bulletin1.clone()))
+            .unwrap();
 
         let bulletin2 = create_test_ballot_submission(tracker1);
-        board.append_bulletin(bulletin2).unwrap();
+        board
+            .append_bulletin_atomic(|_| Ok(bulletin2.clone()))
+            .unwrap();
 
         // Get all ballot submission bulletins
         let submissions = board.get_bulletins_by_type(BALLOT_SUBMISSION_BULLETIN);

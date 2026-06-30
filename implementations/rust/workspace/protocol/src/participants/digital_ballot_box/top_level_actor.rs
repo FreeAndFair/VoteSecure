@@ -337,41 +337,38 @@ impl<B: BulletinBoard> DigitalBallotBoxActor<B> {
                     return Err("Cannot post bulletin of a built-in type".to_string());
                 }
 
-                // Get the previous bulletin hash for chaining
-                let previous_bb_msg_hash = self
-                    .bulletin_board
-                    .get_last_bulletin_hash()
-                    .unwrap_or_default();
+                let election_hash = self.election_hash;
+                let dbb_signing_key = &self.dbb_signing_key;
 
-                // Get current timestamp (Unix timestamp in seconds)
-                let timestamp = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .map_err(|e| format!("Failed to get timestamp: {}", e))?
-                    .as_secs();
+                // Post the bulletin to the bulletin board. There are no
+                // board-dependent checks here, only the chain-hash and
+                // timestamp, which still need to be read atomically with
+                // the append to avoid racing a concurrent writer.
+                match self.bulletin_board.append_bulletin_atomic(|bb| {
+                    let previous_bb_msg_hash = bb.get_last_bulletin_hash().unwrap_or_default();
 
-                // Create bulletin data from the bulletin contents.
-                let bulletin_data = BulletinData {
-                    election_hash: self.election_hash,
-                    contents: bulletin_contents,
-                    timestamp,
-                    previous_bb_msg_hash,
-                };
+                    let timestamp = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map_err(|e| format!("Failed to get timestamp: {}", e))?
+                        .as_secs();
 
-                // Sign the bulletin.
-                let serialized_data = bulletin_data.ser();
-                let signature_bytes =
-                    crate::cryptography::sign_data(&serialized_data, &self.dbb_signing_key);
+                    let bulletin_data = BulletinData {
+                        election_hash,
+                        contents: bulletin_contents.clone(),
+                        timestamp,
+                        previous_bb_msg_hash,
+                    };
 
-                // Convert signature to string for bulletin
-                let signature = hex::encode(signature_bytes.to_bytes());
+                    let serialized_data = bulletin_data.ser();
+                    let signature_bytes =
+                        crate::cryptography::sign_data(&serialized_data, dbb_signing_key);
+                    let signature = hex::encode(signature_bytes.to_bytes());
 
-                let bulletin = Bulletin {
-                    data: bulletin_data,
-                    signature,
-                };
-
-                // Post the bulletin to the bulletin board.
-                match self.bulletin_board.append_bulletin(bulletin) {
+                    Ok(Bulletin {
+                        data: bulletin_data,
+                        signature,
+                    })
+                }) {
                     Ok(tracker) => Ok(ActorOutput::BulletinPosted(tracker)),
                     Err(err) => Err(err),
                 }
