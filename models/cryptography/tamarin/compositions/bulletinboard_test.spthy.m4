@@ -4,8 +4,8 @@ dnl This is the m4 input file for the composition of the bulletin
 dnl board and a basic test of its executability.
 dnl
 dnl @author Daniel M. Zimmerman
-dnl @copyright Free & Fair 2025
-dnl @version 0.1
+dnl @copyright Free & Fair 2025-26
+dnl @version 0.2
 dnl
 dnl We change the m4 quote characters to <! and !>, so that they don't
 dnl interfere with Tamarin's quote characters or any comments we might
@@ -27,8 +27,8 @@ dnl
   properties.
 
   @author Daniel M. Zimmerman
-  @copyright Free & Fair 2025
-  @version 0.1
+  @copyright Free & Fair 2025-26
+  @version 0.2
 */
 
 theory bulletinboard_instantiation

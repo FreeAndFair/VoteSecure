@@ -2,3 +2,4 @@ generated_composed/
 generated_standalone/
 output/
 tmp/
+*.log

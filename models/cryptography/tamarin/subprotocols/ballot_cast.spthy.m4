@@ -11,8 +11,8 @@ dnl mock rules that simulate required actions of other subprotocols by
 dnl establishing suitable linear/persistent/action facts.
 dnl
 dnl @author Daniel M. Zimmerman
-dnl @copyright Free & Fair 2025
-dnl @version 0.1
+dnl @copyright Free & Fair 2025-26
+dnl @version 0.2
 dnl
 dnl We change the m4 quote characters to <! and !>, so that they don't
 dnl interfere with Tamarin's quote characters or any comments we might
@@ -55,9 +55,8 @@ define(<!USE_SECURE_CHANNELS_INTERCEPTION!>)dnl
 include(common/channels.m4.inc)
 define(<!USE_NO_BB_ENTRY_WITH_HASH!>)dnl
 include(common/bulletinboard.m4.inc)
-define(<!USE_MOST_RECENT_AUTHORIZATION!>)dnl
-define(<!USE_UNAUTHORIZED!>)dnl
 define(<!USE_SUBMISSION_NOT_ON_BB!>)dnl
+define(<!USE_AT_MOST_ONE_CAST_PER_PSEUDONYM!>)dnl
 define(<!USE_NO_PREVIOUS_CAST!>)dnl
 define(<!USE_MOST_RECENT_BALLOT!>)dnl
 include(common/ballot_restrictions.m4.inc)
@@ -73,13 +72,14 @@ include(subprotocols/includes/mock_voter_auth.m4.inc)
 include(subprotocols/includes/mock_ballot_submit.m4.inc)
 !>)dnl
 dnl
+include(common/voter_authorization.m4.inc)
 macros:
   /*
-    Message types. he ones that include an "ec_hash" will actually use
+    Message types. The ones that include an "ec_hash" will actually use
     the election configuration, not its hash, because it is public
     information and Tamarin doesn't care if we hash it or not.
    */
-  Msg_VA_Cast_Ballot(ec_hash, pseudonym, pk_voter, tracker) = <'VA_Cast_Ballot', ec_hash, pseudonym, pk_voter, tracker>,
+  Msg_VA_Cast_Ballot(ec_hash, tracker, signed_voter_auth) = <'VA_Cast_Ballot', ec_hash, tracker, signed_voter_auth>,
   Msg_DBB_Cast_Confirmation(ec_hash, sub_tracker, cast_tracker) = <'DBB_Cast_Confirmation', ec_hash, sub_tracker, cast_tracker>,
   Msg_DBB_Cast_Error(ec_hash, error) = <'DBB_Cast_Error', ec_hash, error>,
 
@@ -91,7 +91,6 @@ macros:
     Tamarin that only the DBB can append messages to the bulletin board
     (that is, only DBB actions create bulletin board entries).
    */
-  BBEntry_Voter_Authorization(ec_hash, timestamp, signed_auth_msg) = <'BBEntry_Voter_Authorization', ec_hash, timestamp, signed_auth_msg>,
   BBEntry_Ballot_Cast(ec_hash, timestamp, signed_submit_msg, signed_cast_msg) = <'BBEntry_Ballot_Cast', timestamp, signed_submit_msg, signed_cast_msg>
 dnl
 dnl Include the rules.

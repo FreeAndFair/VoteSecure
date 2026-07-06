@@ -11,8 +11,8 @@ dnl mock rules that simulate required actions of other subprotocols by
 dnl establishing suitable linear/persistent/action facts.
 dnl
 dnl @author Daniel M. Zimmerman
-dnl @copyright Free & Fair 2025
-dnl @version 0.1
+dnl @copyright Free & Fair 2025-26
+dnl @version 0.2
 dnl
 dnl We change the m4 quote characters to <! and !>, so that they don't
 dnl interfere with Tamarin's quote characters or any comments we might

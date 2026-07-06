@@ -4,8 +4,8 @@ dnl that take place outside the air-gapped network (i.e., exposed to the
 dnl Internet).
 dnl
 dnl @author Daniel M. Zimmerman
-dnl @copyright Free & Fair 2025
-dnl @version 0.1
+dnl @copyright Free & Fair 2025-26
+dnl @version 0.2
 dnl
 dnl We change the m4 quote characters to <! and !>, so that they don't
 dnl interfere with Tamarin's quote characters or any comments we might
@@ -27,8 +27,8 @@ dnl
   as well, but for now is just a straightforward composition.
 
   @author Daniel M. Zimmerman
-  @copyright Free & Fair 2025
-  @version 0.1
+  @copyright Free & Fair 2025-26
+  @version 0.2
  */
 
 theory e2eviv_internet
@@ -48,9 +48,8 @@ define(<!USE_SECURE_CHANNELS_INTERCEPTION!>)dnl
 include(common/channels.m4.inc)
 define(<USE_NO_BB_ENTRY_FOR_HASH!>)dnl
 include(common/bulletinboard.m4.inc)
-define(<!USE_MOST_RECENT_AUTHORIZATION!>)dnl
-define(<!USE_UNAUTHORIZED!>)dnl
 define(<!USE_SUBMISSION_NOT_ON_BB!>)dnl
+define(<!USE_AT_MOST_ONE_CAST_PER_PSEUDONYM!>)dnl
 define(<!USE_NO_PREVIOUS_CAST!>)dnl
 define(<!USE_MOST_RECENT_BALLOT!>)dnl
 include(common/ballot_restrictions.m4.inc)

@@ -1,276 +1,68 @@
 simplify
-solve( VA_State_AwaitCheckResult( ~ec, ~va_id, $V, p, ~ballot, c,
-                                  ~r, t, pk
+solve( VA_State_AwaitCheckResult( ~ec, ~va_id, $V, p, ~ballot, c, ~r, t,
+                                  pk
        ) ▶₀ #i )
   case BallotCheck_VA_RequestRandomizers_case_01
-  solve( SecureReceive( ~cid, <~ec, 'DBB'>, ~va_id,
-                        <'DBB_Check_Request',
-                         <'BCA_Check_Request', ~ec,
-                          h(<
-                             <'BBEntry_Ballot_Submission', ~ec, %ts,
-                              <'VA_Submit_Ballot', ~ec, pseudonym($V), pk(~sk_voter),
-                               ~ballot_style, ny_encrypt_c1(~ballot, pk(~sk_election), ~r),
+  solve( BB_Append_Request( ~bbid,
+                            <'BBEntry_Ballot_Submission', ~ec, ~ts.1,
+                             <'VA_Submit_Ballot', ~ec,
+                              <ny_encrypt_c1(~ballot, pk(~sk_election), ~r),
                                ny_encrypt_c2(~ballot, pk(~sk_election), ~r),
                                ny_encrypt_p(~ballot, pk(~sk_election), ~r)>,
-                              sign(<'VA_Submit_Ballot', ~ec, pseudonym($V), pk(~sk_voter),
-                                    ~ballot_style, ny_encrypt_c1(~ballot, pk(~sk_election), ~r),
-                                    ny_encrypt_c2(~ballot, pk(~sk_election), ~r),
-                                    ny_encrypt_p(~ballot, pk(~sk_election), ~r)>,
-                                   '1', ~sk_voter.1)
+                              <'VoterAuthorization', ~ec, pseudonym($V), pk(~sk_voter.1),
+                               ~ballot_style.1, ~ts>,
+                              sign(<'VoterAuthorization', ~ec, pseudonym($V), pk(~sk_voter.1),
+                                    ~ballot_style.1, ~ts>,
+                                   '1', ~sk_eas)
                              >,
-                             h(<~ec, ~bbid>)>),
-                          pk(~sk_bca_encrypt), pk(~z)>,
-                         sign(<'BCA_Check_Request', ~ec,
-                               h(<
-                                  <'BBEntry_Ballot_Submission', ~ec, %ts,
-                                   <'VA_Submit_Ballot', ~ec, pseudonym($V), pk(~sk_voter),
-                                    ~ballot_style, ny_encrypt_c1(~ballot, pk(~sk_election), ~r),
+                             sign(<'VA_Submit_Ballot', ~ec,
+                                   <ny_encrypt_c1(~ballot, pk(~sk_election), ~r),
                                     ny_encrypt_c2(~ballot, pk(~sk_election), ~r),
                                     ny_encrypt_p(~ballot, pk(~sk_election), ~r)>,
-                                   sign(<'VA_Submit_Ballot', ~ec, pseudonym($V), pk(~sk_voter),
-                                         ~ballot_style,
-                                         ny_encrypt_c1(~ballot, pk(~sk_election), ~r),
-                                         ny_encrypt_c2(~ballot, pk(~sk_election), ~r),
-                                         ny_encrypt_p(~ballot, pk(~sk_election), ~r)>,
-                                        '1', ~sk_voter.1)
+                                   <'VoterAuthorization', ~ec, pseudonym($V), pk(~sk_voter.1),
+                                    ~ballot_style.1, ~ts>,
+                                   sign(<'VoterAuthorization', ~ec, pseudonym($V), pk(~sk_voter.1),
+                                         ~ballot_style.1, ~ts>,
+                                        '1', ~sk_eas)
                                   >,
-                                  h(<~ec, ~bbid>)>),
-                               pk(~sk_bca_encrypt), pk(~z)>,
-                              '1', ~z)
-                        >
-         ) ▶₃ #vr )
-    case SecureChannel_Receive_case_1
-    solve( SecureReceive( ~cid_bca, ~bca_id, <~ec, 'DBB'>,
-                          <
-                           <'BCA_Check_Request', ~ec,
-                            h(<
-                               <'BBEntry_Ballot_Submission', ~ec, %ts,
-                                <'VA_Submit_Ballot', ~ec, pseudonym($V), pk(~sk_voter),
-                                 ~ballot_style, ny_encrypt_c1(~ballot, pk(~sk_election), ~r),
-                                 ny_encrypt_c2(~ballot, pk(~sk_election), ~r),
-                                 ny_encrypt_p(~ballot, pk(~sk_election), ~r)>,
-                                sign(<'VA_Submit_Ballot', ~ec, pseudonym($V), pk(~sk_voter),
-                                      ~ballot_style, ny_encrypt_c1(~ballot, pk(~sk_election), ~r),
-                                      ny_encrypt_c2(~ballot, pk(~sk_election), ~r),
-                                      ny_encrypt_p(~ballot, pk(~sk_election), ~r)>,
-                                     '1', ~sk_voter.1)
-                               >,
-                               h(<~ec, ~bbid>)>),
-                            pk(~sk_bca_encrypt), pk(~z)>,
-                           sign(<'BCA_Check_Request', ~ec,
-                                 h(<
-                                    <'BBEntry_Ballot_Submission', ~ec, %ts,
-                                     <'VA_Submit_Ballot', ~ec, pseudonym($V), pk(~sk_voter),
-                                      ~ballot_style, ny_encrypt_c1(~ballot, pk(~sk_election), ~r),
-                                      ny_encrypt_c2(~ballot, pk(~sk_election), ~r),
-                                      ny_encrypt_p(~ballot, pk(~sk_election), ~r)>,
-                                     sign(<'VA_Submit_Ballot', ~ec, pseudonym($V), pk(~sk_voter),
-                                           ~ballot_style,
-                                           ny_encrypt_c1(~ballot, pk(~sk_election), ~r),
-                                           ny_encrypt_c2(~ballot, pk(~sk_election), ~r),
-                                           ny_encrypt_p(~ballot, pk(~sk_election), ~r)>,
-                                          '1', ~sk_voter.1)
-                                    >,
-                                    h(<~ec, ~bbid>)>),
-                                 pk(~sk_bca_encrypt), pk(~z)>,
-                                '1', ~z)
-                          >
-           ) ▶₃ #vr.19 )
-      case SecureChannel_Receive_case_1
-      solve( SecureReceive( ~cid_bca, ~bca_id, <~ec, 'DBB'>,
-                            <
-                             <'BCA_Check_Request', ~ec,
-                              h(<
-                                 <'BBEntry_Ballot_Submission', ~ec, %ts,
-                                  <'VA_Submit_Ballot', ~ec, pseudonym($V), pk(~sk_voter),
-                                   ~ballot_style, ny_encrypt_c1(~ballot, pk(~sk_election), ~r),
-                                   ny_encrypt_c2(~ballot, pk(~sk_election), ~r),
-                                   ny_encrypt_p(~ballot, pk(~sk_election), ~r)>,
-                                  sign(<'VA_Submit_Ballot', ~ec, pseudonym($V), pk(~sk_voter),
-                                        ~ballot_style,
-                                        ny_encrypt_c1(~ballot, pk(~sk_election), ~r),
-                                        ny_encrypt_c2(~ballot, pk(~sk_election), ~r),
-                                        ny_encrypt_p(~ballot, pk(~sk_election), ~r)>,
-                                       '1', ~sk_voter.1)
-                                 >,
-                                 h(<~ec, ~bbid>)>),
-                              pk(~sk_bca_encrypt), pk(~z)>,
-                             sign(<'BCA_Check_Request', ~ec,
-                                   h(<
-                                      <'BBEntry_Ballot_Submission', ~ec, %ts,
-                                       <'VA_Submit_Ballot', ~ec, pseudonym($V), pk(~sk_voter),
-                                        ~ballot_style,
-                                        ny_encrypt_c1(~ballot, pk(~sk_election), ~r),
-                                        ny_encrypt_c2(~ballot, pk(~sk_election), ~r),
-                                        ny_encrypt_p(~ballot, pk(~sk_election), ~r)>,
-                                       sign(<'VA_Submit_Ballot', ~ec, pseudonym($V), pk(~sk_voter),
-                                             ~ballot_style,
-                                             ny_encrypt_c1(~ballot, pk(~sk_election), ~r),
-                                             ny_encrypt_c2(~ballot, pk(~sk_election), ~r),
-                                             ny_encrypt_p(~ballot, pk(~sk_election), ~r)>,
-                                            '1', ~sk_voter.1)
-                                      >,
-                                      h(<~ec, ~bbid>)>),
-                                   pk(~sk_bca_encrypt), pk(~z)>,
-                                  '1', ~z)
-                            >
-             ) ▶₃ #vr.24 )
-        case SecureChannel_Receive_case_1
-        solve( BB_Append_Request( ~bbid,
-                                  <'BBEntry_Ballot_Submission', ~ec, %ts,
-                                   <'VA_Submit_Ballot', ~ec, pseudonym($V), pk(~sk_voter),
-                                    ~ballot_style, ny_encrypt_c1(~ballot, pk(~sk_election), ~r),
-                                    ny_encrypt_c2(~ballot, pk(~sk_election), ~r),
-                                    ny_encrypt_p(~ballot, pk(~sk_election), ~r)>,
-                                   sign(<'VA_Submit_Ballot', ~ec, pseudonym($V), pk(~sk_voter),
-                                         ~ballot_style,
-                                         ny_encrypt_c1(~ballot, pk(~sk_election), ~r),
-                                         ny_encrypt_c2(~ballot, pk(~sk_election), ~r),
-                                         ny_encrypt_p(~ballot, pk(~sk_election), ~r)>,
-                                        '1', ~sk_voter.1)
-                                  >,
-                                  %1
-               )[+] ▶₂ #vr.10 )
-          case Mock_AppendSubmittedBallot
-          solve( !VA_Eligible_Voter( ~ec, ~va_id, pseudonym($V), ~sk_voter.2,
-                                     ~ballot_style.1
-                 ) ▶₁ #i )
-            case Mock_Voter_Authentication
-            solve( BB_Trace_Entry( ~bbid, ~ec, h(<~ec, ~bbid>), %1 ) @ #vr.9 )
-              case BulletinBoard_Create
-              solve( BB_Current( ~bbid, c, h(<~ec, ~bbid>), %1 )[+] ▶₁ #vr.10 )
-                case BulletinBoard_Create
-                solve( DBB_State_ReceiveAuthorizeVoter( ~ec, %i.1 ) ▶₀ #vr.2 )
-                  case Mock_Finalize_Election_Setup
-                  solve( BallotStyleCount( ~ec, %idx_bs ) ▶₀ #vr.4 )
-                    case Mock_BallotStyle
-                    solve( VoterCount( ~ec, %idx_ev ) ▶₀ #vr.5 )
-                      case Mock_EC_And_Initial_Counters
-                      solve( BallotStyleCount( ~ec, %idx_bs_unused ) ▶₀ #vr.11 )
-                        case Mock_BallotStyle
-                        solve( VoterCount( ~ec, %idx_ev_unused ) ▶₀ #vr.12 )
-                          case Mock_EC_And_Initial_Counters
-                          solve( VoterCount( ~ec, %i.4 ) ▶₀ #vr.13 )
-                            case Mock_EC_And_Initial_Counters
-                            solve( DBB_State_ReceiveAuthorizeVoter( ~ec, %i.4 ) ▶₀ #vr.13 )
-                              case Mock_Finalize_Election_Setup
-                              solve( DBB_Clock( %ts ) ▶₂ #vr.7 )
-                                case Mock_AppendSubmittedBallot_case_1
-                                by sorry
-                              next
-                                case Mock_AppendSubmittedBallot_case_2
-                                by sorry
-                              next
-                                case Mock_DBBTimestamp
-                                solve( BallotStyleCount( ~ec, %i.3 ) ▶₀ #vr.12 )
-                                  case Mock_BallotStyle
-                                  solve( BallotStyleCount( ~ec, %i.2 ) ▶₀ #vr.19 )
-                                    case Mock_BallotStyle
-                                    by sorry
-                                  next
-                                    case Mock_EC_And_Initial_Counters
-                                    solve( BallotStyleCount( ~ec, %i.2 ) ▶₀ #vr.21 )
-                                      case Mock_BallotStyle
-                                      by sorry
-                                    next
-                                      case Mock_EC_And_Initial_Counters
-                                      solve( BallotStyleCount( ~ec, %i.1 ) ▶₀ #vr.16 )
-                                        case Mock_BallotStyle
-                                        simplify
-                                        by contradiction /* cyclic */
-                                      next
-                                        case Mock_EC_And_Initial_Counters
-                                        SOLVED // trace found
-                                      qed
-                                    qed
-                                  qed
-                                next
-                                  case Mock_EC_And_Initial_Counters
-                                  simplify
-                                  by contradiction /* cyclic */
-                                qed
-                              qed
-                            next
-                              case Mock_Voter_Authentication
-                              by sorry
-                            qed
-                          next
-                            case Mock_VoterRegistration_Eligible
-                            by sorry
-                          qed
-                        next
-                          case Mock_VoterRegistration_Eligible
-                          by sorry
-                        qed
-                      next
-                        case Mock_EC_And_Initial_Counters
-                        by sorry
-                      qed
-                    next
-                      case Mock_VoterRegistration_Eligible
-                      by sorry
-                    qed
-                  next
-                    case Mock_EC_And_Initial_Counters
-                    by sorry
-                  qed
-                next
-                  case Mock_Voter_Authentication
-                  by sorry
-                qed
-              qed
+                                  '1', ~sk_voter.1)
+                            >,
+                            prev_unused
+         ) ▶₂ #vr.8 )
+    case Mock_AppendSubmittedBallot
+    solve( BB_Current( ~bbid, ~root_eid ) ▶₁ #vr.8 )
+      case BulletinBoard_Create
+      solve( !VA_Eligible_Voter( ~ec, ~va_id, pseudonym($V), ~sk_voter,
+                                 ~ballot_style, signed_voter_auth_unused
+             ) ▶₁ #i )
+        case Mock_Voter_Authentication
+        solve( SecureReceive( ~cid, <~ec, 'DBB'>, ~va_id,
+                              <'DBB_Check_Request',
+                               <'BCA_Check_Request', ~ec, ~tracker, pk(~sk_bca_encrypt), pk(~z)>,
+                               sign(<'BCA_Check_Request', ~ec, ~tracker, pk(~sk_bca_encrypt), pk(~z)>,
+                                    '1', ~z)
+                              >
+               ) ▶₃ #vr )
+          case SecureChannel_Receive_case_1
+          solve( SecureReceive( ~cid_bca, ~bca_id, <~ec, 'DBB'>,
+                                <<'BCA_Check_Request', ~ec, ~tracker, pk(~sk_bca_encrypt), pk(~z)>,
+                                 sign(<'BCA_Check_Request', ~ec, ~tracker, pk(~sk_bca_encrypt), pk(~z)>,
+                                      '1', ~z)
+                                >
+                 ) ▶₃ #vr.12 )
+            case SecureChannel_Receive_case_1
+            solve( SecureReceive( ~cid_bca, ~bca_id, <~ec, 'DBB'>,
+                                  <<'BCA_Check_Request', ~ec, ~tracker, pk(~sk_bca_encrypt), pk(~z)>,
+                                   sign(<'BCA_Check_Request', ~ec, ~tracker, pk(~sk_bca_encrypt), pk(~z)>,
+                                        '1', ~z)
+                                  >
+                   ) ▶₃ #vr.17 )
+              case SecureChannel_Receive_case_1
+              SOLVED // trace found
             qed
           qed
         qed
-      next
-        case SecureChannel_Receive_case_2
-        by sorry
       qed
-    next
-      case SecureChannel_Receive_case_2
-      by sorry
     qed
-  next
-    case SecureChannel_Receive_case_2
-    by sorry
-  next
-    case SecureChannel_Receive_case_3
-    by sorry
   qed
-next
-  case BallotCheck_VA_RequestRandomizers_case_02
-  by sorry
-next
-  case BallotCheck_VA_RequestRandomizers_case_03
-  by sorry
-next
-  case BallotCheck_VA_RequestRandomizers_case_04
-  by sorry
-next
-  case BallotCheck_VA_RequestRandomizers_case_05
-  by sorry
-next
-  case BallotCheck_VA_RequestRandomizers_case_06
-  by sorry
-next
-  case BallotCheck_VA_RequestRandomizers_case_07
-  by sorry
-next
-  case BallotCheck_VA_RequestRandomizers_case_08
-  by sorry
-next
-  case BallotCheck_VA_RequestRandomizers_case_09
-  by sorry
-next
-  case BallotCheck_VA_RequestRandomizers_case_10
-  by sorry
-next
-  case BallotCheck_VA_RequestRandomizers_case_11
-  by sorry
-next
-  case BallotCheck_VA_RequestRandomizers_case_12
-  by sorry
-next
-  case BallotCheck_VA_RequestRandomizers_case_13
-  by sorry
 qed

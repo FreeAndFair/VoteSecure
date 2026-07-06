@@ -37,7 +37,7 @@ ifdef(<!ELECTION_KEY_GENERATION!>, <!
 macros:
   Msg_Trustee_Check_Value(h_election, check_value) = <'Trustee_Check_Value', h_election, check_value>,
   Msg_Trustee_Pairwise_Share(h_election, recipient, ciphertext) = <<'Trustee_Pairwise_Share', recipient>, h_election, ciphertext>,
-  Msg_Trustee_Election_Public_Key(h_election, pk_election) = <'Trustee_Election_Public_Key', h_election, pk_election>,
+  Msg_Trustee_Election_Public_Key(h_election, pk_election) = <'Trustee_Election_Public_Key', h_election, pk_election>
 !>, <!!>)dnl
 ifdef(<!TRUSTEE_MIXING!>, <!
 macros:

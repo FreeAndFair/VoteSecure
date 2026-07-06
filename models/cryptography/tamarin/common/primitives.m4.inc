@@ -4,7 +4,7 @@ dnl across the models.
 dnl
 dnl @author Daniel M. Zimmerman
 dnl @copyright Free & Fair 2025-26
-dnl @version 0.1
+dnl @version 0.2
 dnl
 dnl We always include all the Tamarin built-ins we might need, if they
 dnl aren't already included.

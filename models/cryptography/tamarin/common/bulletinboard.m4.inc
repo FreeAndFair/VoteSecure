@@ -1,12 +1,23 @@
 dnl
 dnl Tamarin formalization of the public bulletin board. This implements the
-dnl board as a hash chain of messages, which is manipulated directly using
-dnl linear facts and writes its entries using persistent facts (while
-dnl emitting appropriate action facts for traceability/reasoning).
+dnl board as a linked chain of messages, where each entry carries a fresh
+dnl nonce identifier (`~eid`) and a reference to the preceding entry's nonce
+dnl (`prev_eid`). The root entry uses the public constant `'root'` as its
+dnl predecessor. The chain is append-only and immutable by construction: the
+dnl linear `BB_Current` fact enforces that at most one append can happen at a
+dnl time, and persistent `!BB_Entry` facts make entries irrevocable. No hash
+dnl computation or Peano arithmetic is needed.
+dnl
+dnl The nonce for each new entry (`~new_eid`) is generated inside
+dnl `BulletinBoard_Append` via `Fr(~new_eid)`, guaranteeing global
+dnl uniqueness by the semantics of fresh-name generation. Callers that
+dnl need the resulting `eid` (e.g., as a ballot tracker) discover it by
+dnl content-matching the resulting `!BB_Entry` fact. Uniqueness of entry
+dnl nonces is provable from `Fr` directly via `Safety_BB_UniqueEIDs` [reuse].
 dnl
 dnl @author Daniel M. Zimmerman
-dnl @copyright Free & Fair 2025
-dnl @version 0.1
+dnl @copyright Free & Fair 2025-26
+dnl @version 0.2
 dnl
 ifdef(<!BULLETINBOARD_SPTHY!>, <!!>, <!
 define(<!BULLETINBOARD_SPTHY!>)dnl
@@ -15,76 +26,58 @@ include(common/channels.m4.inc)dnl
 
 /*
   This rule creates a new bulletin board from request id `reqid`
-  with id `bbid`, using message `m` as its root entry. It creates action
-  facts and persistent facts for the bulletin board's root information and
-  first entry, and a linear fact for the "current" entry. We use Tamarin's
-  natural number theory to assign entry numbers to the entries.
+  with id `bbid`, using message `m` as its root entry. The root
+  entry is assigned a fresh nonce identifier `~root_eid`, with the
+  sentinel value 'root' as its predecessor (indicating it has none).
 
-  Only one bulletin board can ever be created with each `reqid` (and `bbid`,
-  because `bbid` is a fresh value), and bulletin board entries, once written,
+  Only one bulletin board can ever be created with each `reqid` (and
+  `bbid`, because `bbid` is a fresh value), and entries, once written,
   are immutable.
+
+  Subsequent appends use `BB_Append_Request(bbid, m, ~root_eid, ~new_eid)`
+  for the first entry after the root; the caller reads `~root_eid` from
+  `!BB_Root` or `!BB_Entry` to construct the request.
  */
 rule BulletinBoard_Create [role="BulletinBoard"]:
-    let mh = h(<m, ~bbid>) in
     [ BB_Create_Request(reqid, m),
-      Fr(~bbid) ]
+      Fr(~bbid),
+      Fr(~root_eid) ]
   --[ Unique(<'BulletinBoard_Create', reqid>),
-      BB_Trace_Root(reqid, ~bbid, m, mh),
-      BB_Trace_Entry(~bbid, m, mh, %1) ]->
-    [ !BB_Root(reqid, ~bbid, m, mh),
-      !BB_Entry(~bbid, m, mh, %1),
-      BB_Current(~bbid, m, mh, %1) ]
+      BB_Trace_Root(reqid, ~bbid, m, ~root_eid),
+      BB_Trace_Entry(~bbid, ~root_eid, m, 'root') ]->
+    [ !BB_Root(reqid, ~bbid, m, ~root_eid),
+      !BB_Entry(~bbid, ~root_eid, m, 'root'),
+      BB_Current(~bbid, ~root_eid) ]
 
 /*
-  This rule adds a new entry to bulletin board `bbid`, using
-  message `m` as the entry's contents, and referring to the current
-  index `%idx`. The entry, once written, is immutable.
+  This rule adds a new entry to bulletin board `bbid` with message `m`.
+  The request `BB_Append_Request(bbid, m, prev_eid)` must carry
+  `prev_eid`, the nonce of the expected current tip (validated against
+  `BB_Current`)
+
+  The rule only fires if `prev_eid` matches the actual `BB_Current`. A
+  fresh nonce `~new_eid` is generated here for the new entry's identifier.
  */
 rule BulletinBoard_Append [role="BulletinBoard"]:
-    let mh = h(<m, ch>)
-        new_idx = %idx %+ %1 in
-    [ !BB_Root(reqid, bbid, r, rh),
-      BB_Current(bbid, c, ch, %idx)[+],
-      BB_Append_Request(bbid, m, %idx)[+] ]
-  --[ BB_Trace_Entry(bbid, m, mh, new_idx),
-      BB_NotTerminated(bbid) ]->
-    [ !BB_Entry(bbid, m, mh, new_idx),
-      BB_Current(bbid, m, mh, new_idx) ]
+    [ !BB_Root(reqid, bbid, r, root_eid),
+      BB_Current(bbid, prev_eid),
+      BB_Append_Request(bbid, m, prev_eid),
+      Fr(~new_eid) ]
+  --[ BB_Trace_Entry(bbid, ~new_eid, m, prev_eid),
+      BB_Advance(bbid, prev_eid, ~new_eid) ]->
+    [ !BB_Entry(bbid, ~new_eid, m, prev_eid),
+      BB_Current(bbid, ~new_eid) ]
 
 /*
-  This rule "terminates" bulletin board `bbid`, such that it can
-  no longer be appended to. Because entries are immutable, the
-  bulletin board can no longer be changed after this rule is
-  executed.
+  This rule terminates bulletin board `bbid` at the entry identified
+  by `last_eid`, which must be the current tip. Consuming `BB_Current`
+  prevents any further appends — no restriction is required.
  */
 rule BulletinBoard_Terminate [role="BulletinBoard"]:
-    [ !BB_Root(reqid, bbid, r, rh),
-      !BB_Entry(bbid, c, ch, %idx)[+],
-      BB_Current(bbid, c, ch, %idx)[+],
-      BB_Terminate_Request(bbid, %idx)[+] ]
-  --[ BB_Trace_Last(bbid, c, ch, %idx) ]->
-    [ !BB_Last(bbid, c, ch, %idx) ]
-
-/*
-  This restriction enforces in the trace that any rule that relies
-  on the bulletin board not being "terminated" must execute before
-  the last bulletin board entry appears in the trace. This is a bit
-  of a cheat, but it is a sound one as long as `BB_Current(bbid, ...`
-  appears in the precondition of any rule restricted by
-  `BB_NotTerminated(bbid)`. It directly encodes the fact that the
-  `BB_Current` linear fact is removed from the environment for a
-  unique `bbid`, and can never be regenerated for that `bbid` (unless
-  somebody composes these rules with a new rule that does so) because
-  `bbid` is a fresh value in the only rule that can establish a
-  `BB_Current(bbid, ...)` fact for a `bbid` that doesn't have one.
- */
-restriction BulletinBoard_NotTerminated:
-  "
-    All bbid #i.
-          BB_NotTerminated(bbid)@i
-      ==>
-          not Ex m mh %idx #j. BB_Trace_Last(bbid, m, mh, %idx)@j & #j < #i
-  "
+    [ BB_Current(bbid, last_eid),
+      BB_Terminate_Request(bbid, last_eid) ]
+  --[ BB_Trace_Last(bbid, last_eid) ]->
+    [ ]
 
 /*
   Safety lemmas (must start with "Safety" in order to be
@@ -96,16 +89,16 @@ restriction BulletinBoard_NotTerminated:
   reqid or bbid created at different times.
  */
 lemma Safety_BB_UniqueIDs [reuse]:
- "
-    All reqid1 reqid2 bbid1 bbid2 r1 r2 rh1 rh2 #i #j.
-          BB_Trace_Root(reqid1, bbid1, r1, rh1)@i
+  "
+    All reqid1 reqid2 bbid1 bbid2 r1 r2 eid1 eid2 #i #j.
+          BB_Trace_Root(reqid1, bbid1, r1, eid1)@i
         &
-          BB_Trace_Root(reqid2, bbid2, r2, rh2)@j
+          BB_Trace_Root(reqid2, bbid2, r2, eid2)@j
         &
           not (#i = #j)
     ==>
         not (reqid1 = reqid2) & not (bbid1 = bbid2)
- "
+  "
 
 /*
   This lemma states that there can only be one root entry for
@@ -113,110 +106,102 @@ lemma Safety_BB_UniqueIDs [reuse]:
  */
 lemma Safety_BB_UniqueRoot [reuse]:
   "
-    All reqid bbid r1 r2 rh1 rh2 #i #j.
-            BB_Trace_Root(reqid, bbid, r1, rh1)@i
+    All reqid bbid r1 r2 eid1 eid2 #i #j.
+            BB_Trace_Root(reqid, bbid, r1, eid1)@i
           &
-            BB_Trace_Root(reqid, bbid, r2, rh2)@j
+            BB_Trace_Root(reqid, bbid, r2, eid2)@j
       ==>
-          #i = #j & r1 = r2 & rh1 = rh2
+          #i = #j & r1 = r2 & eid1 = eid2
   "
 
 /*
-  This lemma states that there can only be one entry on any bulletin
-  board (identified by bbid) with the same idx.
+  This lemma states that each entry identifier (`eid`) uniquely identifies
+  an entry: the same `eid` cannot appear on two different boards, or with
+  different content or predecessors. Provable from the global uniqueness
+  of `~new_eid` generated by `Fr` inside `BulletinBoard_Append`.
  */
-lemma Safety_BB_UniqueEntries [reuse]:
+lemma Safety_BB_UniqueEIDs [reuse]:
   "
-    All bbid m1 m2 mh1 mh2 %idx #i #j.
-            BB_Trace_Entry(bbid, m1, mh1, %idx)@i
+    All bbid1 bbid2 eid m1 m2 prev1 prev2 #i #j.
+            BB_Trace_Entry(bbid1, eid, m1, prev1)@i
           &
-            BB_Trace_Entry(bbid, m2, mh2, %idx)@j
+            BB_Trace_Entry(bbid2, eid, m2, prev2)@j
       ==>
-          #i = #j & m1 = m2 & mh1 = mh2
+          bbid1 = bbid2 & m1 = m2 & prev1 = prev2 & #i = #j
   "
 
 /*
-  This lemma states that for every entry on a given bulletin board
-  with a given idx greater than 1, there must be a matching previous
-  entry. This establishes that there can be no missing entries.
+  This lemma states that `BB_Advance` events are unique per predecessor: no
+  two distinct append steps consume the same `BB_Current` tip. Provable
+  directly from `BB_Current` being a linear fact — once consumed, no rule
+  re-creates `BB_Current` with the same predecessor `eid` (both
+  `BulletinBoard_Create` and `BulletinBoard_Append` always produce `BB_Current`
+  with a fresh nonce). Used as a fast stepping-stone for `Safety_BB_Linear`.
  */
-lemma Safety_BB_ChainLinks [reuse]:
+lemma Safety_BB_UniqueAdvance [reuse]:
   "
-    All bbid m mh %idx #i.
-          BB_Trace_Entry(bbid, m, mh, (%idx %+ %1))@i
-      ==>
-          (Ex p ph #j. BB_Trace_Entry(bbid, p, ph, %idx)@j & #j < #i & mh = h(<m, ph>))
-  "
-/*
-  This lemma states that bulletin board entries are created in natural
-  number order.
- */
-lemma Safety_BB_CreationOrder [reuse]:
-  "
-    All bbid m1 m2 mh1 mh2 %idx1 %idx2 #i #j.
-            BB_Trace_Entry(bbid, m1, mh1, %idx1)@i
+    All bbid prev new1 new2 #i #j.
+            BB_Advance(bbid, prev, new1)@i
           &
-            BB_Trace_Entry(bbid, m2, mh2, %idx2)@j
-          &
-            %idx1 << %idx2
+            BB_Advance(bbid, prev, new2)@j
       ==>
-          #i < #j
+          #i = #j & new1 = new2
   "
 
 /*
-  This lemma states that entry #1 on a bulletin board must always match
-  a root.
+  This lemma states that the chain is linear: no two entries on the same
+  board share the same predecessor (no forking). Guaranteed structurally
+  by the linear `BB_Current` fact; `Safety_BB_UniqueAdvance` [reuse] above
+  provides the fast proof path by letting Tamarin avoid chasing
+  `BB_Append_Request` through all protocol rules.
+ */
+lemma Safety_BB_Linear [reuse]:
+  "
+    All bbid eid1 eid2 m1 m2 prev #i #j.
+            BB_Trace_Entry(bbid, eid1, m1, prev)@i
+          &
+            BB_Trace_Entry(bbid, eid2, m2, prev)@j
+      ==>
+          eid1 = eid2 & m1 = m2 & #i = #j
+  "
+
+/*
+  This lemma states that every entry with predecessor 'root' must
+  correspond to an actual root of that board.
  */
 lemma Safety_BB_RootEntry [reuse]:
   "
-    All bbid m mh #i.
-          BB_Trace_Entry(bbid, m, mh, %1)@i
+    All bbid eid m #i.
+          BB_Trace_Entry(bbid, eid, m, 'root')@i
       ==>
-          Ex reqid. BB_Trace_Root(reqid, bbid, m, mh)@i & mh = h(<m, bbid>)
+          Ex reqid. BB_Trace_Root(reqid, bbid, m, eid)@i
   "
 
 /*
-  This lemma states that the last entry on the bulletin board (if there is one)
-  must always match an actual entry.
+  This lemma states that the last entry (if terminated) must have
+  been a real entry on the board.
  */
 lemma Safety_BB_Termination [reuse]:
   "
-    All bbid m mh %idx #i.
-          BB_Trace_Last(bbid, m, mh, %idx)@i
+    All bbid last_eid #i.
+          BB_Trace_Last(bbid, last_eid)@i
       ==>
-          (Ex #j. BB_Trace_Entry(bbid, m, mh, %idx)@j & #j < #i)
+          Ex m prev #j. BB_Trace_Entry(bbid, last_eid, m, prev)@j & #j < #i
   "
 
 /*
-  This lemma states that there can't be any bulletin board entries after
-  the last one.
+  This restriction supports the modeling of error cases in protocol rules
+  that receive a tracker (`eid`) from another party and determine that no
+  bulletin board entry with that `eid` exists. Firing `NoBBEntry(bbid, eid)`
+  as an action fact asserts that no `BB_Trace_Entry(bbid, eid, ...)` has
+  occurred yet in the trace.
  */
-lemma Safety_BB_LastIsLast [reuse]:
+restriction NoBBEntry:
   "
-    All bbid l lh %lidx m mh %midx #i #j.
-            BB_Trace_Last(bbid, l, lh, %lidx)@i
-          &
-            BB_Trace_Entry(bbid, m, mh, %midx)@j
+    All bbid eid #i.
+          NoBBEntry(bbid, eid)@i
       ==>
-          (%midx << %lidx | %midx = %lidx) & #j < #i
+          not (Ex m prev #j. BB_Trace_Entry(bbid, eid, m, prev)@j & #j < #i)
   "
-dnl
-ifelse(eval(!defined_bool(<!INCLUDED_NO_BB_ENTRY_WITH_HASH!>) && defined_bool(<!USE_NO_BB_ENTRY_WITH_HASH!>)), eval(1), <!
-define(<!INCLUDED_NO_BB_ENTRY_WITH_HASH!>)dnl
-restriction NoBBEntryWithHash:
-  "
-    All bbid hash #i.
-          NoBBEntryWithHash(bbid, hash)@i
-      ==>
-          not (
-            Ex contents %idx #j.
-            (
-                BB_Trace_Entry(bbid, contents, hash, %idx)@j
-              &
-                #j < #i
-            )
-          )
-  "
-!>, <!!>)dnl
-dnl
+
 !>)dnl

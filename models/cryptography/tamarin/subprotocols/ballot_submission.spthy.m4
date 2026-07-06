@@ -11,8 +11,8 @@ dnl mock rules that simulate required actions of other subprotocols by
 dnl establishing suitable linear/persistent/action facts.
 dnl
 dnl @author Daniel M. Zimmerman
-dnl @copyright Free & Fair 2025
-dnl @version 0.1
+dnl @copyright Free & Fair 2025-26
+dnl @version 0.2
 dnl
 dnl We change the m4 quote characters to <! and !>, so that they don't
 dnl interfere with Tamarin's quote characters or any comments we might
@@ -55,8 +55,6 @@ define(<!USE_SECURE_CHANNELS_INTERCEPTION!>)dnl
 include(common/channels.m4.inc)
 define(<!USE_NO_BB_ENTRY_WITH_HASH!>)dnl
 include(common/bulletinboard.m4.inc)
-define(<!USE_MOST_RECENT_AUTHORIZATION!>)dnl
-define(<!USE_UNAUTHORIZED!>)dnl
 define(<!USE_SUBMISSION_NOT_ON_BB!>)dnl
 include(common/ballot_restrictions.m4.inc)
 include(common/trustee_defaults.m4.inc)
@@ -70,6 +68,7 @@ include(subprotocols/includes/mock_election_setup.m4.inc)
 include(subprotocols/includes/mock_voter_auth.m4.inc)
 !>)
 dnl
+include(common/voter_authorization.m4.inc)
 macros:
   /*
     Message types. The ones that include an "ec_hash" will actually use
@@ -80,7 +79,7 @@ macros:
     don't really care at this level about specific contests, and going
     from one cryptogram to a list is easily generalizable.
    */
-  Msg_VA_Submit_Ballot(ec_hash, pseudonym, pk_voter, ballot_style, cryptograms) = <'VA_Submit_Ballot', ec_hash, pseudonym, pk_voter, ballot_style, cryptograms>,
+  Msg_VA_Submit_Ballot(ec_hash, cryptograms, signed_voter_auth) = <'VA_Submit_Ballot', ec_hash, cryptograms, signed_voter_auth>,
   Msg_DBB_Ballot_Tracker(ec_hash, tracker) = <'DBB_Ballot_Tracker', ec_hash, tracker>,
   Msg_DBB_Ballot_Error(ec_hash, error) = <'DBB_Ballot_Error', ec_hash, error>,
 

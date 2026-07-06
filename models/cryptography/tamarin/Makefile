@@ -7,7 +7,8 @@
 
 # Resolve the Tamarin command as follows:
 # - if USE_DOCKER=yes, use the CPV container unconditionally
-# - otherwise use local `tamarin-prover` when present
+# - otherwise use local `tamarin-prover` when present (optionally
+#   override location of local Tamarin with LOCAL_TAMARIN)
 # - otherwise fall back to the CPV container automatically
 DOCKER ?= docker
 USE_DOCKER ?= no
@@ -18,10 +19,10 @@ ifneq ($(filter yes YES true TRUE 1,$(DOCKER)),)
 $(error DOCKER must name a container engine like docker or podman; use USE_DOCKER=yes to force container-backed execution)
 endif
 FORCE_DOCKER := $(if $(filter yes YES true TRUE 1,$(USE_DOCKER)),yes,)
-LOCAL_TAMARIN := $(shell command -v tamarin-prover 2>/dev/null)
-
+LOCAL_TAMARIN ?= $(shell command -v tamarin-prover 2>/dev/null)
 DOCKER_TAMARIN := $(DOCKER) run --rm $(DOCKER_PLATFORM_ARG) --volume "$(CURDIR):/work" --workdir /work $(DOCKER_IMAGE) tamarin-prover
 TAMARIN := $(if $(FORCE_DOCKER),$(DOCKER_TAMARIN),$(if $(LOCAL_TAMARIN),$(LOCAL_TAMARIN),$(DOCKER_TAMARIN)))
+OPEN_CHAINS_LIMIT := 30
 
 # M4 defines (to control proof script inclusion)
 ifdef INCLUDE_PROOF_SCRIPTS
@@ -43,7 +44,6 @@ help:
 	@echo "help (default) - display this help page"
 	@echo "subprotocols   - generate the Tamarin models for all subprotocols"
 	@echo "compositions   - generate Tamarin models for protocol compositions (*)"
-	@echo "composed-all   - generate a Tamarin model composing all subprotocols"
 	@echo "syntax         - check syntax of all generated models (**)"
 	@echo "executability  - check executability lemmas of all generated models (**)"
 	@echo "safety         - check safety lemmas of all generated models (**)"
@@ -72,8 +72,15 @@ SUBPROTOCOL_SOURCES = $(wildcard subprotocols/*.m4)
 SUBPROTOCOL_SOURCES_NO_M4 = $(subst .spthy.m4,.spthy,$(SUBPROTOCOL_SOURCES))
 SUBPROTOCOL_DESTS = $(subst subprotocols/,generated_standalone/,$(SUBPROTOCOL_SOURCES_NO_M4))
 
+# Include files that can affect any generated subprotocol model.
+SUBPROTOCOL_INCLUDES = $(wildcard subprotocols/includes/*.spthy.inc) \
+                       $(wildcard subprotocols/includes/*.m4.inc) \
+                       $(wildcard subprotocols/includes/proofs/*.spthy.inc) \
+                       $(wildcard common/*.m4.inc) \
+                       $(wildcard m4_utils/*.m4)
+
 # Generate Tamarin models for all the subprotocols.
-generated_standalone/%.spthy: subprotocols/%.spthy.m4
+generated_standalone/%.spthy: subprotocols/%.spthy.m4 $(SUBPROTOCOL_INCLUDES)
 	$(info [info] generating standalone model for $<...)
 	@mkdir -p generated_standalone
 	@m4 -E -DSTANDALONE $(M4_DEBUG) $(M4_DEFINES) $(CV_DEFINES) $< > $@
@@ -85,8 +92,15 @@ COMPOSITION_SOURCES = $(wildcard compositions/*.m4)
 COMPOSITION_SOURCES_NO_M4 = $(subst .spthy.m4,.spthy,$(COMPOSITION_SOURCES))
 COMPOSITION_DESTS = $(subst compositions/,generated_composed/,$(COMPOSITION_SOURCES_NO_M4))
 
+# Include files that can affect any generated composition model.
+COMPOSITION_INCLUDES = $(SUBPROTOCOL_INCLUDES) \
+											 $(wildcard other/*.spthy.inc) \
+                       $(wildcard compositions/includes/*.spthy.inc) \
+                       $(wildcard compositions/includes/*.m4.inc) \
+                       $(wildcard compositions/includes/proofs/*.spthy.inc)
+
 # Generate composed Tamarin models defined in 'compositions'.
-generated_composed/%.spthy: compositions/%.spthy.m4
+generated_composed/%.spthy: compositions/%.spthy.m4 $(COMPOSITION_INCLUDES)
 	$(info [info] generating model for composition $<...)
 	@mkdir -p generated_composed
 	@m4 -E $(M4_DEFINES) $(CV_DEFINES) $< > $@
@@ -106,6 +120,7 @@ executability:
 	@mkdir -p output
 	$(foreach SPTHY, $(wildcard generated_standalone/*.spthy generated_composed/*.spthy), \
 		$(TAMARIN) --prove="Executability*" \
+		-c=${OPEN_CHAINS_LIMIT} \
 		--output-dot=output/$(basename $(notdir $(SPTHY)))-executability.dot > \
 		output/$(basename $(notdir $(SPTHY)))-executability.out $(SPTHY) || exit 1;)
 	@grep falsified output/*.out || echo "RESULT: no lemmas falsified"
@@ -118,6 +133,7 @@ safety:
 	@mkdir -p output
 	$(foreach SPTHY, $(wildcard generated_standalone/*.spthy generated_composed/*.spthy), \
 		$(TAMARIN) --prove="Safety*" \
+		-c=${OPEN_CHAINS_LIMIT} \
 		--output-dot=output/$(basename $(notdir $(SPTHY)))-safety.dot > \
 		output/$(basename $(notdir $(SPTHY)))-safety.out $(SPTHY) || exit 1;)
 	@grep falsified output/*.out || echo "RESULT: no lemmas falsified"
@@ -130,7 +146,7 @@ proofscript:
 	$(info [info] checking proof scripts of all generated models...)
 	@mkdir -p output
 	$(foreach SPTHY, $(wildcard generated_standalone/*.spthy generated_composed/*.spthy), \
-		$(TAMARIN) > output/$(basename $(notdir $(SPTHY)))-proofscript.out \
+		$(TAMARIN) -c=${OPEN_CHAINS_LIMIT} > output/$(basename $(notdir $(SPTHY)))-proofscript.out \
 		$(SPTHY) || exit 1;)
 	@cat output/*-proofscript.out | grep ProofScript | grep -v NoProofScript | grep -v verified | grep -v lemma > output/combined-proofscript-results.out || echo "RESULT: all proof scripts verified"
 	@cat output/combined-proofscript-results.out
@@ -153,7 +169,7 @@ cv: clean subprotocols
 	$(info [info] checking proof scripts, executability, and safety of all models...)
 	@mkdir -p output
 	$(foreach SPTHY, $(wildcard generated_standalone/*.spthy generated_composed/*.spthy), \
-		time $(TAMARIN) --prove="Safety*" --prove="Executability*" \
+		time $(TAMARIN) --prove="Sources*" --prove="Safety*" --prove="Executability*" \
 		--output-dot=output/$(basename $(notdir $(SPTHY))).dot > \
 		output/$(basename $(notdir $(SPTHY))).out \
 		$(SPTHY) || exit 1;)

@@ -23,19 +23,16 @@ The strategy we use for modeling signatures is described in in Chapter 15 of the
 ### Bulletin Board-Related Control Actions
 
 - `NoPreviousCast(pseudo)` restricts a rule to run only if the specified pseudonym has not cast a ballot (in any election; if we wanted to model multiple simultaneous elections in which the same real voter could vote, we would need to make a subtle change to `pseudonym` in the equational theory).
-- `MostRecentBallot(bbid, pseudo, %idx)` restricts a rule to run only when the entry at index `%idx` on the bulletin board with ID `bbid` is the most recent ballot submitted by the voter with pseudonym `pseudo`.
-- `Unauthorized(ec, pseudo, pk)` restricts a rule to run only when a specific public key `pk` is _not_ authorized to vote on behalf of the voter with pseudonym `pseudo` in the election with configuration `ec`.
-- `MostRecentAuthorization(ec, pseudo, pk, %idx)` restricts a rule to run only when `pk` is the most recently authorized public key for the voter with pseudonym `pseudo` in the election with configuration `ec`; `%idx` is the index of the authorization, which is used to determine whether it is the latest one.
+- `MostRecentBallot(bbid, pseudo, eid)` restricts a rule to run only when the entry with entry ID `eid` on the bulletin board with ID `bbid` is the most recent ballot submitted by the voter with pseudonym `pseudo`.
 - `SubmissionNotOnBB(bbid, msg)` restricts a rule to run only if `msg` is _not_ a ballot submission that was posted to the bulletin board with ID `bbid` at some point in the past.
-- `AuthorizationNotOnBB(bbid, msg)` restricts a rule to run only if `msg` is _not_ a voter authorization that was posted to the bulletin board with ID `bbid` at some point in the past.
-- `CastNotOnBB(bbid, msg1, msg2)` restricts a rule to run only if `msg1` and `msg2` are _not_ a voter ballot cast (`msg1` being the ballot submission, `msg2` being the ballot cast) that was posted to the bulletin board with ID `bbid` at some point in the past.
-- `NoBBEntryWithHash(bbid, hash)` restricts a rule to run only if there is no entry on the bulletin board with ID `bbid` that has hash `hash`.
+- `AtMostOneCastPerPseudonym(bbid, pseudo)` restricts a rule to run only if no prior cast for the voter with pseudonym `pseudo` has been appended to the bulletin board with ID `bbid`; this enforces the invariant that each voter may successfully cast at most once per election. The restriction is self-referential (keyed on the action fact itself rather than on the bulletin board contents) because the voter pseudonym is embedded too deeply in the cast bulletin board entry for efficient direct pattern matching.
+- `NoBBEntry(bbid, eid)` restricts a rule to run only if there is no bulletin board entry with entry ID `eid` on the bulletin board with ID `bbid`.
 
 ## Roles
 
 - **AS**: The authentication service; in these models; it "randomly" approves or disapproves authentication requests given specific information, so as to be able to test both eventualities.
 - **BCA**: A ballot check application.
-- **DBB**: The digital ballot box; it is the only role that can post to the public bulletin board, and it keeps track of the most recently authenticated public key for each pseudonym and mediates the ballot check protocol.
+- **DBB**: The digital ballot box; it is the only role that can post to the public bulletin board, and it validates voter authorizations and mediates the ballot check protocol by querying the bulletin board directly.
 - **EAS**: The election administration server; in these models, it handles authentication session requests, voter eligibility, and pseudonyms.
 - **Mock**: The role assigned to any rule that implements a mock of some part of the protocol; for example, the rule that creates authenticated voters as part of the standalone ballot submission protocol.
 - **TAS**: The trustee administration server. This role primarily serves to store the canonical version of the trustee board in the trustee protocols, but also performs setup tasks such as creating an initial message with the set of ballots for the trustee board.
@@ -50,11 +47,11 @@ Note that we do not indicate the Tamarin "fresh" sort (~) in these state facts, 
 
 ### Election Setup
 
-- `!ElectionConfiguation(ec)` indicates that `ec` is a valid election configuration; in the model, the election configuration contains no information, it is just created as a fresh Tamarin value.
+- `!ElectionConfiguration(ec)` indicates that `ec` is a valid election configuration; in the model, the election configuration contains no information, it is just created as a fresh Tamarin value.
 - `!ElectionPublicKey(ec, key)` indicates that `key` is the election public key for the election with configuration `ec`.
 - `!ElectionSecretKey(ec, key)` indicates that `key` is the election secret key for the election with configuration `ec`; note that this is only useful for subprotocols in isolation when we are not modeling threshold decryption.
-- `!BallotStyle(ec, ballot_style, %i)` indicates that a ballot style (`ballot_style`) has been defined as valid for the election with configuration `ec`; `%i` is a sequence number and has no other semantic meaning.
-- `!EligibleVoter(ec, $voter_identity, ballot_style, %i)` indicates that a voter with _real_ identity `voter_identity` is eligible to vote in the election with configuration `ec` using ballot style `ballot_style`; `%i` is a sequence number and has no other semantic meaning.
+- `!BallotStyle(ec, ballot_style)` indicates that a ballot style (`ballot_style`) has been defined as valid for the election with configuration `ec`.
+- `!EligibleVoter(ec, voter_identity, ballot_style)` indicates that a voter with _real_ identity `voter_identity` is eligible to vote in the election with configuration `ec` using ballot style `ballot_style`.
 - `!EASPublicKey(ec, key)` indicates that the election administration server for the election with configuration `ec` has public signing key `key`.
 - `!EASSecretKey(ec, key)` indicates that the election administration server for the election with configuration `ec` has secret signing key `key`.
 
@@ -70,17 +67,15 @@ Note that we do not indicate the Tamarin "fresh" sort (~) in these state facts, 
 
 ### Election Key Generation
 
-- `!ElectionPublicKey(key)` indicates that `key` is the election public key generated by the trustees. Note that this is duplicative of `ElectionPublicKey(ec, key)`, above, because the trustees don't have a concept of multiple elections happening simultaneously, and are only generating one election public key in this subprotcol.
+- `!ElectionPublicKey(key)` indicates that `key` is the election public key generated by the trustees. Note that this is duplicative of `ElectionPublicKey(ec, key)`, above, because the trustees don't have a concept of multiple elections happening simultaneously, and are only generating one election public key in this subprotocol.
 - `!Trustee_ElectionPublicKey(trustee_name, key)` indicates that the trustee with name `trustee_name` believes the election public key to be `key`.
 - `!Trustee_ElectionPublicKey_Agreement(trustee_name, key)` indicates that the trustee with name `trustee_name` has observed that all the trustees believe the election public key to be `key`.
 - `!Trustee_Private_Share(trustee_name, private_share)` indicates that the trustee with name `trustee_name` used the private key share `private_share` when generating its part of the election public key.
 
 ### Voter Authentication
 
-- `!DBB_Voter_Authorized(ec, signed_msg_auth, pseudonym, pk_voter, ballot_style, %i)` indicates that the digital ballot box believes the voter with pseudonym `pseudonym` to be authorized to vote a ballot with ballot style `ballot_style` in the election with configuration `ec`, using the public key `pk_voter` and authorized by the authorization message `signed_msg_auth` (which will be posted to the public bulletin board in the event that the voter actually submits a ballot with key `pk_voter`); `%i` is a sequence number and has no othre semantic meaning.
-- `!VA_Eligible_Voter(ec, va_id, pseudonym, sk_voter, ballot_style)` indicates that the voting application with voting session ID `va_id` is acting on behalf of the voter with pseudonym `pseudonym` and secret key `sk_voter` to vote a ballot of style `ballot_style` in the election with configuration `ec`.
+- `!VA_Eligible_Voter(ec, va_id, pseudonym, sk_voter, ballot_style, signed_voter_auth)` indicates that the voting application with voting session ID `va_id` is acting on behalf of the voter with pseudonym `pseudonym` and secret key `sk_voter` to vote a ballot of style `ballot_style` in the election with configuration `ec`; `signed_voter_auth` is the signed voter authorization token from the EAS that the VA will embed in subsequent ballot messages.
 
 ### Ballot Submission
 
-- `!DBB_Posted_Ballot(ec, va_id, pseudonym, bb_entry, %i)` indicates that the digital ballot box has posted a bulletin board entry `bb_entry` containing a ballot submitted by the voter with pseudonym `pseudonym`, using the voting application with voting session ID `va_id`, in the election with configuration `ec`; `%i` is a sequence number and has no other semantic meaning.
 - `!VA_Submitted_Ballot(ec, va_id, ballot, cryptograms, r, tracker)` indicates that the voting application with voting session ID `va_id` generated the cryptograms `cryptograms` using randomness `r` from plaintext ballot `ballot` for the election with configuration `ec`, submitted them to the DBB, and received a ballot tracker `tracker` in response.

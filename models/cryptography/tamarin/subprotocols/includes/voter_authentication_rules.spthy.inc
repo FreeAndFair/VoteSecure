@@ -79,7 +79,7 @@ rule VoterAuthentication_AS_UnsuccessfulAuthentication [role="AS"]:
       SecureSend(~cid, 'AS', ~v_id, msg_auth_complete) ]
 
 /*
-  This rule sends the authentication result for a particular session_id to the
+  This rule sends the authentication result for a particular `session_id` to the
   EAS upon request, responding via the same secure channel that was used
   for the request.
  */
@@ -95,7 +95,7 @@ rule VoterAuthentication_AS_ReportAuthenticationResult [role="AS"]:
 
 /*
   This restriction controls the above rule, and states that action
-  AS_Complete_Authentication can only exist in the trace if there is
+  `AS_Complete_Authentication` can only exist in the trace if there is
   an earlier successful or unsuccessful authentication action in the
   trace for the same session ID. Note that _later_ such actions can
   exist, reflecting the fact that authentication might be completed
@@ -113,7 +113,7 @@ restriction AS_Complete_Authentication:
   "
 
 /*
-  This rule sends the authentication result for a particular session_id that
+  This rule sends the authentication result for a particular `session_id` that
   has not been completed to the EAS upon request, responding via the same
   secure channel that was used for the request. It can only fire if there is
   no authentication status in the trace already.
@@ -130,7 +130,7 @@ rule VoterAuthentication_AS_ReportIncompleteAuthenticationResult [role="AS"]:
 
 /*
   This restriction controls the above rule, and states that action
-  AS_Incomplete_Authentication can only exist in the trace if there is
+  `AS_Incomplete_Authentication` can only exist in the trace if there is
   no earlier successful or unsuccessful authentication action in the
   trace for the same session ID. Note that _later_ such actions can
   exist, reflecting the fact that authentication might be completed
@@ -207,18 +207,16 @@ rule VoterAuthentication_EAS_ReceiveAuthenticationComplete [role="EAS"]:
  */
 rule VoterAuthentication_EAS_ReceiveAuthenticationResult_Successful_Eligible [role="EAS"]:
   let msg_auth_result_in = Msg_AS_Authentication_Result(~session_id, $voter_id, 'successful')
-      msg_auth_result_out = Msg_EAS_Authentication_Result(~ec, 'eligible', pseudonym($voter_id), pk_voter, ballot_style)
-      msg_authorize_voter = Msg_EAS_Authorize_Voter(~ec, pseudonym($voter_id), pk_voter, ballot_style)
-      /* this message is signed because it will end up on the public bulletin board */
-      signed_msg_authorize_voter = <msg_authorize_voter, sign(msg_authorize_voter, '1', ~sk_eas)> in
+      auth_data = VoterAuthorization(~ec, pseudonym($voter_id), pk_voter, ballot_style, ~ts)
+      signed_voter_auth = <auth_data, sign(auth_data, '1', ~sk_eas)>
+      msg_auth_result_out = Msg_EAS_Authentication_Result(~ec, 'eligible', pk_voter, signed_voter_auth) in
     [ EAS_State_ReceiveAuthenticationResult(~ec, ~cid_as, ~cid_va, ~va_id, pk_voter, ~session_id, ~token),
       !EASSecretKey(~ec, ~sk_eas),
-      !EligibleVoter(~ec, $voter_id, ballot_style, %unused),
+      !EligibleVoter(~ec, $voter_id, ballot_style),
       SecureReceive(~cid_as, 'AS', <~ec, 'EAS'>, msg_auth_result_in),
-      Fr(~cid_dbb) ]
+      Fr(~ts) ]
   --[ EAS_ReceiveAuthenticationResult_Trace(~session_id, $voter_id, pseudonym($voter_id), ballot_style) ]->
-    [ SecureSend(~cid_va, <~ec, 'EAS'>, ~va_id, msg_auth_result_out),
-      SecureSend(~cid_dbb, <~ec, 'EAS'>, <~ec, 'DBB'>, signed_msg_authorize_voter) ]
+    [ SecureSend(~cid_va, <~ec, 'EAS'>, ~va_id, msg_auth_result_out) ]
 
 /*
   This rule receives the authentication result message from the AS for a
@@ -229,7 +227,7 @@ rule VoterAuthentication_EAS_ReceiveAuthenticationResult_Successful_Eligible [ro
  */
 rule VoterAuthentication_EAS_ReceiveAuthenticationResult_Successful_Ineligible [role="EAS"]:
   let msg_auth_result_in = Msg_AS_Authentication_Result(~session_id, $voter_id, 'successful')
-      msg_auth_result_out = Msg_EAS_Authentication_Result(~ec, 'ineligible', 'ineligible', pk_voter, 'ineligible') in
+      msg_auth_result_out = Msg_EAS_Authentication_Result(~ec, 'ineligible', pk_voter, 'ineligible') in
     [ EAS_State_ReceiveAuthenticationResult(~ec, ~cid_as, ~cid_va, ~va_id, pk_voter, ~session_id, ~token),
       SecureReceive(~cid_as, 'AS', <~ec, 'EAS'>, msg_auth_result_in) ]
   --[ EAS_ReceiveAuthenticationResult_Trace(~session_id, $voter_id, 'ineligible', 'ineligible'),
@@ -238,8 +236,8 @@ rule VoterAuthentication_EAS_ReceiveAuthenticationResult_Successful_Ineligible [
 
 /*
   This restriction controls the above rule, and states that action
-  EAS_Ineligible_Voter can only exist in the trace if there is no
-  EligibleVoter_Trace action for that voter in the trace.
+  `EAS_Ineligible_Voter` can only exist in the trace if there is no
+  `EligibleVoter_Trace` action for that voter in the trace.
  */
 restriction EAS_Ineligible_Voter:
   "
@@ -248,18 +246,18 @@ restriction EAS_Ineligible_Voter:
       ==>
           /* Note: this might change depending on whether we invalidate voter
              eligibility during elections. */
-          not (Ex ec ballot_style %index #j.
-                  EligibleVoter_Trace(ec, voter_id, ballot_style, %index)@j)
+          not (Ex ec ballot_style #j.
+                  EligibleVoter_Trace(ec, voter_id, ballot_style)@j)
   "
 
 /*
   This rule receives the authentication result from the AS for an
-  unsuccessful authentication and sends the approrpaite information
+  unsuccessful authentication and sends the appropriate information
   to the VA that reported authentication completion.
  */
 rule VoterAuthentication_EAS_ReceiveAuthenticationResult_Unsuccessful [role="EAS"]:
   let msg_auth_result_in = Msg_AS_Authentication_Result(~session_id, $voter_id, 'unsuccessful')
-      msg_auth_result_out = Msg_EAS_Authentication_Result(~ec, 'unsuccessful', 'ineligible', pk_voter, 'ineligible') in
+      msg_auth_result_out = Msg_EAS_Authentication_Result(~ec, 'unsuccessful', pk_voter, 'ineligible') in
     [ EAS_State_ReceiveAuthenticationResult(~ec, ~cid_as, ~cid_va, ~va_id, pk_voter, ~session_id, ~token),
       SecureReceive(~cid_as, 'AS', <~ec, 'EAS'>, msg_auth_result_in) ]
   --[ EAS_ReceiveAuthenticationResult_Trace(~session_id, 'unsuccessful', 'ineligible', 'ineligible') ]->
@@ -281,31 +279,6 @@ rule VoterAuthentication_EAS_ReceiveAuthenticationResult_Incomplete [role="EAS"]
       EAS_Possible_Compromise_Detected_Trace('AS') ]->
     [ !EAS_Possible_Compromise_Detected(~va_id),
       !EAS_Possible_Compromise_Detected('AS') ]
-
-/* Digital Ballot Box (DBB) */
-
-/*
-  This rule receives a notification that a voter (identified by public key and
-  pseudonym) is eligible to vote a specific ballot style, and records it in
-  a "table" (really, a set of persistent facts) about authorized voters. It is
-  not, at this time, added to the bulletin board; that happens at casting time.
-  Natural numbers are used to ensure authorizations are (1) unique and (2)
-  ordered (so that later, we can find the authorization for a specific voter
-  with the highest index using a restriction, and use that as the voter's
-  authorized public key).
- */
-rule VoterAuthentication_DBB_ReceiveAuthorizeVoter [role="DBB"]:
-  let msg_authorize_voter = Msg_EAS_Authorize_Voter(~ec, pseudo, pk_voter, ~bs)
-      signed_msg_authorize_voter = <msg_authorize_voter, sig> in
-    [ DBB_State_ReceiveAuthorizeVoter(~ec, %idx),
-      !EASPublicKey(~ec, pk_eas),
-      SecureReceive(~cid, <~ec, 'EAS'>, <~ec, 'DBB'>, signed_msg_authorize_voter) ]
-  --[ DBB_Voter_Authorized_Trace(~ec, pseudo, pk_voter, ~bs, %idx),
-      SignatureVerified(sig, e1_sig(sig), pk(e3_sig(sig)), msg_authorize_voter,
-                        pk_eas, true) /* valid signature */ ]->
-    [ !DBB_Voter_Authorized(~ec, signed_msg_authorize_voter, pseudo, pk_voter, ~bs, %idx),
-      OUT_PSEUDO_TERM(sig),
-      DBB_State_ReceiveAuthorizeVoter(~ec, %idx %+ %1) ]
 
 /*
   Voting Application (VA) and Voter Browser/User Agent
@@ -374,12 +347,14 @@ rule VoterAuthentication_VA_ReceiveAuthenticationComplete [role="VA"]:
  */
 rule VoterAuthentication_VA_ReceiveAuthenticationResult_Eligible [role="VA"]:
   let pk_voter = pk(~sk_voter)
-      msg_auth_result = Msg_EAS_Authentication_Result(~ec, 'eligible', pseudo, pk_voter, ballot_style) in
+      auth_data = VoterAuthorization(~ec, pseudo, pk_voter, ballot_style, ts)
+      signed_voter_auth = <auth_data, sig_auth>
+      msg_auth_result = Msg_EAS_Authentication_Result(~ec, 'eligible', pk_voter, signed_voter_auth) in
     [ VA_State_ReceiveAuthenticationResult(~ec, ~va_id, $V, ~sk_voter, ~cid, ~token),
       SecureReceive(~cid, <~ec, 'EAS'>, ~va_id, msg_auth_result) ]
   --[ VA_ReceiveAuthenticationResult_Trace(~ec, ~va_id, 'eligible', pseudo, pk_voter, ballot_style),
       IN_SECURE_RECEIVE(~cid, <~ec, 'EAS'>, ~va_id, msg_auth_result) ]->
-    [ !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ballot_style),
+    [ !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ballot_style, signed_voter_auth),
       VA_State_PresentBallot(~ec, ~va_id, $V, ~sk_voter) ]
 
 /*
@@ -390,10 +365,10 @@ rule VoterAuthentication_VA_ReceiveAuthenticationResult_Eligible [role="VA"]:
  */
 rule VoterAuthentication_VA_ReceiveAuthenticationResult_Ineligible [role="VA"]:
   let pk_voter = pk(~sk_voter)
-      msg_auth_result = Msg_EAS_Authentication_Result(~ec, 'ineligible', pseudo, pk_voter, ballot_style) in
+      msg_auth_result = Msg_EAS_Authentication_Result(~ec, 'ineligible', pk_voter, 'ineligible') in
     [ VA_State_ReceiveAuthenticationResult(~ec, ~va_id, $V, ~sk_voter, ~cid, ~token),
       SecureReceive(~cid, <~ec, 'EAS'>, ~va_id, msg_auth_result) ]
-  --[ VA_ReceiveAuthenticationResult_Trace(~ec, ~va_id, 'ineligible', pseudo, pk_voter, ballot_style) ]->
+  --[ VA_ReceiveAuthenticationResult_Trace(~ec, ~va_id, 'ineligible', 'ineligible', pk_voter, 'ineligible') ]->
     [ VA_State_PresentIneligibilityInformation(~ec, ~va_id, $V, ~sk_voter) /* this fact leads nowhere */ ]
 
 /*
@@ -403,8 +378,8 @@ rule VoterAuthentication_VA_ReceiveAuthenticationResult_Ineligible [role="VA"]:
  */
 rule VoterAuthentication_VA_ReceiveAuthenticationResult_Unsuccessful [role="VA"]:
   let pk_voter = pk(~sk_voter)
-      msg_auth_result = Msg_EAS_Authentication_Result(~ec, 'unsuccessful', pseudo, pk_voter, ballot_style) in
+      msg_auth_result = Msg_EAS_Authentication_Result(~ec, 'unsuccessful', pk_voter, 'ineligible') in
     [ VA_State_ReceiveAuthenticationResult(~ec, ~va_id, $V, ~sk_voter, ~cid, ~token),
       SecureReceive(~cid, <~ec, 'EAS'>, ~va_id, msg_auth_result) ]
-  --[ VA_ReceiveAuthenticationResult_Trace(~ec, ~va_id, 'unsuccessful', pseudo, pk_voter, ballot_style) ]->
+  --[ VA_ReceiveAuthenticationResult_Trace(~ec, ~va_id, 'unsuccessful', 'ineligible', pk_voter, 'ineligible') ]->
     [ VA_State_PresentUnsuccessfulAuthentication(~ec, ~va_id, $V, ~sk_voter) /* this fact leads nowhere */ ]

@@ -11,8 +11,8 @@ dnl mock rules that simulate required actions of other subprotocols by
 dnl establishing suitable linear/persistent/action facts.
 dnl
 dnl @author Daniel M. Zimmerman
-dnl @copyright Free & Fair 2025
-dnl @version 0.1
+dnl @copyright Free & Fair 2025-26
+dnl @version 0.2
 dnl
 dnl We change the m4 quote characters to <! and !>, so that they don't
 dnl interfere with Tamarin's quote characters or any comments we might
@@ -63,6 +63,7 @@ ifdef(<!VOTER_AUTHENTICATION_MOCKS!>,<!
 include(subprotocols/includes/mock_election_setup.m4.inc)
 !>)
 dnl
+include(common/voter_authorization.m4.inc)
 macros:
   /*
     Message types. The ones that include an "ec_hash" will actually use
@@ -78,8 +79,8 @@ macros:
   Msg_VA_Request_Authentication(ec_hash, pk_voter) = <'VA_Request_Authentication', ec_hash, pk_voter>,
   Msg_EAS_Authentication_Session(ec_hash, pk_voter, token) = <'EAS_Authentication_Session', ec_hash, pk_voter, token>,
   Msg_VA_Authentication_Complete(ec_hash, pk_voter, token) = <'VA_Authentication_Complete', ec_hash, pk_voter, token>,
-  Msg_EAS_Authentication_Result(ec_hash, result, pseudo, pk_voter, ballot_style) = <'EAS_Authentication_Result', result, ec_hash, pseudo, pk_voter, ballot_style>,
-  Msg_EAS_Authorize_Voter(ec_hash, pseudo, pk_voter, ballot_style) = <'EAS_Authorize_Voter', ec_hash, pseudo, pk_voter, ballot_style>
+  /* For non-eligible results the voter_auth field is 'ineligible'. */
+  Msg_EAS_Authentication_Result(ec_hash, result, pk_voter, voter_auth) = <'EAS_Authentication_Result', result, ec_hash, pk_voter, voter_auth>
 
 include(subprotocols/includes/voter_authentication_rules.spthy.inc)
 dnl

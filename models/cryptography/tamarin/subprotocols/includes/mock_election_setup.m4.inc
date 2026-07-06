@@ -4,20 +4,19 @@ dnl of an election, registered voters, and ballot styles, the creation
 dnl of a bulletin board, and the mocking of election keys.
 dnl
 dnl @author Daniel M. Zimmerman
-dnl @copyright Free & Fair 2025
-dnl @version 0.1
+dnl @copyright Free & Fair 2025-26
+dnl @version 0.2
 dnl
 
 /*
-  The initial counters for ballot styles and voters are %1, and
-  the election configuration is just a fresh variable.
+  Start a new election configuration. `!EC_Setup(~ec)` is a persistent
+  permission token gating ballot style and voter registration rules.
  */
-rule Mock_EC_And_Initial_Counters [role="Mock"]:
+rule Mock_EC_And_Initial_Setup [role="Mock"]:
     [ Fr(~ec) ]
   --[ Unique(<'EC_And_Initial_Counters', ~ec>),
       ElectionConfiguration_Trace(~ec) ]->
-    [ BallotStyleCount(~ec, %1),
-      VoterCount(~ec, %1) ]
+    [ !EC_Setup(~ec) ]
 
 /*
   Mock ballot styles into the environment. We simply
@@ -25,11 +24,10 @@ rule Mock_EC_And_Initial_Counters [role="Mock"]:
   identifiers for later use.
  */
 rule Mock_BallotStyle [role="Mock"]:
-    [ BallotStyleCount(~ec, %i),
+    [ !EC_Setup(~ec),
       Fr(~ballot_style) ]
-  --[ BallotStyle_Trace(~ec, ~ballot_style, %i) ]->
-    [ !BallotStyle(~ec, ~ballot_style, %i),
-      BallotStyleCount(~ec, %i %+ %1) ]
+  --[ BallotStyle_Trace(~ec, ~ballot_style) ]->
+    [ !BallotStyle(~ec, ~ballot_style) ]
 
 /*
   Mock a voter registration database into the environment (for a voter
@@ -39,17 +37,30 @@ rule Mock_BallotStyle [role="Mock"]:
   associating them with eligibility information.
  */
 rule Mock_VoterRegistration_Eligible [role="Mock"]:
-    [ VoterCount(~ec, %i),
-      !BallotStyle(~ec, ~ballot_style, %unused) ]
+    [ !EC_Setup(~ec),
+      !BallotStyle(~ec, ~ballot_style) ]
   --[ Unique(<'VoterRegistration', ~ec, $V>),
-      EligibleVoter_Trace(~ec, $V, ~ballot_style, %i) ]->
-    [ !EligibleVoter(~ec, $V, ~ballot_style, %i),
-      VoterCount(~ec, %i %+ %1) ]
+      EligibleVoter_Trace(~ec, $V, ~ballot_style) ]->
+    [ !EligibleVoter(~ec, $V, ~ballot_style) ]
 
 /*
-  Stop registering voters and ballot styles, then broadcast the
-  election configuration, create the bulletin board, and start
-  mocking voter authentications (if necessary).
+  Close the election setup phase. Fires at most once per election
+  (enforced by Unique). Produces `EC_F_Phase`, which gates
+  `Mock_Finalize_Election_Setup`. Requires at least one ballot style and
+  one voter to already exist.
+ */
+rule Mock_Close_Election_Setup [role="Mock"]:
+    [ !EC_Setup(~ec),
+      !BallotStyle(~ec, ~bs_unused),
+      !EligibleVoter(~ec, $EV, ~ev_bs_unused) ]
+  --[ Unique(<'Close_Election_Setup', ~ec>),
+      Election_Setup_Closed_Trace(~ec) ]->
+    [ EC_F_Phase(~ec) ]
+
+/*
+  Finalize the election setup: broadcast the election configuration,
+  create the bulletin board, and mock election keys. Can only fire after
+  `Mock_Close_Election_Setup` has produced `EC_F_Phase`.
 
   Note that we mock an election secret key here; that's so
   we have a valid election public key, for our abstracted
@@ -59,10 +70,9 @@ rule Mock_VoterRegistration_Eligible [role="Mock"]:
   a threshold sharing scheme.
  */
 rule Mock_Finalize_Election_Setup [role="Mock"]:
-    [ !BallotStyle(~ec, ~bs_unused, %idx_bs_unused),
-      !EligibleVoter(~ec, $EV, ~ev_bs_unused, %idx_ev_unused),
-      BallotStyleCount(~ec, %next_idx_bs_unused),
-      VoterCount(~ec, %next_idx_v_unused),
+    [ EC_F_Phase(~ec),
+      !BallotStyle(~ec, ~bs_unused),
+      !EligibleVoter(~ec, $EV, ~ev_bs_unused),
       Fr(~sk_eas), /* mock EAS private key */
       Fr(~sk_election) /* mock election private key */ ]
   --[ Unique(<'FinalizeElectionSetup', ~ec>),
@@ -73,7 +83,68 @@ rule Mock_Finalize_Election_Setup [role="Mock"]:
       !ElectionSecretKey(~ec, ~sk_election),
       !EASPublicKey(~ec, pk(~sk_eas)),
       !EASSecretKey(~ec, ~sk_eas),
-      AuthCount(~ec, %1),
       BB_Create_Request(~ec, ~ec),
-      DBB_State_ReceiveAuthorizeVoter(~ec, %1),
       Out(~ec) ]
+
+/*
+  All ballot styles must be registered before the election setup closes.
+ */
+restriction BallotStyle_Before_Close:
+  "
+    All ec bs #i #j.
+          BallotStyle_Trace(ec, bs)@i
+        &
+          Election_Setup_Closed_Trace(ec)@j
+      ==>
+          #i < #j
+  "
+
+/*
+  All voter registrations must be registered before the election setup closes.
+ */
+restriction VoterReg_Before_Close:
+  "
+    All ec V bs #i #j.
+          EligibleVoter_Trace(ec, V, bs)@i
+        &
+          Election_Setup_Closed_Trace(ec)@j
+      ==>
+          #i < #j
+  "
+
+/*
+  Each ballot style is registered at most once per election configuration.
+ */
+lemma Helper_Unique_Ballot_Style [reuse]:
+  "
+    All ec bs #i #j.
+            BallotStyle_Trace(ec, bs)@i
+          &
+            BallotStyle_Trace(ec, bs)@j
+      ==>
+          #i = #j
+  "
+
+/*
+  Each voter is registered at most once per election configuration.
+ */
+lemma Helper_Unique_Voter_Registration [reuse]:
+  "
+    All ec V bs1 bs2 #i #j.
+            EligibleVoter_Trace(ec, V, bs1)@i
+          &
+            EligibleVoter_Trace(ec, V, bs2)@j
+      ==>
+          #i = #j & bs1 = bs2
+  "
+
+/*
+  Each voter has a registered ballot style.
+ */
+lemma Helper_Valid_Voter_Ballot_Style_Pairs [reuse]:
+ "
+    All ec V bs #i.
+          EligibleVoter_Trace(ec, V, bs)@i
+      ==>
+          (Ex #j. BallotStyle_Trace(ec, bs)@j & #j < #i)
+ "

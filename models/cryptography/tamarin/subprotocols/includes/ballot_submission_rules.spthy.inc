@@ -10,11 +10,11 @@
 rule BallotSubmission_VA_PresentBallot [role="VA"]:
   let pk_voter = pk(~sk_voter)
       cryptograms = <ny_encrypt_c1(~ballot, pk_election, ~r), ny_encrypt_c2(~ballot, pk_election, ~r), ny_encrypt_p(~ballot, pk_election, ~r)>
-      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, pseudo, pk_voter, ballot_style, cryptograms)
+      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, cryptograms, signed_voter_auth)
       sig_msg_submit_ballot = sign(msg_submit_ballot, '1', ~sk_voter)
       signed_msg_submit_ballot = <msg_submit_ballot, sig_msg_submit_ballot> in
     [ VA_State_PresentBallot(~ec, ~va_id, $V, ~sk_voter),
-      !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ballot_style),
+      !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ballot_style, signed_voter_auth),
       !ElectionPublicKey(~ec, pk_election),
       Fr(~r), /* randomizer */
       Fr(~ballot), /* ballot choices */
@@ -32,23 +32,25 @@ rule BallotSubmission_VA_PresentBallot [role="VA"]:
   tracker actually corresponds to a bulletin board entry, and that that
   bulletin board entry contains the ballot we submitted.
 
-  Validation checks perfomed implicitly:
+  In the nonce-based BB model, the tracker is the entry's `eid`, so we
+  look up `!BB_Entry(~bbid, tracker, ballot_bb_entry, prev_unused)`.
+
+  Validation checks performed implicitly:
     - the bulletin board entry corresponding to the tracker we received
       actually exists (via pattern match)
     - the signed ballot submission message we submitted is in the bulletin
       board entry corresponding to the tracker (via pattern match)
  */
 rule BallotSubmission_VA_BallotSubmitResponse_BallotTracker_Success [role="VA"]:
-  let pk_voter = pk(~sk_voter)
-      msg_ballot_tracker = Msg_DBB_Ballot_Tracker(~ec, tracker)
-      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, pseudo, pk_voter, ballot_style, cryptograms)
+  let msg_ballot_tracker = Msg_DBB_Ballot_Tracker(~ec, tracker)
+      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, cryptograms, signed_voter_auth)
       sig_msg_submit_ballot = sign(msg_submit_ballot, '1', ~sk_voter)
       signed_msg_submit_ballot = <msg_submit_ballot, sig_msg_submit_ballot>
       ballot_bb_entry = BBEntry_Ballot_Submission(~ec, timestamp, signed_msg_submit_ballot) in
     [ VA_State_BallotSubmitResponse(~ec, ~va_id, ~cid, $V, ~ballot, cryptograms, ~r),
-      !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ballot_style),
-      !BB_Root(~ec, ~bbid, ~ec, bb_root_hash),
-      !BB_Entry(~bbid, ballot_bb_entry, tracker, %idx),
+      !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ballot_style, signed_voter_auth),
+      !BB_Root(~ec, ~bbid, ~ec, root_eid_unused),
+      !BB_Entry(~bbid, tracker, ballot_bb_entry, prev_unused),
       SecureReceive(~cid, <~ec, 'DBB'>, ~va_id, msg_ballot_tracker) ]
   --[ VA_BallotTracker_Trace(~ec, ~va_id, $V, pseudo, ~sk_voter, ballot_style, ~ballot, cryptograms, ~r, tracker),
       IN_PSEUDO_TERM(sig_msg_submit_ballot, pseudo),
@@ -63,15 +65,14 @@ rule BallotSubmission_VA_BallotSubmitResponse_BallotTracker_Success [role="VA"]:
   If our secure channels remain secure, this should never happen.
  */
 rule BallotSubmission_VA_BallotSubmitResponse_BallotTracker_BallotMismatch [role="VA"]:
-  let pk_voter = pk(~sk_voter)
-      msg_ballot_tracker = Msg_DBB_Ballot_Tracker(~ec, tracker)
-      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, pseudo, pk_voter, ballot_style, cryptograms)
+  let msg_ballot_tracker = Msg_DBB_Ballot_Tracker(~ec, tracker)
+      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, cryptograms, signed_voter_auth)
       signed_msg_submit_ballot = <msg_submit_ballot, sign(msg_submit_ballot, '1', ~sk_voter)>
       ballot_bb_entry = BBEntry_Ballot_Submission(~ec, timestamp, bb_entry_msg) in
     [ VA_State_BallotSubmitResponse(~ec, ~va_id, ~cid, $V, ~ballot, cryptograms, ~r),
-      !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ballot_style),
-      !BB_Root(~ec, ~bbid, ~ec, bb_root_hash),
-      !BB_Entry(~bbid, ballot_bb_entry, tracker, %idx),
+      !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ballot_style, signed_voter_auth),
+      !BB_Root(~ec, ~bbid, ~ec, root_eid_unused),
+      !BB_Entry(~bbid, tracker, ballot_bb_entry, prev_unused),
       SecureReceive(~cid, <~ec, 'DBB'>, ~va_id, msg_ballot_tracker) ]
   --[ VA_BallotTracker_BallotMismatch_Trace(~ec, ~va_id, $V, pseudo, ~sk_voter, ballot_style, ~ballot, cryptograms, ~r, tracker),
       VA_Error_Trace(~ec, ~va_id),
@@ -89,13 +90,13 @@ rule BallotSubmission_VA_BallotSubmitResponse_BallotTracker_BallotMismatch [role
 rule BallotSubmission_VA_BallotSubmitResponse_BallotTracker_NoBBEntry [role="VA"]:
   let msg_ballot_tracker = Msg_DBB_Ballot_Tracker(~ec, tracker) in
     [ VA_State_BallotSubmitResponse(~ec, ~va_id, ~cid, $V, ~ballot, cryptograms, ~r),
-      !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ballot_style),
-      !BB_Root(~ec, ~bbid, ~ec, bb_root_hash),
+      !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ballot_style, signed_voter_auth_unused),
+      !BB_Root(~ec, ~bbid, ~ec, root_eid_unused),
       SecureReceive(~cid, <~ec, 'DBB'>, ~va_id, msg_ballot_tracker) ]
   --[ VA_BallotTracker_NoBBEntry_Trace(~ec, ~va_id, $V, pseudo, ~sk_voter, ballot_style, ~ballot, cryptograms, ~r, tracker),
       VA_Error_Trace(~ec, ~va_id),
       /* only execute if bb entry doesn't exist */
-      NoBBEntryWithHash(~bbid, tracker) ]->
+      NoBBEntry(~bbid, tracker) ]->
     [ VA_State_SubmissionError(~ec, ~va_id) /* UI presents an error */ ]
 
 /*
@@ -117,15 +118,6 @@ rule BallotSubmission_VA_BallotSubmitResponse_Error [role="VA"]:
 /* Digital Ballot Box */
 
 /*
-  This rule initializes the "clock" (really, just a monotonic counter
-  used in posting messages to the bulletin board) for the DBB.
- */
-rule BallotSubmission_Initialize_DBBTimestamp [role="Mock"]:
-    []
-  --[]->
-    [ DBB_Clock(%1) ]
-
-/*
   This rule receives a submitted ballot from an authorized voter
   successfully, then transitions to a state where it appends it to
   the bulletin board. Note that the fact that triggers appending
@@ -133,114 +125,124 @@ rule BallotSubmission_Initialize_DBBTimestamp [role="Mock"]:
   bulletin board works in Tamarin.
 
   Validation checks performed explicitly (via restrictions):
+    - the EAS signature on the embedded VoterAuthorization is valid
     - the signature on the submitted ballot message is valid
-    - the voter's public key is currently authorized to vote (has
-      not been superceded by another key/another authentication)
     - the cryptogram's proof is valid
 
   Validation checks performed implicitly:
-    - the voter's public key was at some point authorized to vote
-      (via pattern matching)
-    - the ballot style is valid (via pattern matching)
+    - the voter's pseudonym, public key, and ballot style are embedded
+      in the EAS-signed VoterAuthorization (via pattern matching)
  */
 rule BallotSubmission_DBB_ReceiveSubmittedBallot [role="DBB"]:
-  let cryptograms = <c1, c2, p>
-      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, pseudo, pk_voter, ballot_style, cryptograms)
+  let auth_data = VoterAuthorization(~ec, pseudo, pk_voter, ballot_style, ts)
+      signed_voter_auth = <auth_data, sig_auth>
+      cryptograms = <c1, c2, p>
+      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, cryptograms, signed_voter_auth)
       signed_msg_submit_ballot = <msg_submit_ballot, sig>
       valid_proof = ny_check(c1, c2, p) in
-    [ !DBB_Voter_Authorized(~ec, signed_msg_auth, pseudo, pk_voter, ballot_style, %idx),
+    [ !EASPublicKey(~ec, pk_eas),
       SecureReceive(~cid, ~va_id, <~ec, 'DBB'>, signed_msg_submit_ballot) ]
   --[ DBB_ReceiveSubmittedBallot_Trace(~ec, ~va_id, msg_submit_ballot),
-      MostRecentAuthorization(~ec, pseudo, pk_voter, %idx),
+      SignatureVerified(sig_auth, e1_sig(sig_auth), pk(e3_sig(sig_auth)), auth_data,
+                        pk_eas, true), /* valid EAS authorization signature */
       SignatureVerified(sig, e1_sig(sig), pk(e3_sig(sig)), msg_submit_ballot,
-                        pk_voter, true), /* valid signature */
+                        pk_voter, true), /* valid voter signature */
       Eq(valid_proof, true), /* valid cryptogram proof */
       OUT_PSEUDO_TERM(sig) ]->
     [ !DBB_Submitted_Ballot(~ec, ~va_id, ~cid, pseudo, signed_msg_submit_ballot) ]
 
 /*
   This rule handles the error case where a submitted ballot fails its
-  signature check.
+  voter signature check.
  */
 rule BallotSubmission_DBB_ReceiveSubmittedBallot_FailedSignature [role="DBB"]:
-  let msg_error = Msg_DBB_Ballot_Error(~ec, 'failed signature')
-      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, pseudo, pk_voter, ballot_style, cryptograms)
+  let auth_data = VoterAuthorization(~ec, pseudo, pk_voter, ballot_style, ts)
+      signed_voter_auth = <auth_data, sig_auth>
+      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, cryptograms, signed_voter_auth)
       signed_msg_submit_ballot = <msg_submit_ballot, sig> in
-    [ !DBB_Voter_Authorized(~ec, signed_msg_auth, pseudo, pk_voter, ballot_style, %idx),
+    [ !EASPublicKey(~ec, pk_eas),
       SecureReceive(~cid, ~va_id, <~ec, 'DBB'>, signed_msg_submit_ballot) ]
   --[ DBB_ReceiveSubmittedBallot_FailedSignature_Trace(~ec, ~va_id, msg_submit_ballot),
       DBB_Ballot_Error_Trace(~ec, ~va_id),
+      SignatureVerified(sig_auth, e1_sig(sig_auth), pk(e3_sig(sig_auth)), auth_data,
+                        pk_eas, true), /* valid EAS authorization signature */
       SignatureVerified(sig, e1_sig(sig), pk(e3_sig(sig)), msg_submit_ballot,
-                        pk_voter, false), /* invalid signature */ ]->
-    [ SecureSend(~cid, <~ec, 'DBB'>, ~va_id, msg_error) ]
+                        pk_voter, false) /* invalid voter signature */ ]->
+    [ SecureSend(~cid, <~ec, 'DBB'>, ~va_id, Msg_DBB_Ballot_Error(~ec, 'failed signature')) ]
 
 /*
   This rule handles the error case where a submitted ballot fails its
   proof check.
  */
 rule BallotSubmission_DBB_ReceiveSubmittedBallot_FailedProof [role="DBB"]:
-  let msg_error = Msg_DBB_Ballot_Error(~ec, 'failed proof')
+  let auth_data = VoterAuthorization(~ec, pseudo, pk_voter, ballot_style, ts)
+      signed_voter_auth = <auth_data, sig_auth>
       cryptograms = <c1, c2, p>
-      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, pseudo, pk_voter, ballot_style, cryptograms)
+      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, cryptograms, signed_voter_auth)
       signed_msg_submit_ballot = <msg_submit_ballot, sig>
       valid_proof = ny_check(c1, c2, p) in
-    [ !DBB_Voter_Authorized(~ec, signed_msg_auth, pseudo, pk_voter, ballot_style, %idx),
+    [ !EASPublicKey(~ec, pk_eas),
       SecureReceive(~cid, ~va_id, <~ec, 'DBB'>, signed_msg_submit_ballot) ]
   --[ DBB_ReceiveSubmittedBallot_FailedProof_Trace(~ec, ~va_id, msg_submit_ballot),
       DBB_Ballot_Error_Trace(~ec, ~va_id),
-      Neq(valid_proof, true), /* invalid cryptogram proof */ ]->
-    [ SecureSend(~cid, <~ec, 'DBB'>, ~va_id, msg_error) ]
+      SignatureVerified(sig_auth, e1_sig(sig_auth), pk(e3_sig(sig_auth)), auth_data,
+                        pk_eas, true), /* valid EAS authorization signature */
+      Neq(valid_proof, true) /* invalid cryptogram proof */ ]->
+    [ SecureSend(~cid, <~ec, 'DBB'>, ~va_id, Msg_DBB_Ballot_Error(~ec, 'failed proof')) ]
 
 /*
-  This rule handles the error case when the public key in the submitted
-  ballot is unauthorized.
+  This rule handles the error case when the EAS signature on the voter
+  authorization embedded in the submitted ballot is invalid.
  */
-rule BallotSubmission_DBB_ReceiveSubmittedBallot_UnauthorizedVoter [role="DBB"]:
-  let msg_error = Msg_DBB_Ballot_Error(~ec, 'unauthorized voter')
-      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, pseudo, pk_voter, ballot_style, cryptograms)
+rule BallotSubmission_DBB_ReceiveSubmittedBallot_FailedAuthSignature [role="DBB"]:
+  let auth_data = VoterAuthorization(~ec, pseudo, pk_voter, ballot_style, ts)
+      signed_voter_auth = <auth_data, sig_auth>
+      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, cryptograms, signed_voter_auth)
       signed_msg_submit_ballot = <msg_submit_ballot, sig> in
-    [ SecureReceive(~cid, ~va_id, <~ec, 'DBB'>, signed_msg_submit_ballot) ]
+    [ !EASPublicKey(~ec, pk_eas),
+      SecureReceive(~cid, ~va_id, <~ec, 'DBB'>, signed_msg_submit_ballot) ]
   --[ DBB_ReceiveSubmittedBallot_Unauthorized_Trace(~ec, ~va_id, msg_submit_ballot),
       DBB_Ballot_Error_Trace(~ec, ~va_id),
-      Unauthorized(~ec, pseudo, pk_voter) ]->
-    [ SecureSend(~cid, <~ec, 'DBB'>, ~va_id, msg_error) ]
+      SignatureVerified(sig_auth, e1_sig(sig_auth), pk(e3_sig(sig_auth)), auth_data,
+                        pk_eas, false) /* invalid EAS authorization signature */ ]->
+    [ SecureSend(~cid, <~ec, 'DBB'>, ~va_id, Msg_DBB_Ballot_Error(~ec, 'unauthorized voter')) ]
 
 /*
   This rule publishes a successfully submitted ballot to the bulletin
   board. It needs to be a separate rule (as does the one that checks
   to make sure the published ballot is on the board) because of the
-  way the bulletin board works in Tamarin (we have to pick some element
-  of the bulletin board to append to and if it isn't the last one, the
-  append will fail). This rule is restricted to run only when the
-  ballot has not actually been successfully appended to the bulletin
-  board, and to run at most once for each board index.
+  way the bulletin board works in Tamarin (we have to guess which entry
+  is the current tip of the board and if it isn't, the append will fail).
+
+  The `bb_entry` content (containing fresh `~ts`) is stored in the state fact
+  so the Confirm rule can discover the assigned `eid` by content-matching.
  */
 rule BallotSubmission_DBB_AppendSubmittedBallot [role="DBB"]:
-  let bb_entry = BBEntry_Ballot_Submission(~ec, %ts, signed_msg_submit_ballot) in
+  let bb_entry = BBEntry_Ballot_Submission(~ec, ~ts, signed_msg_submit_ballot) in
     [ !DBB_Submitted_Ballot(~ec, ~va_id, ~cid, pseudo, signed_msg_submit_ballot),
-      DBB_Clock(%ts),
-      !BB_Root(~ec, bbid, r_unused, rh_unused),
-      !BB_Entry(bbid, e_unused, eh_unused, %idx) ]
-  --[ DBB_AppendSubmittedBallot_Trace(~ec, ~va_id, signed_msg_submit_ballot, bbid, %idx),
-      Unique(<'DBB_AppendSubmittedBallot', signed_msg_submit_ballot, %idx>),
+      Fr(~ts),
+      !BB_Root(~ec, bbid, r_unused, root_eid_unused),
+      !BB_Entry(bbid, prev_eid, e_unused, prev_prev_unused) ]
+  --[ DBB_AppendSubmittedBallot_Trace(~ec, ~va_id, signed_msg_submit_ballot, bbid, prev_eid),
+      Unique(<'DBB_AppendSubmittedBallot', signed_msg_submit_ballot, prev_eid>),
       SubmissionNotOnBB(bbid, signed_msg_submit_ballot) ]->
-    [ BB_Append_Request(bbid, bb_entry, %idx),
-      DBB_Clock(%ts %+ %1),
-      DBB_State_ConfirmBallotPosting(~ec, ~va_id, ~cid, pseudo, bb_entry, %idx %+ %1) ]
+    [ BB_Append_Request(bbid, bb_entry, prev_eid),
+      DBB_State_ConfirmBallotPosting(~ec, ~va_id, ~cid, pseudo, bb_entry) ]
 
 /*
   This rule waits for a submitted ballot to be successfully posted to
   the bulletin board, then sends an appropriate message back to the VA.
+  The tracker (`eid`) is discovered by content-matching the known `bb_entry`
+  against `!BB_Entry` — unique because `bb_entry` contains fresh `~ts`.
 
-  Note that this _must_ succeed for some index, for any successful ballot
-  submission, because there is no way in Tamarin for the bulletin board
-  to fail.
+  Note that this _must_ succeed for some tracker, for any successful
+  ballot submission, because there is no way in Tamarin for the bulletin
+  board to fail.
  */
 rule BallotSubmission_DBB_ConfirmBallotPosting [role="DBB"]:
-  let msg_tracker = Msg_DBB_Ballot_Tracker(~ec, tracker) in
-    [ DBB_State_ConfirmBallotPosting(~ec, ~va_id, ~cid, pseudo, bb_entry, %idx),
-      !BB_Root(~ec, bbid, r_unused, rh_unused),
-      !BB_Entry(bbid, bb_entry, tracker, %idx) ]
-  --[ DBB_ConfirmBallotPosting_Trace(~ec, ~va_id, bb_entry, bbid, %idx) ]->
-    [ !DBB_Posted_Ballot(pseudo, bb_entry, %idx),
-      SecureSend(~cid, <~ec, 'DBB'>, ~va_id, msg_tracker) ]
+  let msg_tracker = Msg_DBB_Ballot_Tracker(~ec, ~tracker) in
+    [ DBB_State_ConfirmBallotPosting(~ec, ~va_id, ~cid, pseudo, bb_entry),
+      !BB_Root(~ec, bbid, r_unused, root_eid_unused),
+      !BB_Entry(bbid, ~tracker, bb_entry, prev_unused) ]
+  --[ DBB_ConfirmBallotPosting_Trace(~ec, ~va_id, bb_entry, bbid, ~tracker) ]->
+    [ SecureSend(~cid, <~ec, 'DBB'>, ~va_id, msg_tracker) ]

@@ -16,7 +16,7 @@
 rule BallotCheck_VA_Check [role="VA"]:
   let pk_voter = pk(~sk_voter) in
     [ VA_State_CheckOrCast(~ec, ~va_id, $V, ~ballot, cryptograms, ~r, tracker),
-      !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ~bs_unused) ]
+      !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ~bs_unused, signed_voter_auth_unused) ]
   --[ VA_CheckBallot_Trace(~ec, ~va_id, pseudo, ~ballot, cryptograms, ~r, tracker),
       IN_BALLOTCHECK_VA_CHECK(~ec, ~va_id, $V, ~ballot, cryptograms, ~r, tracker) ]->
     [ BCA_State_InitiateBallotCheck(~ec, tracker),
@@ -53,7 +53,7 @@ rule BallotCheck_VA_RequestRandomizers [role="VA"]:
       encrypted_randomizers = <ny_encrypt_c1(~r, pk_bca_encrypt, ~throwaway_r), ny_encrypt_c2(~r, pk_bca_encrypt, ~throwaway_r), ny_encrypt_p(~r, pk_bca_encrypt, ~throwaway_r)>
       msg_randomizers = Msg_VA_Check_Randomizers(~ec, signed_msg_bca_req, encrypted_randomizers, pk_voter) in
     [ VA_State_RequestRandomizers(~ec, ~va_id, $V, pseudo, ~ballot, cryptograms, ~r, tracker),
-      !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ~ballot_style),
+      !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ~ballot_style, signed_voter_auth_unused),
       Fr(~throwaway_r),
       SecureReceive(~cid, <~ec, 'DBB'>, ~va_id, msg_dbb_req) ]
   --[ VA_RequestRandomizers_Trace(~ec, ~va_id, pseudo, ~ballot, cryptograms, ~r, tracker, pk_bca_encrypt),
@@ -75,7 +75,7 @@ rule BallotCheck_VA_RequestRandomizers [role="VA"]:
  */
 rule BallotCheck_VA_CheckResult_OK [role="VA"]:
     [ VA_State_AwaitCheckResult(~ec, ~va_id, $V, pseudo, ~ballot, cryptograms, ~r, tracker, pk_bca_encrypt),
-      !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ~ballot_style) ]
+      !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ~ballot_style, signed_voter_auth_unused) ]
   --[ VA_CheckResult_OK_Trace(~ec, ~va_id, pseudo, ~ballot, cryptograms, ~r, tracker, pk_bca_encrypt),
       OUT_BALLOTCHECK_VA_CHECK(~ec, ~va_id, $V, ~ballot, cryptograms, ~r, tracker) ]->
     [ VA_State_CheckOrCast(~ec, ~va_id, $V, ~ballot, cryptograms, ~r, tracker) ]
@@ -92,7 +92,7 @@ rule BallotCheck_VA_CheckResult_OK [role="VA"]:
  */
 rule BallotCheck_VA_CheckResult_NotOK [role="VA"]:
     [ VA_State_AwaitCheckResult(~ec, ~va_id, $V, pseudo, ~ballot, cryptograms, ~r, tracker, pk_bca_encrypt),
-      !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ~ballot_style),
+      !VA_Eligible_Voter(~ec, ~va_id, pseudo, ~sk_voter, ~ballot_style, signed_voter_auth_unused),
       /* Fr(~new_va_id) */ ]
   --[ VA_CheckResult_NotOK_Trace(~ec, ~va_id, pseudo, ~ballot, cryptograms, ~r, tracker, pk_bca_encrypt) ]->
     [ /* protocol ends */ ]
@@ -120,8 +120,8 @@ rule BallotCheck_DBB_ReceiveCheckRequest [role="DBB"]:
       signed_msg_bca_req = <msg_bca_req, sig_bca_req>
       msg_dbb_req = Msg_DBB_Check_Request(~ec, signed_msg_bca_req)
       ballot_bb_entry = BBEntry_Ballot_Submission(~ec, timestamp, signed_msg_submit_ballot) in
-    [ !BB_Root(~ec, ~bbid, r_unused, rh_unused),
-      !BB_Entry(~bbid, ballot_bb_entry, tracker, %ballot_idx),
+    [ !BB_Root(~ec, ~bbid, r_unused, root_eid_unused),
+      !BB_Entry(~bbid, tracker, ballot_bb_entry, prev_unused),
       !DBB_Submitted_Ballot(~ec, ~va_id, ~cid_va, pseudo, signed_msg_submit_ballot),
       SecureReceive(~cid_bca, ~bca_id, <~ec, 'DBB'>, signed_msg_bca_req) ]
   --[ DBB_ReceiveCheckRequest_Trace(~ec, ~va_id, ~bca_id, msg_bca_req),
@@ -179,12 +179,14 @@ rule BallotCheck_BCA_InitiateBallotCheck [role="BCA"]:
   let pk_bca_encrypt = pk(~sk_bca_encrypt)
       pk_bca_sign = pk(~sk_bca_sign)
       msg_bca_req = Msg_BCA_Check_Request(~ec, tracker, pk_bca_encrypt, pk_bca_sign)
-      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, pseudo, pk_voter, ~ballot_style, cryptograms)
-      signed_msg_submit_ballot = <msg_submit_ballot, sig_msg_submit_ballot>
+      auth_data_unused = VoterAuthorization(~ec, pseudo_unused, pk_voter_unused, ballot_style_unused, ts_unused)
+      signed_voter_auth_unused = <auth_data_unused, sig_auth_unused>
+      msg_submit_ballot_unused = Msg_VA_Submit_Ballot(~ec, cryptograms_unused, signed_voter_auth_unused)
+      signed_msg_submit_ballot = <msg_submit_ballot_unused, sig_msg_submit_ballot_unused>
       ballot_bb_entry = BBEntry_Ballot_Submission(~ec, timestamp, signed_msg_submit_ballot) in
     [ BCA_State_InitiateBallotCheck(~ec, tracker),
-      !BB_Root(~ec, ~bbid, r_unused, rh_unused),
-      !BB_Entry(~bbid, ballot_bb_entry, tracker, %ballot_idx),
+      !BB_Root(~ec, ~bbid, r_unused, root_eid_unused),
+      !BB_Entry(~bbid, tracker, ballot_bb_entry, prev_unused),
       Fr(~sk_bca_encrypt),
       Fr(~sk_bca_sign),
       Fr(~bca_id),
@@ -198,7 +200,7 @@ rule BallotCheck_BCA_InitiateBallotCheck [role="BCA"]:
   them. Note that if the randomizers do not successfully decrypt the ballot,
   this rule doesn't execute (because the decryptions don't pattern match).
 
-  We specify "no_derivcheck" for this rule, because it pattern-matches the
+  We specify `no_derivcheck` for this rule, because it pattern-matches the
   original ballot rather than explicitly decrypting it using a destructor.
 
   Validation checks performed implicitly:
@@ -225,7 +227,9 @@ rule BallotCheck_BCA_ReceiveRandomizers [role="BCA", no_derivcheck]:
       msg_dbb_randomizers = Msg_DBB_Check_Randomizers(~ec, signed_msg_randomizers)
       randomizers = ny_decrypt(c1_r, c2_r, ~sk_bca_encrypt)
       cryptograms = <ny_encrypt_c1(~ballot, pk_election, randomizers), ny_encrypt_c2(~ballot, pk_election, randomizers), ny_encrypt_p(~ballot, pk_election, randomizers)>
-      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, pseudo, pk_voter, ~ballot_style, cryptograms)
+      auth_data = VoterAuthorization(~ec, pseudo, pk_voter, ballot_style, ts)
+      signed_voter_auth = <auth_data, sig_auth>
+      msg_submit_ballot = Msg_VA_Submit_Ballot(~ec, cryptograms, signed_voter_auth)
       signed_msg_submit_ballot = <msg_submit_ballot, sig_msg_submit_ballot>
       ballot_bb_entry = BBEntry_Ballot_Submission(~ec, timestamp, signed_msg_submit_ballot) in
     [ BCA_State_AwaitRandomizers(~ec, tracker, ~bca_id, ~cid, ~sk_bca_encrypt, ~sk_bca_sign, ballot_bb_entry),

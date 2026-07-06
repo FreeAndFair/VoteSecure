@@ -2,8 +2,8 @@ dnl
 dnl Tamarin channel rules shared by multiple subprotocols.
 dnl
 dnl @author Daniel M. Zimmerman
-dnl @copyright Free & Fair 2025
-dnl @version 0.1
+dnl @copyright Free & Fair 2025-26
+dnl @version 0.2
 dnl
 ifdef(<!defined_bool!>, <!!>, <!include(m4_utils/defined_bool.m4)!>)dnl
 ifelse(eval(!defined_bool(<!INCLUDED_AUTHENTICATED_CHANNELS!>) && defined_bool(<!USE_AUTHENTICATED_CHANNELS!>)), eval(1), <!
@@ -21,6 +21,13 @@ define(<!INCLUDED_AUTHENTICATED_CHANNELS!>)dnl
 
   Note: The `!AuthenticMessage` fact should never be used outside these
   two rules.
+
+  Note: No subprotocol currently modeled uses authenticated channels;
+  only secure channels (below) are exercised by the current models.
+  This definition is retained for reference and possible future use.
+  Because it is unexercised, some aspects of its documentation (e.g.,
+  message ordering and directionality) are intentionally left less
+  detailed than those of the secure channel below.
 */
 
 rule AuthenticatedChannel_Send:
@@ -49,6 +56,13 @@ define(<!INCLUDED_CONFIDENTIAL_CHANNELS!>)dnl
 
   Note: The `!ConfidentialMessage` fact should never be used outside these
   two rules.
+
+  Note: No subprotocol currently modeled uses confidential channels;
+  only secure channels (below) are exercised by the current models.
+  This definition is retained for reference and possible future use.
+  Because it is unexercised, some aspects of its documentation (e.g.,
+  message ordering and directionality) are intentionally left less
+  detailed than those of the secure channel below.
 */
 
 rule ConfidentialChannel_Send:
@@ -99,6 +113,14 @@ ifdef(<!USE_SECURE_CHANNELS_INJECTION!>, <!
 /*
   This rule models a compromised sender on a secure channel,
   where the adversary can inject messages.
+
+  This rule is exercised only by the adversary.  It is adapted from the
+  secure-channel injection rule of the 5G-AKA case study in the Tamarin
+  manual.  The `In(<~cid, S, R, m>)` premise is the adversary assembling
+  a complete secure-channel message (channel id, sender, receiver, and
+  payload) from its knowledge and injecting it into the channel; that is
+  why it uses a 4-tuple that does not otherwise appear in the premises of
+  the rules in this model.
  */
 rule SecureChannel_Compromised_Inject:
     [ In(<~cid, S, R, m>) ]
