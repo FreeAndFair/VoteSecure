@@ -72,9 +72,9 @@ else
   TAMARIN_BIN := tamarin-prover
 endif
 
-# Chocosolver: always use Docker (Java JAR is Linux/x86-only).
-CHOCOSOLVER_CMD = $(PLE_DOCKER_RUN) \
-  'java -jar /work/ple/chocosolver.jar $(1)'
+# Chocosolver ships in the PLE image (Java, Linux/x86-only), on PATH; use it
+# directly so no jar needs to be vendored into ple/.
+CHOCOSOLVER_CMD = $(PLE_DOCKER_RUN) 'chocosolver $(1)'
 
 # ============================================================================
 # Combined PLE model
@@ -257,8 +257,14 @@ validate: cv
 cv: clafer-validate tamarin-cv proverif-cv
 
 # Clafer inhabitance check via Chocosolver.
+#
+# NOTE: Chocosolver currently throws IllegalIntException while building
+# reference pointers for this model (independent of --minint/--maxint/--scope),
+# most likely due to its limited support for the model's string-typed
+# references.  Achieving a generated instance (inhabitance) is tracked in #392;
+# the model does typecheck via `clafer -v` (see `clafer-typecheck`).
 clafer-validate: needham-schroeder.cfr
-	$(call CHOCOSOLVER_CMD,-n 1 --maxint 100 --minint 100 \
+	$(call CHOCOSOLVER_CMD,-n 1 --minint 0 --maxint 100 \
 	  --file /work/needham-schroeder.cfr)
 
 $(CV_OUTPUT):
