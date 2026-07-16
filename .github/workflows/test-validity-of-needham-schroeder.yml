@@ -1,0 +1,51 @@
+# .github/workflows/test-validity-of-needham-schroeder.yml
+# Author: Joe Kiniry, Daniel M. Zimmerman
+# Created: 2026-07-16
+
+# CI for the Needham-Schroeder pedagogical example: runs `make ci`, which
+# typechecks/parses every specification in the example (Clafer PLE model,
+# Lando, SysMLv2, Cryptol, Tamarin, ProVerif).
+#
+# Tool availability on the runner:
+#   - Clafer/Lando run in the PLE Docker image (USE_DOCKER=yes).
+#   - Tamarin runs in the CPV Docker image (USE_DOCKER=yes).
+#   - Syside, Cryptol, and ProVerif have no bundled image; the Makefile skips
+#     them with a warning when absent (Cryptol is separately validated by
+#     test-validity-of-cryptol-files.yml). See the Makefile for details.
+
+name: Test Validity of Needham-Schroeder Example
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - 'examples/needham-schroeder/**'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'examples/needham-schroeder/**'
+  workflow_dispatch:
+
+jobs:
+  ci:
+    name: Run `make ci` for the Needham-Schroeder Example
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_READ_ONLY_TOKEN_USERNAME }}
+          password: ${{ secrets.DOCKER_READ_ONLY_TOKEN }}
+
+      - name: Pull Docker Images
+        run: |
+          docker pull freeandfair/de-ple-e2eviv:latest
+          docker pull freeandfair/cpv-e2eviv:latest
+
+      - name: Run `make ci`
+        working-directory: examples/needham-schroeder
+        run: USE_DOCKER=yes make ci
