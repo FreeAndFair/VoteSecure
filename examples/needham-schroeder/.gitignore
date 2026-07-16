@@ -3,3 +3,6 @@
 
 # Generated combined Clafer model (recreate with: make)
 needham-schroeder.cfr
+
+# CV (proof) outputs (recreate with: make cv)
+output/
