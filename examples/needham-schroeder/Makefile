@@ -114,9 +114,25 @@ lando-typecheck: NeedhamSchroeder.lando
 	$(call LANDO_CMD,convert NeedhamSchroeder.lando /dev/null --to json)
 
 # SysMLv2 typecheck: validate the architecture model with Sensmetry Syside.
+#
+# `syside check` requires an active Modeler license.  Our license is only
+# intermittently available, so a license failure must degrade to a warning
+# and NOT fail CI/CD/CV; genuine model errors must still fail the build.
+# When syside is not installed at all we likewise skip with a warning.
 sysml-typecheck: NeedhamSchroeder.sysml
 ifdef SYSIDE
-	syside check --quiet NeedhamSchroeder.sysml
+	@output=$$(syside check --quiet NeedhamSchroeder.sysml 2>&1); status=$$?; \
+	if [ $$status -eq 0 ]; then \
+	  [ -n "$$output" ] && echo "$$output"; \
+	  echo "[info] SysMLv2 typecheck passed."; \
+	elif printf '%s' "$$output" | grep -qi 'license check failed'; then \
+	  echo "WARNING: Syside Modeler license not active; skipping SysMLv2 typecheck."; \
+	  printf '%s\n' "$$output" | sed 's/^/  /'; \
+	else \
+	  printf '%s\n' "$$output"; \
+	  echo "ERROR: SysMLv2 typecheck failed." >&2; \
+	  exit $$status; \
+	fi
 else
 	@echo "WARNING: syside not found; skipping SysMLv2 typecheck."
 	@echo "  Install Sensmetry Syside to enable: https://sensmetry.com/syside/"
