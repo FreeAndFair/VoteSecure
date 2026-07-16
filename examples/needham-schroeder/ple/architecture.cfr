@@ -1,0 +1,118 @@
+// ========================================================================
+// Architecture Metamodel
+//
+// @dependencies prelude.cfr
+// ========================================================================
+
+// A Clafer-based architecture specification for demonstrating
+// architectural refinement and design choices as a means by which to
+// fulfill some non-behavioral requirements.
+
+// Clafer comes with both a generic architecture specification metamodel
+// as well as an AADL metamodel.  We will use only the former here.
+
+abstract System
+  subSystems -> Subsystem *
+  [ all s:subSystems | s.parentSystem = this ]
+
+abstract Subsystem
+  parentSystem -> System ?
+  parentSubsystem -> Subsystem ?
+  subSystems -> Subsystem *
+  [ parentSystem xor parentSubsystem ]
+  [ parentSystem => this in parentSystem.subSystems ]
+  [ parentSubsystem => (all s:subSystems | s.parentSubsystem = this) ]
+
+// Here is an example of use of `System` and `Subsystem`,
+// demonstrating the nested minimal set of subsystems.
+
+s: System
+
+ss: Subsystem
+  [ parentSystem = s ]
+  [ subSystems = sss ]
+
+sss: Subsystem
+  [ parentSubsystem = ss ]
+
+// Next we define `Component`s and logical information `Flow`s between
+// `SoftwareComponent`s.
+
+abstract Component
+  enclosingSubsystem -> Subsystem
+
+abstract Flow
+  start -> SoftwareComponent
+  end -> SoftwareComponent
+  // the concrete channel for this flow is either a bus or a network
+  mux channel
+    bus -> Bus ?         // the bus that implements the flow, or
+    network -> Network ? // the network that implements the flow
+  rate: integer        // the maximum datarate in Kb/s that the flow demands
+  [ 0 < rate ]
+  [ channel.bus => (this in channel.bus.flows) ]
+  [ channel.network => (this in channel.network.flows) ]
+
+arbitraryComponent: Component
+  [ enclosingSubsystem = arbitrarySubsystem ]
+arbitrarySubsystem: Subsystem
+  [ parentSystem = arbitrarySystem ]
+arbitrarySystem: System
+  [ subSystems = arbitrarySubsystem ]
+// arbitraryFlow: Flow
+//   [ start = arbitrarySoftwareComponent ]
+//   [ end = arbitrarySoftwareComponent ]
+//   [ ! channel.network ]
+//   [ channel.bus ]
+//   [ rate = 10 ]
+
+// =====================================================================
+// Primitive types: SoftwareComponent, HardwareComponent
+// Connectors: Channel, Bus, and Network
+// Aggregate flow descriptions: SoftwareTopology
+// =====================================================================
+
+abstract HardwareComponent: Component
+  software -> SoftwareComponent * // the software running on this hardware
+  [software.target = this]        // inverse relationship constraint
+  mappable ?
+  [ ! mappable => ! software]
+
+abstract SoftwareComponent: Component
+  target -> HardwareComponent  // hardware this software component is running on
+  [this in target.software]    // inverse relationship constraint
+
+abstract Channel: HardwareComponent
+  [ ! mappable]
+  capacity: integer // the maximum datarate in Kb/s that this channel supports
+  flows -> Flow *   // the flows that this channel implements
+  components -> HardwareComponent * // the components the channel connects
+  [components = flows.start.target ++ flows.end.target]
+  [(sum flows.rate) <= capacity]    // channel capacity constraint
+
+abstract Bus: Channel
+  [this in flows.channel.bus]
+
+abstract Network: Channel
+  [this in flows.channel.network]
+
+// abstract SoftwareTopology: Component
+//   flows -> Flow *
+//     [(!this.bus && (this.start.target = this.end.target))
+//       /// software is located on the same ECU, and there is no bus between them
+//       ||
+//      (this.bus && (this.start.target in this.bus.components) &&
+//                   (this.end.target in this.bus.components))
+//      /// components are communicating over a bus
+//       ||
+//      (this.network && (this.start.target in this.network.components) &&
+//                       (this.end.target in this.network.components))
+//      /// components are communicating over a network
+//     ]
+
+arbitraryHardwareComponent: HardwareComponent
+  [ software = arbitrarySoftwareComponent ]
+arbitrarySoftwareComponent: SoftwareComponent
+  [ target = arbitraryHardwareComponent ]
+// arbitraryTopology: SoftwareTopology
+//   [ flows = arbitraryFlow ]

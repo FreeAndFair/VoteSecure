@@ -1,0 +1,55 @@
+// ========================================================================
+// Specification Metamodel
+//
+// @dependencies prelude.cfr
+// ========================================================================
+
+// A specification is a traceable element that is written in a
+// specification language.
+
+abstract Spec: TraceableElement
+  language -> SpecLanguage
+
+arbitrarySpec: Spec
+
+// ========================================================================
+// A Clafer-based system specification, tying together all kinds of
+// specifications.
+// ========================================================================
+
+abstract Specs
+  specs -> Spec +
+
+abstract DomainModelSpecs: Specs
+  [ all s: specs | s.language in LandoLang, SysMLv1, SysMLv2, AlloyLang, UML ]
+
+abstract InformalRequirementsSpecs: Specs
+  [ all s:specs | s.language in
+      ASCII, Word, Excel, SysMLv1, SysMLv2, DOORSLang, UML ]
+
+abstract SemiformalRequirementsSpecs: Specs
+  [ all s:specs | s.language in ReqML, LandoLang ]
+
+abstract FormalRequirementsSpecs: Specs
+  [ all s:specs | s.language in FRETish, Spear ]
+
+abstract FeatureModelingSpecs: Specs
+  [ all s:specs | s.language in ClaferLang, BigGears, SysMLv1, SysMLv2, UML ]
+
+abstract CryptoAlgSpec: Specs
+  [ all s:specs | s.language in CryptolLang, FStarSpecLang ]
+
+abstract CryptoProtoSpec: Specs
+  [ all s:specs | s.language in CryptolLang, TamarinLang, SAPIC, SAPICStar ]
+
+abstract NetworkArchSpec: Specs
+  [ all s:specs | s.language in SysMLv1, SysMLv2 ]
+
+abstract NetworkProtoSpec: Specs
+  [ all s:specs | s.language in SysMLv1, SysMLv2 ]
+
+abstract StateMachineSpec: Specs
+  [ all s:specs | s.language in
+      SALLang, Promela, CryptolLang, SysMLv1, SysMLv2, UML, StateCharts, ASMLang ]
+
+arbitrarySpecs: Specs

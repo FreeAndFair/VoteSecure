@@ -1,0 +1,45 @@
+// =====================================================================
+// The Configuration Metamodel
+//
+// The build system of the product line/product itself, including all
+// components that may be a part of the TBOM, and features of CI, CD,
+// and CV.
+//
+// @dependencies prelude.cfr platform.cfr environment.cfr
+// =====================================================================
+
+abstract BuildSystem
+  buildTools -> BuildTool *
+
+abstract DevSecOps
+  platformTools -> PlatformTool *
+  environment: Environment
+  pipelineURL -> string
+
+abstract ContinuousIntegration
+  buildTools -> BuildTool *
+  analysisTools -> BuildTool +
+
+abstract ContinuousDeployment
+  buildTools -> BuildTool +
+
+abstract ContinuousVerification
+  fmTools -> FormalMethodsTool *
+  frameworks -> Framework *
+  analysisTools -> Software +
+
+// We provide an unconfigured instance of each core abstract clafer to
+// permit the typechecker and instance generator to sanity-check our
+// specification for validity and size.  Note that generating this
+// unbound instance takes a significant amount of time and generates
+// a ton of output.
+
+arbitraryBuildSystem: BuildSystem
+
+arbitraryDevSecOps: DevSecOps
+
+arbitraryCI: DevSecOps
+
+arbitraryCD: ContinuousDeployment
+
+arbitraryCV: ContinuousVerification

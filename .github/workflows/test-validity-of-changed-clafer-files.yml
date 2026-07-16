@@ -29,6 +29,15 @@ jobs:
             matrix: true
             files: |
              **.cfr
+            # The Needham-Schroeder PLE model is modular: ple.cfr is a
+            # concretization that depends on the abstract clafers in the
+            # vendored prelude (ple/*.cfr).  None of these fragments
+            # typecheck on their own, so they are excluded from the
+            # per-file check and validated as an assembled model by the
+            # `test-ns-combined` job below.
+            files_ignore: |
+             examples/needham-schroeder/ple.cfr
+             examples/needham-schroeder/ple/**
 
   test:
     name: Check Clafer Syntax
@@ -60,3 +69,44 @@ jobs:
             -w /workspace \
             freeandfair/de-ple-e2eviv:latest \
             clafer -v "/workspace/${{ matrix.clafer-file }}"
+
+  test-ns-combined:
+    name: Check Needham-Schroeder Combined Clafer Model
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect Needham-Schroeder Clafer changes
+        id: ns-changed
+        uses: FreeAndFair/changed-files@v45
+        with:
+          files: |
+           examples/needham-schroeder/ple.cfr
+           examples/needham-schroeder/ple/**
+
+      - name: Log in to Docker Hub
+        if: steps.ns-changed.outputs.any_changed == 'true'
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_READ_ONLY_TOKEN_USERNAME }}
+          password: ${{ secrets.DOCKER_READ_ONLY_TOKEN }}
+
+      - name: Pull Docker Image
+        if: steps.ns-changed.outputs.any_changed == 'true'
+        run: docker pull freeandfair/de-ple-e2eviv:latest
+
+      # ple.cfr is a concretization that depends on the vendored prelude
+      # modules (ple/*.cfr); Clafer has no cross-file import, so the model
+      # is assembled by concatenation and typechecked as a whole.
+      - name: Assemble and typecheck the combined Needham-Schroeder model
+        if: steps.ns-changed.outputs.any_changed == 'true'
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}":/workspace \
+            -w /workspace/examples/needham-schroeder \
+            --entrypoint bash \
+            freeandfair/de-ple-e2eviv:latest \
+            -c 'cat ple/*.cfr ple.cfr > needham-schroeder.cfr && clafer -v needham-schroeder.cfr'

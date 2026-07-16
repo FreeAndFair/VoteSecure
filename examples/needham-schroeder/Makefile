@@ -36,14 +36,14 @@ SYSIDE := $(shell command -v syside 2>/dev/null)
 
 ifndef CLAFER
   CLAFER_CMD = $(DOCKER_RUN) \
-    '/opt/clafer/clafer-tools-0.4.5/clafer $(1)'
+    'clafer $(1)'
 else
   CLAFER_CMD = clafer $(1)
 endif
 
 ifndef LANDO
   LANDO_CMD = $(DOCKER_RUN) \
-    '/opt/lando/bin/lando $(1)'
+    'lando $(1)'
 else
   LANDO_CMD = lando $(1)
 endif

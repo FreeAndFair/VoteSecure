@@ -1,0 +1,100 @@
+// ========================================================================
+// Platform Metamodel: The features of the underlying platform on
+// which development is based.
+//
+// @dependencies prelude.cfr
+// ========================================================================
+
+abstract Software: NamedElement
+
+enum FPGA = Xilinx | Altera | Microchip
+
+enum ISA = x86 | ARM | RV | MIPS | PowerPC
+
+// @note The rich model of CPUs and SoCs is found in `/examples`.
+abstract CPU
+  isa -> ISA
+
+abstract HardwarePlatform
+  cpu -> CPU
+
+abstract BoardPackage: HardwarePlatform
+
+abstract Compiler: Software
+
+Clang: Compiler
+CryptolToRust: Compiler
+CryptolToVerilog: Compiler
+GCC: Compiler
+GHC: Compiler
+GNAT: Compiler
+JavaC: Compiler
+KotlinC: Compiler
+RustC: Compiler
+Dotty: Compiler
+
+abstract OperatingSystem: Software
+
+FreeRTOS: OperatingSystem
+FreeBSD: OperatingSystem
+Linux: OperatingSystem
+seL4: OperatingSystem
+seLinux: OperatingSystem
+
+abstract Simulator: Software
+
+Altera_Quartus: Simulator
+Cadence_Incisive: Simulator
+Cadence_NCSim: Simulator
+Cadence_Xcelium: Simulator
+CISSR: Simulator
+GRIFT: Simulator
+Mentor_ModelSim: Simulator
+Mentor_Questa: Simulator
+Verilator: Simulator
+Xilinx_ISE: Simulator
+Xilinx_Vivado: Simulator
+
+abstract Emulator
+
+QEMU: Emulator
+
+abstract HDL: Software
+
+BSV: HDL
+Chisel: HDL
+SystemVerilog: HDL
+Verilog: HDL
+VHDL: HDL
+
+enum SecurityTrap = Halt | Interrupt | JTAG | LED
+
+abstract Platform
+  bp -> BoardPackage
+  compilers -> Compiler +
+  oses -> OperatingSystem *
+  simulators -> Simulator *
+  emulators -> Emulator *
+  hdl -> HDL *
+  trap -> SecurityTrap
+
+// We provide an unconfigured instance of each core abstract clafer to
+// permit the typechecker and instance generator to sanity-check our
+// specification for validity and size.  Note that generating this
+// unbound instance takes a significant amount of time and generates
+// a fairly large model.
+
+arbitraryPlatform: Platform
+
+// Here is an example platform configuration.
+
+c: CPU
+  [ isa = RV ]
+bp: BoardPackage
+  [ cpu = c ]
+p: Platform
+  [ compilers = Clang ]
+  [ oses = Linux ]
+  [ simulators = Verilator ]
+  [ hdl = VHDL, Verilog ]
+  [ trap = Halt ]

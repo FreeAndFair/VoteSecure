@@ -1,0 +1,20 @@
+// =====================================================================
+// The Product Metamodel
+//
+// The features of the product under development itself, including
+// those that are design-time and run-time configurable, including all
+// components that may be a part of an HBOM.
+// =====================================================================
+
+abstract Product
+  abstract DesignTimeConfiguration
+    abstract BuildSystemOptions
+  abstract RuntimeConfiguration
+    abstract CommandLineOptions
+    abstract Preferences
+    abstract ConfigurationFiles
+
+abstract BillOfMaterials
+  abstract SoftwareBillOfMaterials // SOBM
+  abstract FirmwareBillOfMaterials // FBOM
+  abstract HardwareBillOfMaterials // HBOM

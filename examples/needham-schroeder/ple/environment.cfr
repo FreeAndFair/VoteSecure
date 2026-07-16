@@ -1,0 +1,98 @@
+// ========================================================================
+// Environment - The development environment necessary to target
+// Platform, including OS, programming, specification, testing, and
+// reasoning toolchains.
+//
+// @dependencies prelude.cfr platform.cfr
+// ========================================================================
+
+// RDE Tools
+
+abstract BuildTool: Software
+
+Ant: BuildTool
+Bazel: BuildTool
+Cabal: BuildTool
+Gradle: BuildTool
+Make: BuildTool
+Maven: BuildTool
+SCons: BuildTool
+Stack: BuildTool
+cMake: BuildTool
+sbt: BuildTool
+
+abstract PackageManagementTool: Software
+
+Homebrew: PackageManagementTool
+
+abstract PlatformTool: Software
+
+Ansible: PlatformTool
+Docker: PlatformTool
+Kubernetes: PlatformTool
+Terraform: PlatformTool
+
+abstract DevSecOpsTool: Software
+
+BitBucket: DevSecOpsTool
+CircleCI: DevSecOpsTool
+GitHub: DevSecOpsTool
+GitLab: DevSecOpsTool
+Hudson: DevSecOpsTool
+Jenkins: DevSecOpsTool
+TeamCity: DevSecOpsTool
+TravisCI: DevSecOpsTool
+
+abstract or DevTool
+
+Cameo: DevTool
+DOORS: DevTool
+Eclipse: DevTool
+Emacs: DevTool
+Gears: DevTool
+IDEA: DevTool
+jProfiler: DevTool
+MagicDraw: DevTool
+Pandoc: DevTool
+Rational: DevTool
+Sparx: DevTool
+SysMLv2PilotImplementation: DevTool
+VSCode: DevTool
+
+abstract FormalMethodsTool
+
+Alloy: FormalMethodsTool
+CPSA: FormalMethodsTool
+CryptoVerif: FormalMethodsTool
+Cryptol: FormalMethodsTool
+CVC: FormalMethodsTool
+FRET: FormalMethodsTool
+FStar: FormalMethodsTool
+Lando: FormalMethodsTool
+ProVerif: FormalMethodsTool
+SAL: FormalMethodsTool
+SAW: FormalMethodsTool
+SPIN: FormalMethodsTool
+Tamarin: FormalMethodsTool
+Z3: FormalMethodsTool
+
+// RDE Frameworks/Libraries
+abstract Framework: Software
+
+jUnit: Framework
+QuickCheck: Framework
+TestNG: Framework
+PropTest: Framework
+UVM: Framework
+
+abstract Environment
+  software -> Software *
+  frameworks -> Framework *
+
+// We provide an unconfigured instance of each core abstract clafer to
+// permit the typechecker and instance generator to sanity-check our
+// specification for validity and size.  Note that generating this
+// unbound instance takes a significant amount of time and generates
+// a ton of output.
+
+arbitraryEnvironment: Environment

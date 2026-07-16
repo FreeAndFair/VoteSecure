@@ -1,0 +1,95 @@
+// ========================================================================
+// Requirements Metamodel
+//
+// @dependencies prelude.cfr specifications.cfr
+// ========================================================================
+
+// Each Requirement feature has an id and descriptive text.  The
+// RichRequirement feature also has additional metadata derived from
+// the SysML metamodel for Requirements.
+
+abstract Requirement: TraceableElement
+  id: string
+  text: string
+
+// RichRequirement is a subclafer of Requirement, thus inherits all
+// of its parts.
+abstract RichRequirement: Requirement
+  priority: integer
+  derived -> Requirement
+  derivedFrom -> Requirement
+  master -> Requirement
+  mechanizable ?
+  mechanized ?
+  refinedBy -> TraceableElement
+  satisfiedBy -> TraceableElement
+  validatedBy -> TraceableElement
+  verifiedBy -> TraceableElement
+  [ 0 <= priority ]
+
+noRequirement: RichRequirement
+
+// Assertions written on `RichRequirement`'s components is what
+// permits us to reason about requirements.  In particular, we can
+// trace requirement refinements (`refinedBy`), prioritize requirement
+// formalizations (by defining measures over the `priority`
+// component), denote what requirements are `mechanizable`, tracking
+// whether or not a requirement has been `mechanized` yet,
+// demonstrating that requirements are valid (`validatedBy`), and
+// traceability to the assurance case (`satisfiedBy` and
+// `verifiedBy`).  Note that the generic `tracedTo` component is meant
+// to aggregate all traceable elements across adjacent components,
+// thus its meaning is denoted as a union of the other elements'
+// values.
+
+// Next, we state in which languages one is permitted to write RDE
+// informal, semi-formal, and formal requirements.
+
+abstract InformalRequirement: RichRequirement
+  specs -> Spec +
+  [ all s: specs | s.language in ASCII, Word, Excel, DOORSLang ]
+
+abstract SemiformalRequirement: RichRequirement
+  specs -> Spec
+  [ all s: specs | s.language in ReqML, SysMLv1, SysMLv2, DOORSLang ]
+
+abstract FormalRequirement: RichRequirement
+  specs -> Spec
+  [ all s: specs | s.language in
+      SysMLv2, FRETish, Spear, PVSLang, CoqLang, LeanLang,
+      IsabelleLang, TamarinLang, SAPIC, SAPICStar ]
+
+// A set of requirements is a set of traditional requirements
+// engineering requirements coupled to sets of informal, semi-formal,
+// and formal requirements. Note that the traceability between
+// traditional requirements and RDE requirements is found in
+// `RichRequirements.refinedBy`.
+
+abstract Requirements: TraceableElement
+  requirements -> Requirement
+  informal -> InformalRequirement
+  semiFormal -> SemiformalRequirement
+  formal -> FormalRequirement
+
+// Here are some example requirements to demonstrate the metamodel.
+
+lsp: Spec
+  [ language = ASCII ]
+rsp: Spec
+  [ language = SysMLv2 ]
+fsp: Spec
+  [ language = FRETish ]
+ir: InformalRequirement
+  [ priority = 1 ]
+  [ specs = lsp ]
+  [ id = "ValidityChecker" ]
+  [ text = "A single concrete InformalRequirement used to check model validity." ]
+sr: SemiformalRequirement
+  [ specs = rsp ]
+fr: FormalRequirement
+  [ specs = fsp ]
+rs: Requirements
+  [ requirements = noRequirement ]
+  [ informal = ir ]
+  [ semiFormal = sr ]
+  [ formal = fr ]

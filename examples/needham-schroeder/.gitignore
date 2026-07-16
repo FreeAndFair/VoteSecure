@@ -1,5 +1,5 @@
-# Generated PLE prelude (recreate with: make bootstrap)
-ple/
+# The PLE prelude (ple/) is now vendored and committed; see ple/README.md.
+# `make bootstrap` refreshes it from the upstream RDE Bootstrap project.
 
 # Generated combined Clafer model (recreate with: make)
 needham-schroeder.cfr

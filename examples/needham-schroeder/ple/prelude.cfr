@@ -1,0 +1,83 @@
+// ========================================================================
+// RDE Product Line Engineering Models
+// ========================================================================
+
+// Copyright: 2025 Galois, Joe Kiniry, Free & Fair
+// Author(s): Joe Kiniry
+// Model type: Clafer
+// Model version: 0.1
+// Last modified: 2025.2.4
+
+// TODO: Executive Summary
+
+// Example of constraints and assertions used to reason about these
+// models and their inter-relationships are also provided.  The
+// natural language meaning of each proposition is adjacent to its
+// formal specification.
+
+// ========================================================================
+// We start with a few placeholder concepts, which will be refined later.
+// ========================================================================
+
+// Nothing here right now.
+
+// ========================================================================
+// Here are some generic "types" of Clafers. Some types do not have
+// properties, but are rather used for readability for the user.
+// ========================================================================
+
+abstract VersionInfo
+  major_version: integer
+  minor_version: integer
+  [ 0 <= major_version
+    0 <= minor_version ]
+
+// ========================================================================
+// Traceability
+// ========================================================================
+
+// A named element is any concept that has human-readable name(s).
+abstract NamedElement
+  name: string = "NO_NAME"
+  url -> string = "https://localhost/tbd/"
+  version: VersionInfo ?
+
+// A traceable element is a concept that has a (persistent) URL which
+// points to a particular artifact, and then an index into that
+// artifact which points to a referrant.  Example referrants are
+// section or table numbers in a document, or fully-resolved
+// declarations in a specification or program.  In occasions where
+// such a binder is unavailable, we can simply revert to using line
+// numbers.
+abstract TraceableElement: NamedElement
+  referrant -> string
+  line_no -> integer
+  [ 1 <= line_no ]
+
+nothing: TraceableElement
+  [ referrant = "TBD" ]
+
+// ========================================================================
+// Programming Languages Metamodel
+// ========================================================================
+
+// A list of all of the programming languages that we regularly use
+// in RDE projects, expressed as a Clafer enumeration.
+enum ProgLanguage = Ada | C | CPlusPlus | Dafny | FStarProgLang | Go | Haskell | Java | Kotlin | OCaml | Rust | SPARK | Scala | Slang
+
+// ========================================================================
+// Specification Languages Metamodel
+// ========================================================================
+
+// A list of all of the specification languages that we regularly use
+// in RDE projects, expressed as a Clafer enumeration.
+
+enum SpecLanguage = ASCII | ASMLang | AlloyLang | BigGears | ClaferLang | CoqLang | CryptolLang | DOORSLang | Excel | FRETish | FStarSpecLang | IsabelleLang | LandoLang | LeanLang | PVSLang | Promela | ReqML | SALLang | SAPIC | SAPICStar | SAWScript |Spear | StateCharts | SysMLv1 | SysMLv2 | TamarinLang | UML | Word
+
+// =====================================================================
+// The Assurance Case Metamodel
+//
+// Note that a mechanization of the CLARISSA metamodel is also available.
+// =====================================================================
+
+// @todo To be written.

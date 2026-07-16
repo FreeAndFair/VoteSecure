@@ -1,0 +1,23 @@
+// ========================================================================
+// Refinements Metamodel
+//
+// @dependencies prelude.cfr specifications.cfr
+// ========================================================================
+
+// Refinements between models either do not exist yet, are partially
+// specified, or are complete.  The rigor of any refinement is also
+// denoted.  The RDE Refinements lecture explains the meaning of these
+// terms.
+
+enum RefinementStatus = None | Partial | Complete
+
+enum RefinementRigor = Informal | SemiFormal | Formal
+
+// Since refinements are from an abstraction to one or more
+// concretizations/refinements, the `to` component is a set of specs.
+
+abstract Refinement
+  RefinementStatus
+  RefinementRigor
+  from -> Spec 1
+  to -> Spec +

@@ -1,0 +1,31 @@
+// =====================================================================
+// The top-level System Specification
+// =====================================================================
+
+abstract SystemSpecification
+  domainEngineeringSpecs: DomainModelSpecs
+  requirementsSpecs
+    informalRequirementsSpecs -> InformalRequirementsSpecs *
+    semiformalRequirementsSpecs -> SemiformalRequirementsSpecs *
+    formalRequirementsSpecs -> formalRequirementsSpecs *
+  featureModelSpecs -> FeatureModelingSpecs *
+  platformSpec: Platform
+  environmentSpec: Environment
+  productSpec: Product
+  billOfMaterials: BillOfMaterials
+  // These metamodels are not yet moved into this prelude.
+  // deploymentSpecs ->> Spec
+  // devSecOpsSpecs ->> Spec
+  // assuranceCaseSpecs ->> Spec
+  architectureSpec: System
+  behavioralSpecs
+    // stateMachineSpecs -> StateMachineSpec *
+    // networkProtoSpecs -> NetworkProtoSpec *
+  nonBehavioralSpecs
+    securitySpecs
+      // threatModelSpec ->> Spec
+      cryptoAlgSpecs -> CryptoAlgSpec *
+      cryptoProtoSpecs -> CryptoProtoSpec *
+      // performanceSpecs ->> Spec
+      // throughputSpecs ->> Spec
+  refinements -> Refinement *
