@@ -25,3 +25,44 @@ If you have a concrete suggestion for addressing an issue (e.g., you've already 
 4. Commit your changes to that branch. This project follows the [Conventional Commits](https://www.conventionalcommits.org/) standard, so you should do the same in your commit messages.
 5. Push your changes to that branch.
 6. [Open a pull request](https://github.com/FreeAndFair/VoteSecure/compare?expand=1)
+
+## Documenting AI Tool Use
+
+We use AI coding assistants — agents and the models behind them — in this
+project, and we document that use openly. Two principles govern how:
+
+- **We do not hide it.** When a model materially generates or revises content
+  (code, prose, models, specifications), that is recorded on the commit.
+- **We do not attribute authorship to a tool.** A model cannot be responsible
+  for a change, so it does not receive authorship credit — no more than a spell
+  checker or an editor does.
+
+Concretely:
+
+- **Do not** use a `Co-authored-by:` trailer (or any `Name <email>` trailer) for
+  an AI tool. Presentation layers such as GitHub parse those as human
+  contributors and fold them into contribution statistics, crediting an entity
+  that cannot bear responsibility.
+- **Do** record the tools with an `AI-Tools-Used:` trailer at the end of the
+  commit message. Itemize the coding agent(s) and model(s) that materially
+  contributed to the change:
+
+  ```
+  AI-Tools-Used: Claude Code (Claude Opus 4.8, 1M context)
+  ```
+
+  List multiple tools separated by `;`:
+
+  ```
+  AI-Tools-Used: Claude Code (Claude Opus 4.8); GitHub Copilot
+  ```
+
+Notes:
+
+- Some tools hide the specific model — e.g. GitHub Copilot's "Auto" mode does
+  not disclose which model served a request; it can only be recovered from
+  enterprise logs. Record what you can identify, and consult those logs when
+  precision matters.
+- GitHub-generated merge commits re-append the `Co-authored-by:` suffix we
+  avoid. Trim it before merging, or prefer a linear history that does not rely
+  on GitHub-generated merge commits.
