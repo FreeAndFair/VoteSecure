@@ -48,7 +48,7 @@ abstract Flow
   mux channel
     bus -> Bus ?         // the bus that implements the flow, or
     network -> Network ? // the network that implements the flow
-  rate: integer        // the maximum datarate in Kb/s that the flow demands
+  rate -> integer        // the maximum datarate in Kb/s that the flow demands
   [ 0 < rate ]
   [ channel.bus => (this in channel.bus.flows) ]
   [ channel.network => (this in channel.network.flows) ]
@@ -59,12 +59,8 @@ arbitrarySubsystem: Subsystem
   [ parentSystem = arbitrarySystem ]
 arbitrarySystem: System
   [ subSystems = arbitrarySubsystem ]
-// arbitraryFlow: Flow
-//   [ start = arbitrarySoftwareComponent ]
-//   [ end = arbitrarySoftwareComponent ]
-//   [ ! channel.network ]
-//   [ channel.bus ]
-//   [ rate = 10 ]
+// A concrete `arbitraryFlow` (with its `Bus` and `SoftwareTopology`) is defined
+// at the end of this module, once the connector/component types are in scope.
 
 // =====================================================================
 // Primitive types: SoftwareComponent, HardwareComponent
@@ -74,7 +70,7 @@ arbitrarySystem: System
 
 abstract HardwareComponent: Component
   software -> SoftwareComponent * // the software running on this hardware
-  [software.target = this]        // inverse relationship constraint
+  [ all s : software | s.target = this ]        // inverse relationship constraint
   mappable ?
   [ ! mappable => ! software]
 
@@ -84,35 +80,62 @@ abstract SoftwareComponent: Component
 
 abstract Channel: HardwareComponent
   [ ! mappable]
-  capacity: integer // the maximum datarate in Kb/s that this channel supports
+  capacity -> integer // the maximum datarate in Kb/s that this channel supports
   flows -> Flow *   // the flows that this channel implements
   components -> HardwareComponent * // the components the channel connects
-  [components = flows.start.target ++ flows.end.target]
+  // components include every flow endpoint (superset; exact = blocked by #484)
+  [ all f : flows | f.start.target in components ]
+  [ all f : flows | f.end.target in components ]
   [(sum flows.rate) <= capacity]    // channel capacity constraint
 
 abstract Bus: Channel
-  [this in flows.channel.bus]
+  [ all f : flows | f.channel.bus = this ]
 
 abstract Network: Channel
-  [this in flows.channel.network]
+  [ all f : flows | f.channel.network = this ]
 
-// abstract SoftwareTopology: Component
-//   flows -> Flow *
-//     [(!this.bus && (this.start.target = this.end.target))
-//       /// software is located on the same ECU, and there is no bus between them
-//       ||
-//      (this.bus && (this.start.target in this.bus.components) &&
-//                   (this.end.target in this.bus.components))
-//      /// components are communicating over a bus
-//       ||
-//      (this.network && (this.start.target in this.network.components) &&
-//                       (this.end.target in this.network.components))
-//      /// components are communicating over a network
-//     ]
+// A SoftwareTopology aggregates flows and asserts each is well-placed: either
+// co-located (no channel, endpoints on the same host) or carried by a
+// bus/network whose components include both endpoints' hosts.
+abstract SoftwareTopology: Component
+  flows -> Flow *
+  [ all f : flows |
+      (no f.channel.bus && no f.channel.network && f.start.target = f.end.target)
+      || (some f.channel.bus
+          && f.start.target in f.channel.bus.components
+          && f.end.target in f.channel.bus.components)
+      || (some f.channel.network
+          && f.start.target in f.channel.network.components
+          && f.end.target in f.channel.network.components) ]
 
 arbitraryHardwareComponent: HardwareComponent
   [ software = arbitrarySoftwareComponent ]
 arbitrarySoftwareComponent: SoftwareComponent
   [ target = arbitraryHardwareComponent ]
-// arbitraryTopology: SoftwareTopology
-//   [ flows = arbitraryFlow ]
+
+// ---- Concrete example: a flow between two hosts over a bus, in a topology ----
+// (demonstrates the metamodel and witnesses that concrete Flow/Bus/Channel/
+//  SoftwareTopology instances are well-typed and inhabited under Chocosolver).
+
+arbitraryHardwareComponent2: HardwareComponent
+  [ enclosingSubsystem = arbitrarySubsystem ]
+  [ software = arbitrarySoftwareComponent2 ]
+arbitrarySoftwareComponent2: SoftwareComponent
+  [ enclosingSubsystem = arbitrarySubsystem ]
+  [ target = arbitraryHardwareComponent2 ]
+
+arbitraryFlow: Flow
+  [ start = arbitrarySoftwareComponent ]
+  [ end = arbitrarySoftwareComponent2 ]
+  [ channel.bus = arbitraryBus ]
+  [ ! channel.network ]
+  [ rate = 10 ]
+
+arbitraryBus: Bus
+  [ enclosingSubsystem = arbitrarySubsystem ]
+  [ flows = arbitraryFlow ]
+  [ capacity = 100 ]
+
+arbitraryTopology: SoftwareTopology
+  [ enclosingSubsystem = arbitrarySubsystem ]
+  [ flows = arbitraryFlow ]

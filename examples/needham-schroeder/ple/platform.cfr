@@ -1,6 +1,11 @@
 // ========================================================================
 // Platform Metamodel: The features of the underlying platform on
-// which development is based.
+// which development is based, and which developed systems target.
+//
+// For NINJA/HOARDE this includes not only the classical hardware and
+// low-level software platform (FPGAs, ISAs, CPUs, boards, compilers,
+// operating systems, simulators, emulators, HDLs) but also the AI
+// inference substrate on which the HOARDE agents themselves run.
 //
 // @dependencies prelude.cfr
 // ========================================================================
@@ -11,9 +16,15 @@ enum FPGA = Xilinx | Altera | Microchip
 
 enum ISA = x86 | ARM | RV | MIPS | PowerPC
 
+// Hardware security/memory-protection extensions that a CPU may provide.
+// CHERI (capability hardware) is a first-class concern for HOARDE and is
+// demonstrated regularly (e.g. CheriBSD on Morello and CHERI-RISC-V).
+enum SecurityExtension = NoExtension | CHERI | MTE | PAC | TrustZone | SGX | SEV
+
 // @note The rich model of CPUs and SoCs is found in `/examples`.
 abstract CPU
   isa -> ISA
+  ext -> SecurityExtension *
 
 abstract HardwarePlatform
   cpu -> CPU
@@ -30,16 +41,24 @@ GHC: Compiler
 GNAT: Compiler
 JavaC: Compiler
 KotlinC: Compiler
+KotlinNative: Compiler
+LLVM: Compiler
 RustC: Compiler
+SwiftC: Compiler
 Dotty: Compiler
 
 abstract OperatingSystem: Software
 
 FreeRTOS: OperatingSystem
 FreeBSD: OperatingSystem
+CheriBSD: OperatingSystem
 Linux: OperatingSystem
 seL4: OperatingSystem
 seLinux: OperatingSystem
+Android: OperatingSystem
+iOS: OperatingSystem
+macOS: OperatingSystem
+Windows: OperatingSystem
 
 abstract Simulator: Software
 
@@ -58,16 +77,60 @@ Xilinx_Vivado: Simulator
 abstract Emulator
 
 QEMU: Emulator
+Renode: Emulator
 
 abstract HDL: Software
 
 BSV: HDL
 Chisel: HDL
+Clash: HDL
 SystemVerilog: HDL
 Verilog: HDL
 VHDL: HDL
 
 enum SecurityTrap = Halt | Interrupt | JTAG | LED
+
+// ========================================================================
+// AI Inference Substrate
+//
+// HOARDE orchestrates autonomous rigorous digital entities (AI agents)
+// that run on top of large language models served by an inference
+// runtime.  A NINJA deployment must record which models and runtime it
+// depends upon and how it is deployed, since HOARDE can run fully
+// air-gapped on domestic open-weight models (slower) or on hosted
+// frontier models (faster).
+// ========================================================================
+
+enum ModelDeployment = Cloud | OnPrem | AirGapped
+
+enum ModelWeights = OpenWeight | Proprietary
+
+abstract LanguageModel: Software
+  weights -> ModelWeights
+
+// Concrete language models HOARDE is known to target.  Frontier models
+// are proprietary; the open-weight models support air-gapped deployment.
+Claude: LanguageModel
+  [ weights = Proprietary ]
+GPT: LanguageModel
+  [ weights = Proprietary ]
+Gemini: LanguageModel
+  [ weights = Proprietary ]
+Llama: LanguageModel
+  [ weights = OpenWeight ]
+Mistral: LanguageModel
+  [ weights = OpenWeight ]
+Qwen: LanguageModel
+  [ weights = OpenWeight ]
+DeepSeek: LanguageModel
+  [ weights = OpenWeight ]
+
+abstract InferenceRuntime: Software
+
+Ollama: InferenceRuntime
+vLLM: InferenceRuntime
+LlamaCpp: InferenceRuntime
+TGI: InferenceRuntime
 
 abstract Platform
   bp -> BoardPackage
@@ -77,6 +140,13 @@ abstract Platform
   emulators -> Emulator *
   hdl -> HDL *
   trap -> SecurityTrap
+  // The AI inference substrate on which HOARDE agents run for this
+  // platform.  Optional, because a platform may host developed systems
+  // without hosting the HOARDE toolchain itself.
+  models -> LanguageModel *
+  runtime -> InferenceRuntime ?
+  deployment -> ModelDeployment ?
+  [ some models => some deployment ]
 
 // We provide an unconfigured instance of each core abstract clafer to
 // permit the typechecker and instance generator to sanity-check our
@@ -86,15 +156,21 @@ abstract Platform
 
 arbitraryPlatform: Platform
 
-// Here is an example platform configuration.
+// Here is an example platform configuration: a CHERI-RISC-V board running
+// CheriBSD, with the HOARDE toolchain deployed air-gapped on an
+// open-weight model.
 
 c: CPU
   [ isa = RV ]
+  [ ext = CHERI ]
 bp: BoardPackage
   [ cpu = c ]
 p: Platform
   [ compilers = Clang ]
-  [ oses = Linux ]
+  [ oses = CheriBSD ]
   [ simulators = Verilator ]
   [ hdl = VHDL, Verilog ]
   [ trap = Halt ]
+  [ models = Llama ]
+  [ runtime = Ollama ]
+  [ deployment = AirGapped ]

@@ -9,25 +9,55 @@
 // the SysML metamodel for Requirements.
 
 abstract Requirement: TraceableElement
-  id: string
-  text: string
+  id -> string
+  text -> string
 
 // RichRequirement is a subclafer of Requirement, thus inherits all
 // of its parts.
 abstract RichRequirement: Requirement
-  priority: integer
-  derived -> Requirement
-  derivedFrom -> Requirement
-  master -> Requirement
+  priority -> integer
+  derived -> RichRequirement *
+  derivedFrom -> RichRequirement *
+  master -> RichRequirement ?
   mechanizable ?
   mechanized ?
-  refinedBy -> TraceableElement
-  satisfiedBy -> TraceableElement
-  validatedBy -> TraceableElement
-  verifiedBy -> TraceableElement
+  refinedBy -> TraceableElement *
+  satisfiedBy -> TraceableElement *
+  validatedBy -> TraceableElement *
+  verifiedBy -> TraceableElement *
+  tracedTo -> TraceableElement *
   [ 0 <= priority ]
+  // derived / derivedFrom are the inverse ends of the derivation relation
+  [ all r : derivedFrom | this in r.derived ]
+  [ all r : derived | this in r.derivedFrom ]
+  // irreflexive: a requirement is not derived from itself, nor its own master
+  [ this not in derived ]
+  [ this not in derivedFrom ]
+  [ this not in master ]
+  // derived and derivedFrom are disjoint (no length-2 derivation cycle)
+  [ no (derived & derivedFrom) ]
+  // a requirement is not its own refinement/satisfaction/validation/verification
+  [ this not in refinedBy ]
+  [ this not in satisfiedBy ]
+  [ this not in validatedBy ]
+  [ this not in verifiedBy ]
+  // may only be mechanized if it is mechanizable
+  [ mechanized => mechanizable ]
+  // may only verify a requirement that something is claimed to satisfy
+  [ some verifiedBy => some satisfiedBy ]
+  // tracedTo aggregates all trace links (superset; exact = blocked by #484)
+  [ refinedBy in tracedTo ]
+  [ satisfiedBy in tracedTo ]
+  [ validatedBy in tracedTo ]
+  [ verifiedBy in tracedTo ]
 
 noRequirement: RichRequirement
+
+// Direct concrete Requirement witness (abstract ref targets need one
+// for Chocosolver to instantiate multi-element references to them).
+aRequirement: Requirement
+  [ id = "SANITY" ]
+  [ text = "sanity witness" ]
 
 // Assertions written on `RichRequirement`'s components is what
 // permits us to reason about requirements.  In particular, we can
@@ -42,7 +72,7 @@ noRequirement: RichRequirement
 // thus its meaning is denoted as a union of the other elements'
 // values.
 
-// Next, we state in which languages one is permitted to write RDE
+// Next, we state in which languages one is permitted to write NINJA
 // informal, semi-formal, and formal requirements.
 
 abstract InformalRequirement: RichRequirement
@@ -50,26 +80,37 @@ abstract InformalRequirement: RichRequirement
   [ all s: specs | s.language in ASCII, Word, Excel, DOORSLang ]
 
 abstract SemiformalRequirement: RichRequirement
-  specs -> Spec
-  [ all s: specs | s.language in ReqML, SysMLv1, SysMLv2, DOORSLang ]
+  specs -> Spec *
+  [ all s: specs | s.language in LandoLang, ReqML, SysMLv1, SysMLv2, DOORSLang ]
 
 abstract FormalRequirement: RichRequirement
-  specs -> Spec
+  specs -> Spec *
   [ all s: specs | s.language in
-      SysMLv2, FRETish, Spear, PVSLang, CoqLang, LeanLang,
+      CryptolLang, SysMLv2, FRETish, Spear, PVSLang, CoqLang, LeanLang,
       IsabelleLang, TamarinLang, SAPIC, SAPICStar ]
 
 // A set of requirements is a set of traditional requirements
 // engineering requirements coupled to sets of informal, semi-formal,
 // and formal requirements. Note that the traceability between
-// traditional requirements and RDE requirements is found in
+// traditional requirements and NINJA requirements is found in
 // `RichRequirements.refinedBy`.
-
+//
+// `requirements` is a *containment* (ownership) collection: a
+// `Requirements` aggregate owns its member requirements as nested
+// children (concretizations declare them nested under `requirements`).
+// This is deliberate: it both matches the intent (the aggregate
+// characterizes the entire set of requirements for the system) and
+// sidesteps a Chocosolver backend limitation whereby a multi-valued
+// *reference* (`->`) to instances of a proper subtype of the reference's
+// declared type is not inhabitable (see the module README and
+// gsdlab/chocosolver#32, gsdlab/clafer#89).  The `informal`, `semiFormal`,
+// and `formal` fields remain references because they point at direct
+// instances of their declared types.
 abstract Requirements: TraceableElement
-  requirements -> Requirement
-  informal -> InformalRequirement
-  semiFormal -> SemiformalRequirement
-  formal -> FormalRequirement
+  requirements : Requirement *
+  informal -> InformalRequirement *
+  semiFormal -> SemiformalRequirement *
+  formal -> FormalRequirement *
 
 // Here are some example requirements to demonstrate the metamodel.
 
@@ -89,7 +130,13 @@ sr: SemiformalRequirement
 fr: FormalRequirement
   [ specs = fsp ]
 rs: Requirements
-  [ requirements = noRequirement ]
+  // requirements are owned (nested); this witness owns one.
+  requirements
+    rsReq: FormalRequirement
+      [ priority = 0 ]
+      [ id = "RS" ]
+      [ text = "A single owned requirement used to check model validity." ]
+      [ specs = fsp ]
   [ informal = ir ]
   [ semiFormal = sr ]
   [ formal = fr ]

@@ -2,30 +2,83 @@
 // Needham-Schroeder Product Line Engineering Models
 // ========================================================================
 
-// Copyright: 2025 Free & Fair
+// Copyright: 2025-2026 Free & Fair
 // Author(s): Joe Kiniry
 // Model type: Clafer
-// Model version: 1.1
-// Last modified: 2026.3.1
+// Model version: 2.0
+// Last modified: 2026.7.17
 
-// This set of models are specifications of several fundamental
-// product line engineering aspects of this Needham-Schroeder (NS,
-// henceforth) example.
-
-// This model depends upon the RDE prelude which defines the abstract
-// clafers (type structure) that describes various sub-domains of
-// modeling.  That abstract model is concretized for this particular
+// This set of models are specifications of several fundamental product
+// line engineering aspects of this Needham-Schroeder (NS, henceforth)
 // example.
 
-// Example of constraints and assertions used to reason about these
-// models and their inter-relationships are also provided.  The
-// natural language meaning of each proposition is adjacent to its
-// formal specification.
+// This model depends upon the NINJA fixed base meta-model (the `ple/`
+// modules), which defines the abstract clafers (type structure) that
+// describe various sub-domains of modeling.  That abstract model is
+// concretized here for this particular example.
 
 // The product line engineering models included herein are:
 //  - [x] the semi-formal and formal correctness properties of NS
 //  - [x] the security requirements of NS
-//  - [ ] the high-level architecture of NS
+//  - [x] the classical feature model of NS
+//  - [x] the top-level system composition of NS
+
+// ========================================================================
+// URL lookup table (value-carrying trace handles)
+// ========================================================================
+//
+// Following the meta-model's hybrid trace-representation strategy, every
+// distinct trace URL is declared once here as a `URL` handle carrying its
+// string `value`.  Elements below reference these handles (as sets where
+// an element traces to several locations); all other trace fields
+// (`referrant`, `id`, `text`, `name`) are kept as plain strings.
+
+u_lando : URL
+  [ value = "NeedhamSchroeder.lando" ]
+u_cry : URL
+  [ value = "NeedhamSchroeder.cry" ]
+u_rulesFixed : URL
+  [ value = "needham_schroeder_fixed_symmetric_rules.spthy" ]
+u_sysml : URL
+  [ value = "NeedhamSchroeder.sysml" ]
+u_sapicSpthyFixed : URL
+  [ value = "needham_schroeder_fixed_symmetric_sapic+.spthy" ]
+u_symEnc : URL
+  [ value = "needham_schroeder_fixed_symmetric_rules.spthy#symmetric-encryption" ]
+u_partyA : URL
+  [ value = "needham_schroeder_fixed_symmetric_rules.spthy#A" ]
+u_partyB : URL
+  [ value = "needham_schroeder_fixed_symmetric_rules.spthy#B" ]
+u_alice : URL
+  [ value = "NeedhamSchroederFixedSymmetricProtocol.Alice" ]
+u_bob : URL
+  [ value = "NeedhamSchroederFixedSymmetricProtocol.Bob" ]
+u_protocolSecrecy : URL
+  [ value = "needham_schroeder_fixed_symmetric_rules.spthy#ProtocolSecrecy" ]
+u_sendASecret : URL
+  [ value = "needham_schroeder_fixed_symmetric_rules.spthy#SendASecret" ]
+u_singleSharedKey : URL
+  [ value = "needham_schroeder_fixed_symmetric_rules.spthy#SingleSharedKeyPerPrincipal" ]
+u_executable : URL
+  [ value = "needham_schroeder_fixed_symmetric_rules.spthy#Executable" ]
+u_symSessionStart : URL
+  [ value = "needham_schroeder_fixed_symmetric_rules.spthy#SymmetricSessionStart" ]
+u_sessionKeySecrecy : URL
+  [ value = "needham_schroeder_fixed_symmetric_rules.spthy#SessionKeySecrecy" ]
+u_sharedKeysSecret : URL
+  [ value = "needham_schroeder_fixed_symmetric_rules.spthy#SharedKeysRemainSecret" ]
+u_noReplay : URL
+  [ value = "needham_schroeder_fixed_symmetric_rules.spthy#NoReplayAttack" ]
+u_wikipedia : URL
+  [ value = "https://en.wikipedia.org/wiki/Needham%E2%80%93Schroeder_protocol" ]
+u_rulesInsecure : URL
+  [ value = "needham_schroeder_symmetric_rules.spthy" ]
+u_sapicSpthyInsecure : URL
+  [ value = "needham_schroeder_symmetric_sapic+.spthy" ]
+u_sapicPvInsecure : URL
+  [ value = "needham_schroeder_symmetric_sapic+.pv" ]
+u_sapicPvFixed : URL
+  [ value = "needham_schroeder_fixed_symmetric_sapic+.pv" ]
 
 // ========================================================================
 // Needham-Schroeder Specifications
@@ -35,31 +88,31 @@ LandoSpec: Spec
   [ language = LandoLang ]
   [ referrant = "NeedhamSchroederSymmetric" ]
   [ line_no = 8 ]
-  [ url = "NeedhamSchroeder.lando" ]
+  [ url = u_lando ]
 
 CryptolSpec: Spec
   [ language = CryptolLang ]
   [ referrant = "NeedhamSchroeder" ]
   [ line_no = 1 ]
-  [ url = "NeedhamSchroeder.cry" ]
+  [ url = u_cry ]
 
 TamarinSpec: Spec
   [ language = TamarinLang ]
   [ referrant = "nss_rules_fixed" ]
   [ line_no = 1 ]
-  [ url = "needham_schroeder_fixed_symmetric_rules.spthy" ]
+  [ url = u_rulesFixed ]
 
 SysMLSpec: Spec
   [ language = SysMLv2 ]
   [ referrant = "SimpleCryptography" ]
   [ line_no = 1 ]
-  [ url = "NeedhamSchroeder.sysml" ]
+  [ url = u_sysml ]
 
 SAPICSpec: Spec
   [ language = SAPICStar ]
   [ referrant = "nss_sapic_fixed" ]
   [ line_no = 1 ]
-  [ url = "needham_schroeder_fixed_symmetric_sapic+.spthy" ]
+  [ url = u_sapicSpthyFixed ]
 
 // ========================================================================
 // Needham-Schroeder Requirements and their Refinements
@@ -68,105 +121,143 @@ SAPICSpec: Spec
 abstract NeedhamSchroederSecurityRequirement: FormalRequirement
   [ specs = TamarinSpec ]
 
-SymmetricEncryptionAssumption: TraceableElement
-  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#symmetric-encryption" ]
+// ------------------------------------------------------------------------
+// Trace targets satisfied by the requirements.  These are declared at top
+// level because a requirement's `satisfiedBy` references them.
+// ------------------------------------------------------------------------
 
-Symmetric: NeedhamSchroederSecurityRequirement
-  [ id = "Symmetric" ]
-  [ text = "The protocol must use a symmetric cipher." ]
-  [ satisfiedBy = SymmetricEncryptionAssumption ]
+SymmetricEncryptionAssumption: TraceableElement
+  [ referrant = "symmetric-encryption" ]
+  [ line_no = 1 ]
+  [ url = u_symEnc ]
 
 TwoPartiesNamesTamarin: TraceableElement
-  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#A", "needham_schroeder_fixed_symmetric_rules.spthy#B" ]
+  [ referrant = "Principals" ]
+  [ line_no = 1 ]
+  [ url = u_partyA, u_partyB ]
 
 TwoPartiesNamesSysML: TraceableElement
-  [ url = "NeedhamSchroederFixedSymmetricProtocol.Alice", "NeedhamSchroederFixedSymmetricProtocol.Bob" ]
-
-TwoParty: NeedhamSchroederSecurityRequirement
-  [ id = "Two Party" ]
-  [ text = "The protocol must establish a session key between two parties." ]
-  [ satisfiedBy = TwoPartiesNamesTamarin, TwoPartiesNamesSysML ]
+  [ referrant = "Principals" ]
+  [ line_no = 1 ]
+  [ url = u_alice, u_bob ]
 
 ProtocolSecrecyLemma: TraceableElement
-  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#ProtocolSecrecy" ]
+  [ referrant = "ProtocolSecrecy" ]
+  [ line_no = 1 ]
+  [ url = u_protocolSecrecy ]
 
 SendASecretRule: TraceableElement
-  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#SendASecret" ]
-
-SessionKeyUse: NeedhamSchroederSecurityRequirement
-  [ id = "Session Key Use" ]
-  [ text = "The session key established by the protocol must be usable for later secure communications between the two parties who established the key." ]
-  [ satisfiedBy = ProtocolSecrecyLemma, SendASecretRule ]
+  [ referrant = "SendASecret" ]
+  [ line_no = 1 ]
+  [ url = u_sendASecret ]
 
 Restriction1: TraceableElement
-  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#SingleSharedKeyPerPrincipal" ]
-
-SingleSharedKeyPerUser: NeedhamSchroederSecurityRequirement
-  [ id = "Single Shared Key Per User" ]
-  [ text = "Any participant in the protocol only shares a single key with the trusted server." ]
-  [ satisfiedBy = Restriction1 ]
+  [ referrant = "SingleSharedKeyPerPrincipal" ]
+  [ line_no = 1 ]
+  [ url = u_singleSharedKey ]
 
 Lemma1: TraceableElement
-  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#Executable" ]
-
-Executable: NeedhamSchroederSecurityRequirement
-  [ id = "Executable" ]
-  [ text = "The protocol always terminates so long as messages are not lost." ]
-  [ satisfiedBy = Lemma1 ]
+  [ referrant = "Executable" ]
+  [ line_no = 1 ]
+  [ url = u_executable ]
 
 Lemma2: TraceableElement
-  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#SymmetricSessionStart" ]
-
-ConfirmationTwoWay: NeedhamSchroederSecurityRequirement
-  [ id = "Confirmation Two Way" ]
-  [ text = "If one participant believes that the protocol concluded successfully, both do." ]
-  [ satisfiedBy = Lemma2 ]
+  [ referrant = "SymmetricSessionStart" ]
+  [ line_no = 1 ]
+  [ url = u_symSessionStart ]
 
 Lemma3: TraceableElement
-  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#SessionKeySecrecy" ]
-
-SessionKeySecrecy: NeedhamSchroederSecurityRequirement
-  [ id = "Secrecy of Session Key" ]
-  [ text = "The session key is private to the protocol participants." ]
-  [ satisfiedBy = Lemma3 ]
+  [ referrant = "SessionKeySecrecy" ]
+  [ line_no = 1 ]
+  [ url = u_sessionKeySecrecy ]
 
 SharedKeysRestriction: TraceableElement
-  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#SharedKeysRemainSecret" ]
-
-SecrecyOfSharedKeys: NeedhamSchroederSecurityRequirement
-  [ id = "Secrecy of Shared Keys" ]
-  [ text = "The key shared between each protocol participant and the trusted server is private to them." ]
-  [ satisfiedBy = SharedKeysRestriction ]
+  [ referrant = "SharedKeysRemainSecret" ]
+  [ line_no = 1 ]
+  [ url = u_sharedKeysSecret ]
 
 NoReplayAttackLemma: TraceableElement
-  [ url = "needham_schroeder_fixed_symmetric_rules.spthy#NoReplayAttack" ]
+  [ referrant = "NoReplayAttack" ]
+  [ line_no = 1 ]
+  [ url = u_noReplay ]
 
-SingleSessionKeyPerPair: NeedhamSchroederSecurityRequirement
-  [ id = "Single Session Key Per Pair" ]
-  [ text = "Any pair of participants that mutually generate a session key using the protocol know the same session key." ]
-  [ satisfiedBy = NoReplayAttackLemma ]
+// ------------------------------------------------------------------------
+// The informal / semi-formal / formal requirement-specification objects
+// referenced by the aggregate below.
+// ------------------------------------------------------------------------
 
 NeedhamSchroederWikipediaPage: Spec
-  [ url = "https://en.wikipedia.org/wiki/Needham%E2%80%93Schroeder_protocol" ]
   [ language = ASCII ]
+  [ referrant = "Needham-Schroeder protocol" ]
+  [ line_no = 1 ]
+  [ url = u_wikipedia ]
 
 NeedhamSchroederInformalRequirementsSpec: InformalRequirement
+  [ id = "NS-INF" ]
+  [ text = "Informal Needham-Schroeder requirements (CONOPS)." ]
   [ specs = NeedhamSchroederWikipediaPage ]
   [ refinedBy = NeedhamSchroederSemiformalRequirementsSpec ]
 
 NeedhamSchroederSemiformalRequirementsSpec: SemiformalRequirement
+  [ id = "NS-SEMI" ]
+  [ text = "Semi-formal Needham-Schroeder requirements (Lando/SysML)." ]
   [ specs = LandoSpec, SysMLSpec ]
   [ refinedBy = NeedhamSchroederFormalRequirementsSpec ]
 
 NeedhamSchroederFormalRequirementsSpec: FormalRequirement
+  [ id = "NS-FORMAL" ]
+  [ text = "Formal Needham-Schroeder requirements (Tamarin/Cryptol/SAPIC+)." ]
   [ specs = TamarinSpec, CryptolSpec, SAPICSpec ]
 
+// ------------------------------------------------------------------------
+// The requirements aggregate OWNS its nine security requirements as nested
+// children (the `requirements` containment; see requirements.cfr).  This
+// both matches the intent (this aggregate characterizes the entire set of
+// requirements for the system) and is inhabitable under Chocosolver.
+// ------------------------------------------------------------------------
+
 NeedhamSchroederInformalRequirements: Requirements
-  [ requirements = Symmetric, TwoParty, SessionKeyUse,
-      SingleSharedKeyPerUser, SingleSessionKeyPerPair,
-      Executable, ConfirmationTwoWay,
-      SecrecyOfSharedKeys, SessionKeySecrecy ]
+  [ referrant = "NeedhamSchroederRequirements" ]
+  [ line_no = 1 ]
+  requirements
+    Symmetric: NeedhamSchroederSecurityRequirement
+      [ id = "Symmetric" ]
+      [ text = "The protocol must use a symmetric cipher." ]
+      [ satisfiedBy = SymmetricEncryptionAssumption ]
+    TwoParty: NeedhamSchroederSecurityRequirement
+      [ id = "Two Party" ]
+      [ text = "The protocol must establish a session key between two parties." ]
+      [ satisfiedBy = TwoPartiesNamesTamarin, TwoPartiesNamesSysML ]
+    SessionKeyUse: NeedhamSchroederSecurityRequirement
+      [ id = "Session Key Use" ]
+      [ text = "The session key established by the protocol must be usable for later secure communications between the two parties who established the key." ]
+      [ satisfiedBy = ProtocolSecrecyLemma, SendASecretRule ]
+    SingleSharedKeyPerUser: NeedhamSchroederSecurityRequirement
+      [ id = "Single Shared Key Per User" ]
+      [ text = "Any participant in the protocol only shares a single key with the trusted server." ]
+      [ satisfiedBy = Restriction1 ]
+    SingleSessionKeyPerPair: NeedhamSchroederSecurityRequirement
+      [ id = "Single Session Key Per Pair" ]
+      [ text = "Any pair of participants that mutually generate a session key using the protocol know the same session key." ]
+      [ satisfiedBy = NoReplayAttackLemma ]
+    Executable: NeedhamSchroederSecurityRequirement
+      [ id = "Executable" ]
+      [ text = "The protocol always terminates so long as messages are not lost." ]
+      [ satisfiedBy = Lemma1 ]
+    ConfirmationTwoWay: NeedhamSchroederSecurityRequirement
+      [ id = "Confirmation Two Way" ]
+      [ text = "If one participant believes that the protocol concluded successfully, both do." ]
+      [ satisfiedBy = Lemma2 ]
+    SecrecyOfSharedKeys: NeedhamSchroederSecurityRequirement
+      [ id = "Secrecy of Shared Keys" ]
+      [ text = "The key shared between each protocol participant and the trusted server is private to them." ]
+      [ satisfiedBy = SharedKeysRestriction ]
+    SessionKeySecrecy: NeedhamSchroederSecurityRequirement
+      [ id = "Secrecy of Session Key" ]
+      [ text = "The session key is private to the protocol participants." ]
+      [ satisfiedBy = Lemma3 ]
   [ informal = NeedhamSchroederInformalRequirementsSpec ]
+  [ semiFormal = NeedhamSchroederSemiformalRequirementsSpec ]
   [ formal = NeedhamSchroederFormalRequirementsSpec ]
 
 // ========================================================================
@@ -185,25 +276,25 @@ CONOPS_to_SysML: Refinement
   [ from = NeedhamSchroederWikipediaPage ]
   [ to = SysMLSpec ]
 
-Lando_to_SysML
+Lando_to_SysML: Refinement
   Partial
   SemiFormal
   [ from = LandoSpec ]
   [ to = SysMLSpec ]
 
-SysML_to_Cryptol
+SysML_to_Cryptol: Refinement
   Partial
   Formal
   [ from = SysMLSpec ]
   [ to = CryptolSpec ]
 
-SysML_to_Protocol
+SysML_to_Protocol: Refinement
   Partial
   Formal
   [ from = SysMLSpec ]
   [ to = TamarinSpec, SAPICSpec ]
 
-Cryptol_to_Protocol
+Cryptol_to_Protocol: Refinement
   Complete
   Formal
   [ from = CryptolSpec ]
@@ -218,43 +309,167 @@ Cryptol_to_Protocol
 // version of the protocol.
 
 NeedhamSchroederExample: TraceableElement
+  [ referrant = "NeedhamSchroederExample" ]
+  [ line_no = 1 ]
   Insecure: TraceableElement
-    [ url = "needham_schroeder_symmetric_rules.spthy",
-            "needham_schroeder_symmetric_sapic+.spthy",
-            "needham_schroeder_symmetric_sapic+.pv" ]
+    [ referrant = "Insecure" ]
+    [ line_no = 1 ]
+    [ url = u_rulesInsecure, u_sapicSpthyInsecure, u_sapicPvInsecure ]
   Secure: TraceableElement
-    [ url = "needham_schroeder_fixed_symmetric_rules.spthy",
-            "needham_schroeder_fixed_symmetric_sapic+.spthy",
-            "needham_schroeder_fixed_symmetric_sapic+.pv" ]
+    [ referrant = "Secure" ]
+    [ line_no = 1 ]
+    [ url = u_rulesFixed, u_sapicSpthyFixed, u_sapicPvFixed ]
 
 // ========================================================================
-// Architecture Metamodel
+// Architecture (a refinement abstraction of the SysMLv2 model)
 // ========================================================================
 
-// A Clafer-based architecture specification for demonstrating
-// architectural refinement and design choices as a means by which to
-// fulfill some non-behavioral requirements.
+// This Clafer architecture is the abstract structural view that the
+// SysMLv2 model `NeedhamSchroeder.sysml` (package
+// `NeedhamSchroederFixedSymmetricProtocol`) refines.  Each protocol party
+// becomes a software component on its own host; each protocol message
+// becomes a logical flow over a shared network.  The SysMLv2 model then
+// concretizes this by adding typed ports, message item definitions, and
+// the event/message sequence.
+//
+//   SysMLv2 `TrustedServer`        |= ServerComponent
+//   SysMLv2 `InitiatingParty`/Alice |= InitiatorComponent
+//   SysMLv2 `RespondingParty`/Bob  |= ResponderComponent
+//   SysMLv2 `flow` declarations    |= the Flow instances below
 
-// @todo Joe Kiniry
+NSArchitectureSubsystem: Subsystem
+  [ parentSystem = NeedhamSchroederArchitecture ]
+
+// The hosts each party runs on (mappable hardware).
+ServerHost: HardwareComponent
+  [ enclosingSubsystem = NSArchitectureSubsystem ]
+  [ mappable ]
+  [ software = ServerComponent ]
+InitiatorHost: HardwareComponent
+  [ enclosingSubsystem = NSArchitectureSubsystem ]
+  [ mappable ]
+  [ software = InitiatorComponent ]
+ResponderHost: HardwareComponent
+  [ enclosingSubsystem = NSArchitectureSubsystem ]
+  [ mappable ]
+  [ software = ResponderComponent ]
+
+// The three protocol parties as software components.
+ServerComponent: SoftwareComponent
+  [ enclosingSubsystem = NSArchitectureSubsystem ]
+  [ target = ServerHost ]
+InitiatorComponent: SoftwareComponent
+  [ enclosingSubsystem = NSArchitectureSubsystem ]
+  [ target = InitiatorHost ]
+ResponderComponent: SoftwareComponent
+  [ enclosingSubsystem = NSArchitectureSubsystem ]
+  [ target = ResponderHost ]
+
+// The protocol messages of the fixed (secure) protocol, as flows.
+SessionInitiationFlow: Flow
+  [ start = InitiatorComponent ]
+  [ end = ResponderComponent ]
+  [ channel.network = ProtocolNetwork ]
+  [ ! channel.bus ]
+  [ rate = 1 ]
+SessionInitiationResponseFlow: Flow
+  [ start = ResponderComponent ]
+  [ end = InitiatorComponent ]
+  [ channel.network = ProtocolNetwork ]
+  [ ! channel.bus ]
+  [ rate = 1 ]
+RequestSessionKeyFlow: Flow
+  [ start = InitiatorComponent ]
+  [ end = ServerComponent ]
+  [ channel.network = ProtocolNetwork ]
+  [ ! channel.bus ]
+  [ rate = 1 ]
+SessionKeyFlow: Flow
+  [ start = ServerComponent ]
+  [ end = InitiatorComponent ]
+  [ channel.network = ProtocolNetwork ]
+  [ ! channel.bus ]
+  [ rate = 1 ]
+EncapsulatedSessionKeyFlow: Flow
+  [ start = InitiatorComponent ]
+  [ end = ResponderComponent ]
+  [ channel.network = ProtocolNetwork ]
+  [ ! channel.bus ]
+  [ rate = 1 ]
+ConfirmationBtoAFlow: Flow
+  [ start = ResponderComponent ]
+  [ end = InitiatorComponent ]
+  [ channel.network = ProtocolNetwork ]
+  [ ! channel.bus ]
+  [ rate = 1 ]
+ConfirmationAtoBFlow: Flow
+  [ start = InitiatorComponent ]
+  [ end = ResponderComponent ]
+  [ channel.network = ProtocolNetwork ]
+  [ ! channel.bus ]
+  [ rate = 1 ]
+
+// The shared network carrying the protocol messages.
+ProtocolNetwork: Network
+  [ enclosingSubsystem = NSArchitectureSubsystem ]
+  [ flows = SessionInitiationFlow, SessionInitiationResponseFlow,
+      RequestSessionKeyFlow, SessionKeyFlow, EncapsulatedSessionKeyFlow,
+      ConfirmationBtoAFlow, ConfirmationAtoBFlow ]
+  [ components = ServerHost, InitiatorHost, ResponderHost ]
+  [ capacity = 100 ]
+
+NeedhamSchroederArchitecture: System
+  [ subSystems = NSArchitectureSubsystem ]
 
 // ========================================================================
-// The top-level System Specification, which ties all PLE models together.
+// Specification aggregates for the top-level composition
 // ========================================================================
 
-NeedhamSchroederDemonstrationSystem: System
-//  [ domainEngineeringSpecs = LandoSpec ]
-//  [ requirementsSpecs = ... ]
-//    [ informalRequirementsSpecs = NeedhamSchroederRequirements ]
-//  [ featurePLeSpecs = ... ]
-//  behavioralSpecs
-//    [ stateMachineSpecs = CryptolSpec, SAPICSpec ]
-//    [ networkProtocolSpecs = TamarinSpec, SysMLSpec, SAPICSpec ]
-//  nonBehavioralSpecs
-//  securitySpecs
-//    threatModelSpec
-//    [ cryptographicAlgorithmsSpecs = CryptolSpec ]
-//    [ cryptographicProtocolSpecs = TamarinSpec, SAPICSpec ]
-//  performanceSpecs
-//    latencySpecs
-//    throughputSpecs
-// architecturePLESpec
+// The raw NS specs, grouped into the typed specification categories that
+// the top-level `SystemSpecification` ties together.
+NSDomainSpecs: DomainModelSpecs
+  [ specs = LandoSpec, SysMLSpec ]
+
+NSInformalRequirementsSpecs: InformalRequirementsSpecs
+  [ specs = NeedhamSchroederWikipediaPage ]
+
+NSCryptoAlgSpec: CryptoAlgSpec
+  [ specs = CryptolSpec ]
+
+NSCryptoProtoSpec: CryptoProtoSpec
+  [ specs = TamarinSpec, SAPICSpec ]
+
+NSStateMachineSpec: StateMachineSpec
+  [ specs = CryptolSpec ]
+
+NSNetworkProtoSpec: NetworkProtoSpec
+  [ specs = SysMLSpec ]
+
+NSArchitectureSpec: ArchitectureSpec
+  [ specs = SysMLSpec ]
+
+// ========================================================================
+// The top-level System Specification, which ties all NS models together.
+// ========================================================================
+
+// `NeedhamSchroederDemonstrationSystem` composes (by reference) every NS
+// sub-model produced above: the domain model, the requirements aggregate,
+// the architecture (which the SysMLv2 model refines), the cryptographic
+// algorithm/protocol and behavioral specifications, and the refinements
+// that relate them.
+NeedhamSchroederDemonstrationSystem: SystemSpecification
+  [ domainEngineeringSpecs = NSDomainSpecs ]
+  requirementsSpecs
+    [ informalRequirementsSpecs = NSInformalRequirementsSpecs ]
+  [ requirements = NeedhamSchroederInformalRequirements ]
+  [ architectureSpec = NeedhamSchroederArchitecture ]
+  [ architectureSpecs = NSArchitectureSpec ]
+  behavioralSpecs
+    [ stateMachineSpecs = NSStateMachineSpec ]
+    [ networkProtoSpecs = NSNetworkProtoSpec ]
+  nonBehavioralSpecs
+    securitySpecs
+      [ cryptoAlgSpecs = NSCryptoAlgSpec ]
+      [ cryptoProtoSpecs = NSCryptoProtoSpec ]
+  [ refinements = CONOPS_to_Lando, CONOPS_to_SysML, Lando_to_SysML,
+      SysML_to_Cryptol, SysML_to_Protocol, Cryptol_to_Protocol ]

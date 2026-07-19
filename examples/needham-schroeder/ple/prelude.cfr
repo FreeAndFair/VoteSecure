@@ -1,19 +1,53 @@
 // ========================================================================
-// RDE Product Line Engineering Models
+// NINJA Product Line Engineering Models --- Prelude
 // ========================================================================
 
-// Copyright: 2025 Galois, Joe Kiniry, Free & Fair
+// Copyright: 2025-2026 Sigil Logic, Galois, Joe Kiniry, Free & Fair
 // Author(s): Joe Kiniry
 // Model type: Clafer
-// Model version: 0.1
-// Last modified: 2025.2.4
+// Model version: 0.2
+// Last modified: 2026.7.17
 
-// TODO: Executive Summary
+// ========================================================================
+// Executive Summary
+// ========================================================================
 
-// Example of constraints and assertions used to reason about these
-// models and their inter-relationships are also provided.  The
-// natural language meaning of each proposition is adjacent to its
-// formal specification.
+// This is the fixed base meta-model for NINJA, the rigorous digital
+// engineering methodology formerly known as RDE.  NINJA is a graduated,
+// incrementally-adoptable formal-assurance methodology that ties together
+// Design-by-Contract, refinement chains, and machine-checked verification
+// so that a claim made at the most abstract level of a system can be
+// traced, refinement by refinement, all the way down to attested evidence
+// produced by analysis and verification tools.
+//
+// The meta-model is realized in practice by HOARDE (Hierarchical
+// Orchestration of Autonomous Rigorous Digital Entities), Sigil Logic's
+// platform of orchestrated AI agents that author, refine, and check the
+// artifacts described here.  Each sub-domain of the methodology is captured
+// as an abstract Clafer "type structure" in a dedicated module and then
+// concretized by a particular project (for example, the Needham-Schroeder
+// pedagogical example that vendors this prelude).
+//
+// The modules of the fixed base meta-model are:
+//   - prelude.cfr        traceability core + programming/specification
+//                        language taxonomies (this file)
+//   - platform.cfr       the development and target platform, including
+//                        the AI inference substrate HOARDE runs on
+//   - environment.cfr    the NINJA build, DevSecOps, and formal-methods
+//                        toolchains
+//   - specifications.cfr the kinds of specifications and their languages
+//   - requirements.cfr   informal / semi-formal / formal requirements
+//   - refinements.cfr    refinement relationships and their rigor
+//   - architecture.cfr   generic system/subsystem/component architecture
+//   - assurancecase.cfr  the assurance-case meta-model (CLARISSA + ETB)
+//   - product.cfr        the product under development and its BOMs
+//   - configuration.cfr  build system, CI, CD, and CV
+//   - system.cfr         the top-level composition of all of the above
+//
+// Example constraints and assertions used to reason about these models and
+// their inter-relationships are provided throughout.  The natural-language
+// meaning of each proposition is stated adjacent to its formal
+// specification.
 
 // ========================================================================
 // We start with a few placeholder concepts, which will be refined later.
@@ -27,8 +61,8 @@
 // ========================================================================
 
 abstract VersionInfo
-  major_version: integer
-  minor_version: integer
+  major_version -> integer
+  minor_version -> integer
   [ 0 <= major_version
     0 <= minor_version ]
 
@@ -36,20 +70,37 @@ abstract VersionInfo
 // Traceability
 // ========================================================================
 
+// A URL is a value-carrying trace *handle*.  An element may trace to more
+// than one location, but Chocosolver cannot hold a set of more than one
+// string on a single string reference (it int-encodes strings).  So a URL
+// is modeled as a handle instance carrying its own single-valued string
+// `value`, and elements reference a *set* of URL handles.  This is the
+// hybrid recommended by the string-handling variant study (see the module
+// README): use handles ONLY for the genuinely set-valued `url` field, and
+// keep every other trace field (`name`, `referrant`, `id`, `text`) a plain
+// single-valued string.  Because the handle carries its `value` in-model,
+// the URL text remains machine-visible (no unchecked comment-only side
+// table), unlike a pure-handle representation.
+abstract URL
+  value -> string
+
 // A named element is any concept that has human-readable name(s).
 abstract NamedElement
-  name: string = "NO_NAME"
-  url -> string = "https://localhost/tbd/"
+  name -> string ?
   version: VersionInfo ?
 
-// A traceable element is a concept that has a (persistent) URL which
-// points to a particular artifact, and then an index into that
-// artifact which points to a referrant.  Example referrants are
-// section or table numbers in a document, or fully-resolved
-// declarations in a specification or program.  In occasions where
-// such a binder is unavailable, we can simply revert to using line
-// numbers.
+// A traceable element is a concept that carries the traceability triple:
+// a set of (persistent) `url`s pointing at the artifacts it corresponds
+// to, a `referrant` index into those artifacts (a section or table number,
+// or a fully-resolved declaration in a specification or program), and, when
+// no such binder is available, a `line_no`.  `url` is the one genuinely
+// set-valued trace field (an element may trace to several locations), so it
+// is a set of value-carrying `URL` handles; `referrant` stays a plain
+// string.  Note: `url`/`referrant`/`line_no` live here on TraceableElement,
+// NOT on NamedElement, so that merely-named things (tools, languages) do
+// not carry trace data they never use.
 abstract TraceableElement: NamedElement
+  url -> URL *
   referrant -> string
   line_no -> integer
   [ 1 <= line_no ]
@@ -61,23 +112,31 @@ nothing: TraceableElement
 // Programming Languages Metamodel
 // ========================================================================
 
-// A list of all of the programming languages that we regularly use
-// in RDE projects, expressed as a Clafer enumeration.
-enum ProgLanguage = Ada | C | CPlusPlus | Dafny | FStarProgLang | Go | Haskell | Java | Kotlin | OCaml | Rust | SPARK | Scala | Slang
+// A list of all of the programming (implementation and synthesis)
+// languages that we regularly use in NINJA projects, expressed as a
+// Clafer enumeration.  Languages that also serve as specification or
+// proof languages (e.g. F* and Dafny) carry the `ProgLang` facet here and
+// a corresponding `SpecLanguage` member below.  (Interactive-proof
+// assistants such as Coq, Lean, Isabelle, PVS, and Agda are modeled purely
+// as specification/proof languages and as `FormalMethodsTool`s, not as
+// `ProgLanguage`s.)
+enum ProgLanguage = Ada | C | CPlusPlus | CSharp | Dafny | FStarProgLang | Go | Haskell | Java | JavaScript | Kotlin | OCaml | Python | Rust | SPARK | Scala | Slang | Swift | TypeScript
 
 // ========================================================================
 // Specification Languages Metamodel
 // ========================================================================
 
-// A list of all of the specification languages that we regularly use
-// in RDE projects, expressed as a Clafer enumeration.
+// A list of all of the specification, modeling, proof, and property
+// languages that we regularly use in NINJA projects, expressed as a
+// Clafer enumeration.  This covers the full HOARDE toolchain: domain
+// engineering (Lando/EBON, VDM-SL), feature modeling (Clafer, BigGears),
+// code contracts (JML, ACSL), cryptographic specification (Cryptol),
+// protocol analysis (Tamarin, ProVerif, SAPIC(+)), model checking
+// (Promela, TLA+, mCRL2/CSP), interactive proof (Coq, Lean, Isabelle,
+// PVS, F*), constraint solving (SMT-LIB, Alloy), requirements (FRETish,
+// Spear, ReqML, DOORS), and evidence orchestration (Datalog, for ETB).
+enum SpecLanguage = AADL | ACSL | ASCII | ASMLang | AlloyLang | BigGears | CSPm | ClaferLang | CoqLang | CryptolLang | DOORSLang | Datalog | EBONLang | EventB | Excel | FRETish | FStarSpecLang | IsabelleLang | JMLLang | LTL | LandoLang | LeanLang | PVSLang | Promela | ReqML | SALLang | SAPIC | SAPICStar | SAWScript | SMTLIB | Spear | StateCharts | SysMLv1 | SysMLv2 | TLAPlus | TamarinLang | UML | VDMSL | Word | ZNotation
 
-enum SpecLanguage = ASCII | ASMLang | AlloyLang | BigGears | ClaferLang | CoqLang | CryptolLang | DOORSLang | Excel | FRETish | FStarSpecLang | IsabelleLang | LandoLang | LeanLang | PVSLang | Promela | ReqML | SALLang | SAPIC | SAPICStar | SAWScript |Spear | StateCharts | SysMLv1 | SysMLv2 | TamarinLang | UML | Word
-
-// =====================================================================
-// The Assurance Case Metamodel
-//
-// Note that a mechanization of the CLARISSA metamodel is also available.
-// =====================================================================
-
-// @todo To be written.
+// The assurance-case meta-model, formerly a placeholder here, now lives
+// in its own module `assurancecase.cfr` (a CLARISSA/Assurance 2.0
+// structured assurance case integrated with SRI's Evidential Tool Bus).

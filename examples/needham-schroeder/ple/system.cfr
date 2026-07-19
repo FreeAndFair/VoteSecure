@@ -1,31 +1,60 @@
 // =====================================================================
 // The top-level System Specification
+//
+// `SystemSpecification` composes every sub-domain meta-model of the NINJA
+// fixed base into a single specification of a product (line): its domain
+// model, requirements, feature model, platform, environment, product and
+// bills of materials, configuration/DevSecOps, architecture, behavioral
+// and non-behavioral specifications, assurance case, and the refinements
+// that relate them.
+//
+// @dependencies prelude.cfr specifications.cfr platform.cfr environment.cfr
+//               product.cfr architecture.cfr configuration.cfr
+//               refinements.cfr assurancecase.cfr
 // =====================================================================
 
+// A `SystemSpecification` *composes by reference*: it ties together the
+// sub-models that already exist elsewhere in the specification rather than
+// owning fresh copies of them.  All fields are therefore references, and
+// those a given system need not populate are optional; a concretization
+// wires in exactly the artifacts it has.
 abstract SystemSpecification
-  domainEngineeringSpecs: DomainModelSpecs
+  domainEngineeringSpecs -> DomainModelSpecs *
   requirementsSpecs
     informalRequirementsSpecs -> InformalRequirementsSpecs *
     semiformalRequirementsSpecs -> SemiformalRequirementsSpecs *
-    formalRequirementsSpecs -> formalRequirementsSpecs *
+    formalRequirementsSpecs -> FormalRequirementsSpecs *
+  requirements -> Requirements *
   featureModelSpecs -> FeatureModelingSpecs *
-  platformSpec: Platform
-  environmentSpec: Environment
-  productSpec: Product
-  billOfMaterials: BillOfMaterials
-  // These metamodels are not yet moved into this prelude.
-  // deploymentSpecs ->> Spec
-  // devSecOpsSpecs ->> Spec
-  // assuranceCaseSpecs ->> Spec
-  architectureSpec: System
+  platformSpec -> Platform ?
+  environmentSpec -> Environment ?
+  productSpec -> Product ?
+  billOfMaterials -> BillOfMaterials ?
+  // Build/configuration and DevSecOps, from configuration.cfr.
+  buildSpec -> BuildSystem ?
+  devSecOpsSpec -> DevSecOps ?
+  continuousIntegrationSpec -> ContinuousIntegration ?
+  continuousDeploymentSpec -> ContinuousDeployment ?
+  continuousVerificationSpec -> ContinuousVerification ?
+  architectureSpec -> System ?
+  architectureSpecs -> ArchitectureSpec *
   behavioralSpecs
-    // stateMachineSpecs -> StateMachineSpec *
-    // networkProtoSpecs -> NetworkProtoSpec *
+    stateMachineSpecs -> StateMachineSpec *
+    networkProtoSpecs -> NetworkProtoSpec *
   nonBehavioralSpecs
     securitySpecs
-      // threatModelSpec ->> Spec
+      threatModelSpecs -> Spec *
       cryptoAlgSpecs -> CryptoAlgSpec *
       cryptoProtoSpecs -> CryptoProtoSpec *
-      // performanceSpecs ->> Spec
-      // throughputSpecs ->> Spec
+      // performanceSpecs -> Spec *
+      // throughputSpecs -> Spec *
+    verificationSpecs
+      codeContractSpecs -> CodeContractSpec *
+      proofSpecs -> ProofSpec *
+      modelCheckingSpecs -> ModelCheckingSpec *
+      constraintSpecs -> ConstraintSpec *
+  // The assurance case (CLARISSA/ETB) that argues this system meets its
+  // requirements, plus the ETB-oriented assurance-case specifications.
+  assuranceCase -> AssuranceCase ?
+  assuranceCaseSpecs -> AssuranceCaseSpec *
   refinements -> Refinement *

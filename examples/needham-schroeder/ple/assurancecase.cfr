@@ -1,0 +1,153 @@
+// ========================================================================
+// Assurance Case Metamodel
+//
+// A draft NINJA assurance-case meta-model that unifies two complementary
+// bodies of work:
+//
+//   - CLARISSA / Assurance 2.0 (SRI): a *structured assurance case* built
+//     from Claims justified by Arguments, ultimately grounded in Evidence,
+//     with Defeaters capturing doubts and SideClaims / Subcases capturing
+//     supporting and nested arguments.  This gives the deductive shape of
+//     the argument.
+//
+//   - The Evidential Tool Bus (ETB, SRI): a distributed workflow engine
+//     that runs analysis/verification tools as services, composes them
+//     with Datalog-style workflows, and records the *provenance* of every
+//     result as an attested, content-addressed artifact.  This gives the
+//     machine-checked, reproducible grounding for the argument's Evidence.
+//
+// The bridge between the two is `Evidence.backing`: an assurance-case
+// Evidence node is discharged by a concrete `EvidenceArtifact` that the
+// ETB produced by running a `ToolService` under an `Attestation`.  In this
+// way a top-level Claim is traceable, argument by argument, down to a
+// reproducible tool run.
+//
+// @dependencies prelude.cfr environment.cfr
+// ========================================================================
+
+// ========================================================================
+// Evidential Tool Bus (ETB)
+// ========================================================================
+
+// A tool wrapped as an ETB service.  When the underlying tool is a known
+// NINJA formal-methods tool it is linked here; otherwise `tool` is absent
+// (e.g. a bespoke script or an external oracle).
+abstract ToolService: NamedElement
+  tool -> FormalMethodsTool ?
+
+// An attestation is the provenance record of a single tool invocation: it
+// names the service that ran, digests of the inputs and result, and
+// whether the run succeeded.  Digests are content hashes, so an
+// attestation is reproducible and independently checkable.
+abstract Attestation: TraceableElement
+  producedBy -> ToolService
+  inputsDigest -> string
+  resultDigest -> string
+  succeeded ?
+
+// A content-addressed artifact produced by the bus (a proof object, a
+// counterexample, a log, a report), identified by its digest and carrying
+// the attestation that produced it.
+abstract EvidenceArtifact: TraceableElement
+  digest -> string
+  attestation -> Attestation
+
+// An ETB workflow orchestrates services to discharge a goal.  Workflows
+// are typically written in a Datalog-style language (see `SpecLanguage`).
+abstract Workflow: NamedElement
+  services -> ToolService +
+  attestations -> Attestation *
+  language -> SpecLanguage
+
+// ========================================================================
+// Structured Assurance Case (CLARISSA / Assurance 2.0)
+// ========================================================================
+
+// The development status of a claim, following the Assurance 2.0 notion
+// of a defensible (or defeated) case.
+enum AssuranceStatus = Undeveloped | Developing | Defensible | Defeated
+
+// Every node of the assurance case is a traceable element carrying the
+// human-readable statement it asserts.
+abstract Node: TraceableElement
+  statement -> string
+  comment -> string ?
+
+// A Claim is a proposition to be established.  It is justified by one or
+// more Arguments, may be decomposed into sub-claims (and other nodes), and
+// may be challenged by Defeaters.
+abstract Claim: Node
+  status -> AssuranceStatus
+  arguments -> Argument *
+  subclaims -> Node *
+  defeaters -> Defeater *
+
+// An Argument is a reasoning step connecting a claim to its sub-nodes.
+abstract Argument: Node
+  subclaims -> Node *
+
+// The concrete argument kinds recognized by CLARISSA / Assurance 2.0.
+abstract Concretion: Argument
+abstract Substitution: Argument
+abstract Decomposition: Argument
+abstract Calculation: Argument
+abstract EvidenceIncorporation: Argument
+
+// Evidence grounds a claim in fact.  In NINJA that fact is, wherever
+// possible, an attested ETB artifact (`backing`); an Evidence node may
+// itself be challenged by Defeaters.
+abstract Evidence: Node
+  backing -> EvidenceArtifact ?
+  defeaters -> Defeater *
+
+// A SideClaim supports the main argument (e.g. an assumption or a
+// well-formedness obligation) without being part of the primary claim
+// hierarchy.
+abstract SideClaim: Node
+  arguments -> Argument *
+  subclaims -> Node *
+  defeaters -> Defeater *
+
+// A Subcase embeds another (sub-)assurance case as a node.
+abstract Subcase: Node
+  case -> AssuranceCase
+
+// A Defeater records a doubt or counter-argument against a claim or
+// evidence node.
+abstract Defeater: Node
+
+// A free-standing annotation.
+abstract Comment: Node
+
+// The assurance case itself: a top claim, the set of nodes that make up
+// the argument, and the ETB workflows that produce its evidence.
+abstract AssuranceCase: TraceableElement
+  topClaim -> Claim
+  nodes -> Node *
+  workflows -> Workflow *
+  [ topClaim in nodes ]
+
+// ========================================================================
+// Minimal witnesses so the typechecker and instance generator can
+// sanity-check this metamodel for validity and inhabitance.
+// ========================================================================
+
+arbitraryToolService: ToolService
+
+arbitraryAttestation: Attestation
+  [ producedBy = arbitraryToolService ]
+  [ succeeded ]
+
+arbitraryEvidenceArtifact: EvidenceArtifact
+  [ attestation = arbitraryAttestation ]
+
+arbitraryWorkflow: Workflow
+  [ services = arbitraryToolService ]
+  [ language = Datalog ]
+
+arbitraryClaim: Claim
+  [ status = Undeveloped ]
+
+arbitraryAssuranceCase: AssuranceCase
+  [ topClaim = arbitraryClaim ]
+  [ nodes = arbitraryClaim ]

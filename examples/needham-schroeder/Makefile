@@ -83,6 +83,7 @@ CHOCOSOLVER_CMD = $(PLE_DOCKER_RUN) 'chocosolver $(1)'
 PLE_MODULES := \
   ple/prelude.cfr \
   ple/architecture.cfr \
+  ple/assurancecase.cfr \
   ple/configuration.cfr \
   ple/environment.cfr \
   ple/platform.cfr \
@@ -258,11 +259,14 @@ cv: clafer-validate tamarin-cv proverif-cv
 
 # Clafer inhabitance check via Chocosolver.
 #
-# NOTE: Chocosolver currently throws IllegalIntException while building
-# reference pointers for this model (independent of --minint/--maxint/--scope),
-# most likely due to its limited support for the model's string-typed
-# references.  Achieving a generated instance (inhabitance) is tracked in #392;
-# the model does typecheck via `clafer -v` (see `clafer-typecheck`).
+# The assembled model is inhabited: Chocosolver generates an instance.  Two
+# earlier blockers were resolved (see ple/README.md and #392): (1) multi-
+# valued string-set `url` fields, replaced by value-carrying `URL` handles
+# with the trace triple on `TraceableElement`; and (2) the requirements
+# aggregate, remodeled as an ownership (containment) collection to sidestep a
+# Chocosolver backend limitation on multi-valued references to subtype
+# instances (gsdlab/chocosolver#32, gsdlab/clafer#89 -- the same model is
+# satisfiable under the Alloy backend).
 clafer-validate: needham-schroeder.cfr
 	$(call CHOCOSOLVER_CMD,-n 1 --minint 0 --maxint 100 \
 	  --file /work/needham-schroeder.cfr)

@@ -6,7 +6,7 @@
 
 // Refinements between models either do not exist yet, are partially
 // specified, or are complete.  The rigor of any refinement is also
-// denoted.  The RDE Refinements lecture explains the meaning of these
+// denoted.  The NINJA Refinements lecture explains the meaning of these
 // terms.
 
 enum RefinementStatus = None | Partial | Complete

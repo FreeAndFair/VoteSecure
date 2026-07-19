@@ -1,6 +1,11 @@
 // ========================================================================
 // Specification Metamodel
 //
+// The kinds of specification a NINJA project produces, each constrained to
+// the specification languages appropriate for it.  This module tracks the
+// language taxonomy defined in `prelude.cfr`, so it is updated whenever new
+// languages enter the HOARDE toolchain.
+//
 // @dependencies prelude.cfr
 // ========================================================================
 
@@ -21,7 +26,7 @@ abstract Specs
   specs -> Spec +
 
 abstract DomainModelSpecs: Specs
-  [ all s: specs | s.language in LandoLang, SysMLv1, SysMLv2, AlloyLang, UML ]
+  [ all s: specs | s.language in LandoLang, EBONLang, SysMLv1, SysMLv2, AlloyLang, VDMSL, UML ]
 
 abstract InformalRequirementsSpecs: Specs
   [ all s:specs | s.language in
@@ -31,7 +36,7 @@ abstract SemiformalRequirementsSpecs: Specs
   [ all s:specs | s.language in ReqML, LandoLang ]
 
 abstract FormalRequirementsSpecs: Specs
-  [ all s:specs | s.language in FRETish, Spear ]
+  [ all s:specs | s.language in FRETish, Spear, LTL ]
 
 abstract FeatureModelingSpecs: Specs
   [ all s:specs | s.language in ClaferLang, BigGears, SysMLv1, SysMLv2, UML ]
@@ -43,13 +48,38 @@ abstract CryptoProtoSpec: Specs
   [ all s:specs | s.language in CryptolLang, TamarinLang, SAPIC, SAPICStar ]
 
 abstract NetworkArchSpec: Specs
-  [ all s:specs | s.language in SysMLv1, SysMLv2 ]
+  [ all s:specs | s.language in SysMLv1, SysMLv2, AADL ]
 
 abstract NetworkProtoSpec: Specs
   [ all s:specs | s.language in SysMLv1, SysMLv2 ]
 
+abstract ArchitectureSpec: Specs
+  [ all s:specs | s.language in SysMLv1, SysMLv2, AADL, UML ]
+
 abstract StateMachineSpec: Specs
   [ all s:specs | s.language in
       SALLang, Promela, CryptolLang, SysMLv1, SysMLv2, UML, StateCharts, ASMLang ]
+
+// Code-level contracts (Design-by-Contract), the entry level of the NINJA
+// assurance ladder for existing/legacy code.
+abstract CodeContractSpec: Specs
+  [ all s:specs | s.language in JMLLang, ACSL ]
+
+// Machine-checked proof developments.
+abstract ProofSpec: Specs
+  [ all s:specs | s.language in
+      CoqLang, LeanLang, IsabelleLang, PVSLang, FStarSpecLang ]
+
+// Model-checkable behavioral properties.
+abstract ModelCheckingSpec: Specs
+  [ all s:specs | s.language in Promela, TLAPlus, CSPm, SALLang, LTL, ASMLang ]
+
+// Constraint / relational models discharged by SMT or bounded solvers.
+abstract ConstraintSpec: Specs
+  [ all s:specs | s.language in AlloyLang, SMTLIB, ClaferLang ]
+
+// The assurance case and its Evidential-Tool-Bus workflows.
+abstract AssuranceCaseSpec: Specs
+  [ all s:specs | s.language in Datalog, ClaferLang ]
 
 arbitrarySpecs: Specs

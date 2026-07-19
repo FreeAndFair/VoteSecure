@@ -6,7 +6,7 @@
 // @dependencies prelude.cfr platform.cfr
 // ========================================================================
 
-// RDE Tools
+// NINJA Tools
 
 abstract BuildTool: Software
 
@@ -20,10 +20,14 @@ SCons: BuildTool
 Stack: BuildTool
 cMake: BuildTool
 sbt: BuildTool
+Cargo: BuildTool
 
 abstract PackageManagementTool: Software
 
 Homebrew: PackageManagementTool
+opam: PackageManagementTool
+pip: PackageManagementTool
+npm: PackageManagementTool
 
 abstract PlatformTool: Software
 
@@ -58,6 +62,8 @@ Rational: DevTool
 Sparx: DevTool
 SysMLv2PilotImplementation: DevTool
 VSCode: DevTool
+OmniPlan: DevTool
+Syside: DevTool
 
 abstract FormalMethodsTool
 
@@ -75,8 +81,46 @@ SAW: FormalMethodsTool
 SPIN: FormalMethodsTool
 Tamarin: FormalMethodsTool
 Z3: FormalMethodsTool
+ACL2s: FormalMethodsTool
+Agda: FormalMethodsTool
+ASMeta: FormalMethodsTool
+BlueCheck: FormalMethodsTool
+CBMC: FormalMethodsTool
+Chocosolver: FormalMethodsTool
+Clafer: FormalMethodsTool
+Coq: FormalMethodsTool
+cvc5: FormalMethodsTool
+CruxMIR: FormalMethodsTool
+CZT: FormalMethodsTool
+DafnyTool: FormalMethodsTool
+EBON: FormalMethodsTool
+Eiffel: FormalMethodsTool
+FDR4: FormalMethodsTool
+FramaC: FormalMethodsTool
+Idris: FormalMethodsTool
+Kani: FormalMethodsTool
+KeY: FormalMethodsTool
+Kind2: FormalMethodsTool
+Lean4: FormalMethodsTool
+mCRL2: FormalMethodsTool
+OpenJML: FormalMethodsTool
+Overture: FormalMethodsTool
+Owl: FormalMethodsTool
+PVS: FormalMethodsTool
+QED: FormalMethodsTool
+RAISE: FormalMethodsTool
+Rodin: FormalMethodsTool
+SCADE: FormalMethodsTool
+TrustInSoft: FormalMethodsTool
+UPPAAL: FormalMethodsTool
+Verdict: FormalMethodsTool
+VeriFast: FormalMethodsTool
+Verus: FormalMethodsTool
+Vest: FormalMethodsTool
+Yices: FormalMethodsTool
+Yosys: FormalMethodsTool
 
-// RDE Frameworks/Libraries
+// NINJA Frameworks/Libraries
 abstract Framework: Software
 
 jUnit: Framework
@@ -84,6 +128,7 @@ QuickCheck: Framework
 TestNG: Framework
 PropTest: Framework
 UVM: Framework
+Hypothesis: Framework
 
 abstract Environment
   software -> Software *
