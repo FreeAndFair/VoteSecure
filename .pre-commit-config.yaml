@@ -14,6 +14,17 @@ repos:
         stages: [commit-msg]
         additional_dependencies: ['@commitlint/config-conventional']
 
+- repo: local
+  hooks:
+      - id: require-signed-commits
+        name: require signed commits
+        description: Reject a push if any commit being pushed is unsigned.
+        entry: utils/git/require-signed-commits.sh
+        language: script
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true
+
 - repo: https://github.com/FreeAndFair/pre-commit-rust
   rev: v1.2.1
   hooks:
