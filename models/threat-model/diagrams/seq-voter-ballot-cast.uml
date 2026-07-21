@@ -9,8 +9,8 @@ entity VotingApplication as "Voting Application"
 entity DigitalBallotBox as "Digital Ballot Box"
 database PublicBulletinBoard as "Public Bulletin Board"
 
-Voter -> VotingApplication: Cast the most recently\nsubmitted ballot\n(with tracker S)
-VotingApplication -> DigitalBallotBox: Cast request for\nsubmission tracker S
+Voter -> VotingApplication: Cast the most recently\nsubmitted ballot (with tracker S)
+VotingApplication -> DigitalBallotBox: Cast request including\nsubmission tracker S and\nauthentication token
 DigitalBallotBox -> PublicBulletinBoard: Request submission for S
 PublicBulletinBoard --> DigitalBallotBox: Submission for S
 DigitalBallotBox -> PublicBulletinBoard: Publish voter authorization
@@ -18,6 +18,6 @@ PublicBulletinBoard --> DigitalBallotBox: Tracker (VA) for published\nvoter auth
 DigitalBallotBox -> PublicBulletinBoard: Publish cast request for S
 PublicBulletinBoard --> DigitalBallotBox: Tracker (C) for published\ncast request for S
 DigitalBallotBox --> VotingApplication: Trackers C and S
-Voter <-- VotingApplication: Present confirmation that casting is complete
+Voter <-- VotingApplication: Present confirmation that casting\nis complete
 
 @enduml
