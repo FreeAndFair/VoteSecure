@@ -8,4 +8,7 @@ SCRIPT_DIR="$(dirname -- "$(readlink -f -- "$0")")"
 CHOCOSOLVER_JAR="chocosolver.jar"
 
 # execute chocosolver from the same directory
-java -jar "$SCRIPT_DIR/$CHOCOSOLVER_JAR" $@
+# we set the maximum heap size to a default of 6GB,
+# because the default is too small on some runners
+# (e.g., GitHub Actions) and causes the solver to fail
+java -Xmx${CHOCOSOLVER_HEAP_SIZE:-6144m} -jar "$SCRIPT_DIR/$CHOCOSOLVER_JAR" $@

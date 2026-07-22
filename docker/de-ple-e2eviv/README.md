@@ -71,7 +71,7 @@ For `run-remote.sh`, Docker login is optional. If `DOCKER_READ_ONLY_TOKEN` and `
 
 Both scripts run on the host's native platform by default. To override platform selection explicitly, set `DE_PLE_PLATFORM` (for example, `DE_PLE_PLATFORM=linux/amd64` or `DE_PLE_PLATFORM=linux/arm64`) before running the script.
 
-Inside the Docker container, the following command-line tools are available: `lando`, `clafer`, `claferIG`, `chocosolver`, and `plantuml`. To make it easy to use those tools from the host file system, the scripts map the current directory as `/work` into the container. Thus it is recommended first to change to the location from which you want to run the tools on the host, then execute the scripts from there (they may be added permanently to `PATH`). Both scripts are agnostic as to where they are executed from.
+Inside the Docker container, the following command-line tools are available: `lando`, `clafer`, `claferIG`, `chocosolver`, and `plantuml`. To make it easy to use those tools from the host file system, the scripts map the current directory as `/work` into the container. Thus it is recommended first to change to the location from which you want to run the tools on the host, then execute the scripts from there (they may be added permanently to `PATH`). Both scripts are agnostic as to where they are executed from. For `chocosolver`, the Java heap size can be overridden by setting the `CHOCOSOLVER_HEAP_SIZE` environment variable.
 
 The container is run interactively by the scripts and is automatically destroyed after exiting the image, i.e., via typing `exit`.  Inside the container, all tool installations can be found under `/opt`.
 
