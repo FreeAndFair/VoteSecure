@@ -1,18 +1,16 @@
 ################################################################################
 # Needham-Schroeder Pedagogical Example Makefile                               #
 # @author Joe Kiniry (kiniry@freeandfair.us)                                   #
+# @author Daniel M. Zimmerman (dmz@freeandfair.us)	                           #
 # @copyright 2025-26 Free & Fair                                               #
-# @version 0.2                                                                 #
+# @version 0.3                                                                 #
 ################################################################################
-# Targets: make [all|help|ci|cv|bootstrap|clean]                               #
+# Targets: make [all|help|ci|cv|clean]                                         #
 ################################################################################
 
 # ============================================================================
 # Configuration
 # ============================================================================
-
-# Path to the RDE Bootstrap PLE prelude (local checkout).
-RDE_BOOTSTRAP := /Users/kiniry/Sandboxes/RDE/rde-bootstrap-project/specs/ple
 
 # Docker images.
 #  - PLE image: Clafer, Lando, Chocosolver.
@@ -21,10 +19,13 @@ PLE_IMAGE := freeandfair/de-ple-e2eviv:latest
 CPV_IMAGE := freeandfair/cpv-e2eviv:latest
 
 # Docker run helpers.  PLE tools are invoked through bash (-c) so we can pass a
-# single command string; CPV tools (Tamarin) are invoked directly.
+# single command string; CPV tools (Tamarin) are invoked directly. The PLE image
+# is cross-platform but only the linux/amd64 version is fully functional
+# (see the README in docker/ple-e2eviv/ for details), so we force that platform.
+# The CPV image has feature parity across platforms, so we let Docker choose.
 PLE_DOCKER_RUN := docker run --rm --platform linux/amd64 \
 	-v $(CURDIR):/work -w /work --entrypoint bash $(PLE_IMAGE) -c
-CPV_DOCKER := docker run --rm --platform linux/amd64 \
+CPV_DOCKER := docker run --rm \
 	-v $(CURDIR):/work -w /work $(CPV_IMAGE)
 
 # ============================================================================
@@ -34,7 +35,7 @@ CPV_DOCKER := docker run --rm --platform linux/amd64 \
 # Tamarin -> CPV image) is used natively when installed, otherwise via its
 # Docker image.  Set USE_DOCKER=yes to force container execution even when a
 # local tool exists (useful when a local install is broken).  Tools that no
-# project image bundles -- Syside, ProVerif, and Cryptol -- degrade to a
+# project image bundles -- Syside and Cryptol -- degrade to a
 # warning-and-skip when absent so that CI/CD/CV stays green in environments
 # that lack them (see the individual targets).
 # ============================================================================
@@ -53,6 +54,7 @@ DOCKERIZE  := $(filter yes YES true TRUE 1,$(USE_DOCKER))
 CLAFER_DOCKER  := $(if $(DOCKERIZE),1,$(if $(CLAFER),,1))
 LANDO_DOCKER   := $(if $(DOCKERIZE),1,$(if $(LANDO),,1))
 TAMARIN_DOCKER := $(if $(DOCKERIZE),1,$(if $(TAMARIN),,1))
+PROVERIF_DOCKER := $(if $(DOCKERIZE),1,$(if $(PROVERIF),,1))
 
 ifdef CLAFER_DOCKER
   CLAFER_CMD = $(PLE_DOCKER_RUN) 'clafer $(1)'
@@ -70,6 +72,12 @@ ifdef TAMARIN_DOCKER
   TAMARIN_BIN := $(CPV_DOCKER) tamarin-prover
 else
   TAMARIN_BIN := tamarin-prover
+endif
+
+ifdef PROVERIF_DOCKER
+	PROVERIF_BIN := $(CPV_DOCKER) proverif
+else
+	PROVERIF_BIN := proverif
 endif
 
 # Chocosolver ships in the PLE image (Java, Linux/x86-only), on PATH; use it
@@ -110,7 +118,7 @@ CV_OUTPUT := output
 # Phony targets
 # ============================================================================
 
-.PHONY: all help ci cv clean bootstrap \
+.PHONY: all help ci cv clean \
         ple typecheck validate \
         clafer-typecheck lando-typecheck sysml-typecheck \
         cryptol-typecheck tamarin-typecheck proverif-typecheck \
@@ -140,7 +148,6 @@ help:
 	@echo "  make tamarin-cv         Run Tamarin proofs (writes $(CV_OUTPUT)/)"
 	@echo "  make proverif-cv        Run ProVerif analyses (writes $(CV_OUTPUT)/)"
 	@echo ""
-	@echo "  make bootstrap        (Re)initialize PLE prelude from RDE Bootstrap"
 	@echo "  make clean            Remove generated files"
 
 # ============================================================================
@@ -223,22 +230,16 @@ tamarin-typecheck:
 # Docker image bundles ProVerif, so this runs only when ProVerif is installed
 # locally; otherwise it is skipped with a warning.
 proverif-typecheck:
-ifdef PROVERIF
 	@status=0; \
 	for f in $(PROVERIF_MODELS); do \
 	  echo "[info] proverif $$f"; \
-	  if proverif "$$f" >/dev/null 2>&1; then \
+	  if $(PROVERIF_BIN) "$$f" >/dev/null 2>&1; then \
 	    echo "  well-formed."; \
 	  else \
 	    echo "ERROR: ProVerif failed to process $$f" >&2; status=1; \
 	  fi; \
 	done; \
 	exit $$status
-else
-	@echo "WARNING: proverif not found; skipping ProVerif well-formedness check."
-	@echo "  No project Docker image bundles ProVerif; install it locally"
-	@echo "  (e.g. brew install proverif) or provide a ProVerif-capable image."
-endif
 
 # Legacy aliases for backward compatibility.
 typecheck: clafer-typecheck
@@ -290,22 +291,16 @@ tamarin-cv: | $(CV_OUTPUT)
 # ProVerif analyses: run each model, saving output.  Skipped with a warning
 # when ProVerif is not installed (no project image bundles it).
 proverif-cv: | $(CV_OUTPUT)
-ifdef PROVERIF
 	@for f in $(PROVERIF_MODELS); do \
 	  name=$$(basename "$$f" .pv); \
 	  echo "[info] proverif $$f"; \
-	  proverif "$$f" > "$(CV_OUTPUT)/$$name.proverif.txt" 2>&1 \
+	  $(PROVERIF_BIN) "$$f" > "$(CV_OUTPUT)/$$name.proverif.txt" 2>&1 \
 	    || { echo "ERROR: ProVerif execution failed on $$f" >&2; \
 	         tail -20 "$(CV_OUTPUT)/$$name.proverif.txt" >&2; exit 1; }; \
 	  t=$$(grep -c 'RESULT.*is true' "$(CV_OUTPUT)/$$name.proverif.txt" 2>/dev/null); \
 	  fa=$$(grep -c 'RESULT.*is false' "$(CV_OUTPUT)/$$name.proverif.txt" 2>/dev/null); \
 	  echo "  $$name: $$t true, $$fa false -> $(CV_OUTPUT)/$$name.proverif.txt"; \
 	done
-else
-	@echo "WARNING: proverif not found; skipping ProVerif analyses."
-	@echo "  No project Docker image bundles ProVerif; install it locally"
-	@echo "  (e.g. brew install proverif) or provide a ProVerif-capable image."
-endif
 
 # ============================================================================
 # PLE model assembly
@@ -314,18 +309,6 @@ endif
 # Assemble the combined Clafer model from PLE modules + local model.
 needham-schroeder.cfr: $(PLE_DEPS)
 	cat $(PLE_MODULES) ple.cfr > needham-schroeder.cfr
-
-# Auto-trigger bootstrap if PLE prelude is missing.
-ple/prelude.cfr:
-	$(MAKE) bootstrap
-
-# ============================================================================
-# Bootstrap
-# ============================================================================
-
-bootstrap:
-	rm -rf ple
-	cp -r $(RDE_BOOTSTRAP) .
 
 # ============================================================================
 # Clean
