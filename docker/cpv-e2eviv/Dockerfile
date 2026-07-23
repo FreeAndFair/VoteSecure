@@ -3,7 +3,7 @@
 #                                                                   #
 # Author: Daniel M. Zimmerman                                       #
 # Created: 2025-06-06                                               #
-# Modified: 2026-03-17                                              #
+# Modified: 2026-07-24                                              #
 #####################################################################
 
 # Builder stage: use official Homebrew Docker image to build cross-platform
@@ -34,6 +34,26 @@ RUN opam init --disable-sandboxing --shell-setup --yes
 RUN opam update
 RUN opam install proverif --yes
 
+# Builder stage: use Ubuntu 26.04 to build tamarin-rs.
+FROM rust:latest AS tamarin-rs-builder
+
+# Install runtime dependencies
+RUN apt-get clean && \
+    apt-get update && \
+    apt-get install -y git && \
+    apt-get clean
+
+ARG TAMARIN_RS_REPO=https://github.com/kmilner/tamarin-rs.git
+ARG TAMARIN_RS_REF=main
+
+RUN git clone --filter=blob:none "$TAMARIN_RS_REPO" && \
+    cd tamarin-rs && \
+    git checkout "$TAMARIN_RS_REF"
+
+RUN cd tamarin-rs && \
+    ./setup.sh && \
+    cargo build --release
+
 # Runtime image based on Ubuntu 26.04
 FROM ubuntu:26.04 AS runtime
 
@@ -45,10 +65,12 @@ ENV MAUDE_LIB=${HOMEBREW_PREFIX}/opt/maude/share
 # Copy entire Homebrew installation from builder
 COPY --from=tamarin-builder /home/linuxbrew/.linuxbrew /home/linuxbrew/.linuxbrew
 
+# Copy tamarin-rs binary from builder
+COPY --from=tamarin-rs-builder /tamarin-rs/target/release/tamarin-rs /usr/local/bin
+
 # Copy ProVerif installation from builder
 COPY --from=proverif-builder /root/.opam/default/bin/proverif /usr/local/bin/proverif
 
-# Install runtime dependencies
 RUN apt-get clean && \
     apt-get update && \
     apt-get install -y locales libexpat1-dev libgtk2.0-dev pkg-config && \

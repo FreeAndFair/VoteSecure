@@ -7,11 +7,15 @@
 
 # Resolve the Tamarin command as follows:
 # - if USE_DOCKER=yes, use the CPV container unconditionally
-# - otherwise use local `tamarin-prover` when present (optionally
+# - otherwise use local Tamarin when present (optionally
 #   override location of local Tamarin with LOCAL_TAMARIN)
 # - otherwise fall back to the CPV container automatically
+# - if USE_TAMARIN_RS=yes, prefer tamarin-rs to tamarin-prover
+#   (either locally, if available, or in the CPV container,
+#   if the CPV container is being used)
 DOCKER ?= docker
 USE_DOCKER ?= no
+USE_TAMARIN_RS ?= yes
 DOCKER_IMAGE := freeandfair/cpv-e2eviv:latest
 IMAGE_PLATFORM ?=
 DOCKER_PLATFORM_ARG := $(if $(strip $(IMAGE_PLATFORM)),--platform=$(strip $(IMAGE_PLATFORM)),)
@@ -19,9 +23,12 @@ ifneq ($(filter yes YES true TRUE 1,$(DOCKER)),)
 $(error DOCKER must name a container engine like docker or podman; use USE_DOCKER=yes to force container-backed execution)
 endif
 FORCE_DOCKER := $(if $(filter yes YES true TRUE 1,$(USE_DOCKER)),yes,)
+FORCE_TAMARIN_RS := $(if $(filter yes YES true TRUE 1,$(USE_TAMARIN_RS)),yes,)
 LOCAL_TAMARIN ?= $(shell command -v tamarin-prover 2>/dev/null)
+LOCAL_TAMARIN_RS ?= $(shell command -v tamarin-rs 2>/dev/null)
 DOCKER_TAMARIN := $(DOCKER) run --rm $(DOCKER_PLATFORM_ARG) --volume "$(CURDIR):/work" --workdir /work $(DOCKER_IMAGE) tamarin-prover
-TAMARIN := $(if $(FORCE_DOCKER),$(DOCKER_TAMARIN),$(if $(LOCAL_TAMARIN),$(LOCAL_TAMARIN),$(DOCKER_TAMARIN)))
+DOCKER_TAMARIN_RS := $(DOCKER) run --rm $(DOCKER_PLATFORM_ARG) --volume "$(CURDIR):/work" --workdir /work $(DOCKER_IMAGE) tamarin-rs
+TAMARIN := $(if $(FORCE_DOCKER),$(if $(FORCE_TAMARIN_RS),$(DOCKER_TAMARIN_RS),$(DOCKER_TAMARIN)),$(if $(FORCE_TAMARIN_RS),$(if $(LOCAL_TAMARIN_RS),$(LOCAL_TAMARIN_RS),$(DOCKER_TAMARIN_RS)),$(if $(LOCAL_TAMARIN),$(LOCAL_TAMARIN),$(DOCKER_TAMARIN))))
 OPEN_CHAINS_LIMIT := 30
 
 # M4 defines (to control proof script inclusion)
@@ -67,6 +74,10 @@ help:
 # Display the help page as the default build target.
 default: help
 
+# Target to print the Tamarin command being used.
+print-tamarin:
+	@echo "[info] using Tamarin command: $(TAMARIN)"
+
 # Variables to help make find all the subprotocol sources.
 SUBPROTOCOL_SOURCES = $(wildcard subprotocols/*.m4)
 SUBPROTOCOL_SOURCES_NO_M4 = $(subst .spthy.m4,.spthy,$(SUBPROTOCOL_SOURCES))
@@ -108,14 +119,14 @@ generated_composed/%.spthy: compositions/%.spthy.m4 $(COMPOSITION_INCLUDES)
 compositions: $(COMPOSITION_DESTS)
 
 # Execute Tamarin to check syntax of all generated models.
-syntax:
+syntax: print-tamarin
 	$(info [info] checking syntax of all generated models...)
 	@$(foreach SPTHY, $(wildcard generated_standalone/*.spthy generated_composed/*.spthy), \
 		$(TAMARIN) --parse-only $(SPTHY) > /dev/null || exit 1;)
 
 # Execute Tamarin to check executability of all generated models. This
 # reports an error either if Tamarin fails, or if any lemma is falsified.
-executability:
+executability: print-tamarin
 	$(info [info] checking executability of all generated models...)
 	@mkdir -p output
 	$(foreach SPTHY, $(wildcard generated_standalone/*.spthy generated_composed/*.spthy), \
@@ -128,7 +139,7 @@ executability:
 
 # Execute Tamarin to check safety lemmas for all generated models. This
 # reports an error either if Tamarin fails, or if any lemma is falsified.
-safety:
+safety: print-tamarin
 	$(info [info] checking safety of all generated models...)
 	@mkdir -p output
 	$(foreach SPTHY, $(wildcard generated_standalone/*.spthy generated_composed/*.spthy), \
@@ -142,7 +153,7 @@ safety:
 # Execute Tamarin to check the proof scripts for all lemmas that have
 # them in all generated models. This reports an error if Tamarin fails,
 # or if any lemma is not marked "verified".
-proofscript:
+proofscript: print-tamarin
 	$(info [info] checking proof scripts of all generated models...)
 	@mkdir -p output
 	$(foreach SPTHY, $(wildcard generated_standalone/*.spthy generated_composed/*.spthy), \
@@ -165,7 +176,7 @@ ci: clean subprotocols compositions syntax
 # the individual executability, safety, and proofscript targets; this avoids
 # doing the time-consuming Tamarin precomputations multiple times.
 cv: CV_DEFINES = -DINCLUDE_PROOF_SCRIPTS
-cv: clean subprotocols
+cv: print-tamarin clean subprotocols
 	$(info [info] checking proof scripts, executability, and safety of all models...)
 	@mkdir -p output
 	$(foreach SPTHY, $(wildcard generated_standalone/*.spthy generated_composed/*.spthy), \
