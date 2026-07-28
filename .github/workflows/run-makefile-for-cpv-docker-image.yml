@@ -1,7 +1,7 @@
 # .github/workflows/run-makefile-for-cpv-docker-image.yml
 # Author: Daniel M. Zimmerman
 # Created: 2025-06-06
-# Modified: 2026-04-06
+# Modified: 2026-07-28
 
 name: CPV Docker Image
 
@@ -10,11 +10,13 @@ on:
     types: [opened, reopened, synchronize, ready_for_review]
     paths:
       - 'docker/cpv-e2eviv/**'
+      - '.github/workflows/run-makefile-for-cpv-docker-image.yml'
   push:
     branches:
       - 'main'
     paths:
       - 'docker/cpv-e2eviv/**'
+      - '.github/workflows/run-makefile-for-cpv-docker-image.yml'
   workflow_dispatch:
 
 jobs:
@@ -28,12 +30,53 @@ jobs:
     name: Build (linux/amd64)
     runs-on: ubuntu-latest
     steps:
+      - name: Save Space on Runner Image
+        run: |
+          echo "Space Before Cleaning"
+          df -h
+
+          # Remove Java (JDKs)
+          sudo rm -rf /usr/lib/jvm
+
+          # Remove .NET SDKs
+          sudo rm -rf /usr/share/dotnet
+
+          # Remove Swift toolchain
+          sudo rm -rf /usr/share/swift
+
+          # Remove Haskell (GHC)
+          sudo rm -rf /usr/local/.ghcup
+
+          # Remove Julia
+          sudo rm -rf /usr/local/julia*
+
+          # Remove Android SDKs
+          sudo rm -rf /usr/local/lib/android
+
+          # Remove Chromium
+          sudo rm -rf /usr/local/share/chromium
+
+          # Remove Microsoft/Edge and Google Chrome builds
+          sudo rm -rf /opt/microsoft /opt/google
+
+          # Remove Azure CLI
+          sudo rm -rf /opt/az
+
+          # Remove PowerShell
+          sudo rm -rf /usr/local/share/powershell
+
+          # Remove CodeQL and other toolcaches
+          sudo rm -rf /opt/hostedtoolcache
+
+          echo "Space After Cleaning"
+          df -h
+
       - name: Uninstall Old Docker
         run: |
           sudo apt-get remove -y docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc
 
       - name: Install Current Docker
-        uses: docker/setup-docker-action@v4
+        uses: docker/setup-docker-action@v5
         with:
           daemon-config: |
             {
@@ -58,12 +101,53 @@ jobs:
     name: Build (linux/arm64)
     runs-on: ubuntu-24.04-arm
     steps:
+      - name: Save Space on Runner Image
+        run: |
+          echo "Space Before Cleaning"
+          df -h
+
+          # Remove Java (JDKs)
+          sudo rm -rf /usr/lib/jvm
+
+          # Remove .NET SDKs
+          sudo rm -rf /usr/share/dotnet
+
+          # Remove Swift toolchain
+          sudo rm -rf /usr/share/swift
+
+          # Remove Haskell (GHC)
+          sudo rm -rf /usr/local/.ghcup
+
+          # Remove Julia
+          sudo rm -rf /usr/local/julia*
+
+          # Remove Android SDKs
+          sudo rm -rf /usr/local/lib/android
+
+          # Remove Chromium
+          sudo rm -rf /usr/local/share/chromium
+
+          # Remove Microsoft/Edge and Google Chrome builds
+          sudo rm -rf /opt/microsoft /opt/google
+
+          # Remove Azure CLI
+          sudo rm -rf /opt/az
+
+          # Remove PowerShell
+          sudo rm -rf /usr/local/share/powershell
+
+          # Remove CodeQL and other toolcaches
+          sudo rm -rf /opt/hostedtoolcache
+
+          echo "Space After Cleaning"
+          df -h
+
       - name: Uninstall Old Docker
         run: |
           sudo apt-get remove -y docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc
 
       - name: Install Current Docker
-        uses: docker/setup-docker-action@v4
+        uses: docker/setup-docker-action@v5
         with:
           daemon-config: |
             {

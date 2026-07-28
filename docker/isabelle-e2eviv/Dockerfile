@@ -4,7 +4,7 @@
 # File: docker/isabelle-ci/Dockerfile
 # Author: Frank Zeyda, Daniel M. Zimmerman
 # Created: 2026-03-02
-# Modified: 2026-03-04
+# Modified: 2026-07-28
 
 # Note that building this image requires a higher Memory Limit, e.g.,
 # of 16 GB. This can be adjusted under Resources in Docker Desktop.
@@ -43,6 +43,14 @@ RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8
 ENV LC_ALL="en_US.UTF-8"
 
+# Isabelle distribution sources, tried in order until one downloads and
+# matches the expected SHA256 (the main site occasionally serves partial
+# or corrupted downloads under load)
+ARG ISABELLE_DIST_URLS="\
+https://isabelle.in.tum.de/dist \
+https://www.cl.cam.ac.uk/research/hvg/Isabelle/dist \
+https://mirror.clarkson.edu/isabelle/dist"
+
 # Install the Isabelle tool
 RUN cd /opt && \
   case "${TARGETARCH}" in \
@@ -50,8 +58,17 @@ RUN cd /opt && \
       "arm64") ISABELLE_TARBALL=${ISABELLE_TARBALL_ARM64}; ISABELLE_SHA256=${ISABELLE_SHA256_ARM64} ;; \
       *) echo "Unsupported arch: ${TARGETARCH}" && exit 1 ;; \
       esac && \
-  curl -O "https://isabelle.in.tum.de/dist/${ISABELLE_TARBALL}" && \
-  echo "${ISABELLE_SHA256} ${ISABELLE_TARBALL}" | sha256sum --check && \
+  for DIST_URL in ${ISABELLE_DIST_URLS}; do \
+    echo "Fetching ${ISABELLE_TARBALL} from ${DIST_URL} ..." && \
+    rm -f ${ISABELLE_TARBALL} && \
+    if curl -fL --retry 3 -o ${ISABELLE_TARBALL} "${DIST_URL}/${ISABELLE_TARBALL}" && \
+       echo "${ISABELLE_SHA256} ${ISABELLE_TARBALL}" | sha256sum --check; \
+    then \
+      break; \
+    else \
+      echo "Download from ${DIST_URL} failed or checksum mismatch; trying next source."; \
+    fi; \
+  done && \
   tar xzvf ${ISABELLE_TARBALL} && \
   rm ${ISABELLE_TARBALL} && \
   ln -s ${ISABELLE_VERSION} Isabelle

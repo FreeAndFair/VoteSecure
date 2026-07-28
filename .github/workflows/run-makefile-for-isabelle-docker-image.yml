@@ -1,7 +1,7 @@
 # .github/workflows/run-makefile-for-isabelle-docker-image.yml
 # Author: Daniel M. Zimmerman
 # Created: 2026-03-04
-# Modified: 2026-04-06
+# Modified: 2026-07-28
 
 name: Isabelle Docker Image
 
@@ -10,11 +10,13 @@ on:
     types: [opened, reopened, synchronize, ready_for_review]
     paths:
       - 'docker/isabelle-e2eviv/**'
+      - '.github/workflows/run-makefile-for-isabelle-docker-image.yml'
   push:
     branches:
       - 'main'
     paths:
       - 'docker/isabelle-e2eviv/**'
+      - '.github/workflows/run-makefile-for-isabelle-docker-image.yml'
   workflow_dispatch:
 
 jobs:
@@ -75,7 +77,7 @@ jobs:
           sudo apt-get remove -y docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc
 
       - name: Install Current Docker
-        uses: docker/setup-docker-action@v4
+        uses: docker/setup-docker-action@v5
         with:
           daemon-config: |
             {
@@ -147,7 +149,7 @@ jobs:
           sudo apt-get remove -y docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc
 
       - name: Install Current Docker
-        uses: docker/setup-docker-action@v4
+        uses: docker/setup-docker-action@v5
         with:
           daemon-config: |
             {
