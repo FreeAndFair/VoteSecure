@@ -2,7 +2,7 @@
 
 This change log lists changes to VoteSecure with each released version. It is not comprehensive (i.e., it does not include non-material changes like fixes for typographical errors, updates to the continuous integration scripts, etc.). Starting with version 1.4, the change log explicitly calls out the impact of each change on integrators.
 
-## [Version 1.4](https://github.com/FreeAndFair/VoteSecure/releases/tag/v1_4) - ?? July 2026
+## [Version 1.4](https://github.com/FreeAndFair/VoteSecure/releases/tag/v1_4) - 30 July 2026
 
 - replaced the digital ballot box's internal storage with a design where the voter authorization issued by the election administration server is sent only to the voting application, which includes it in both its ballot submission and ballot casting messages; the digital ballot box now holds no persistent storage of its own, answering every check (prior authorization, prior submission, prior cast) directly from the public bulletin board
   - *Impact:* The digital ballot box actor's constructor no longer takes a storage argument, and the `DBBStorage` trait has been removed. The voter authorization message (formerly `AuthVoterMsg`) is now a `VoterAuthorization` token, defined in the `elections` module, and is sent to the voting application upon successful authentication; it must be retained by the voting application and included with ballot submissions and cast requests. The election administration server no longer communicates with the digital ballot box.
